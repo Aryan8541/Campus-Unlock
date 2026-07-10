@@ -1,0 +1,51 @@
+<section style="background:var(--bg);border-top:1px solid var(--border);" id="results">
+  <div class="section">
+    <div class="section-eyebrow">Search Results</div>
+    <h2 class="section-title">Dynamic Results Page</h2>
+    <p class="section-sub">Live filtering, sorting, pagination, sticky filters, favorites, bookmarks, recently viewed, compare, details, apply and brochure actions.</p>
+
+    <div class="results-layout">
+      <aside class="filters-panel" id="filtersPanel">
+        <div class="filter-group"><h4>Live Search</h4><input id="fSearch" placeholder="University / Program / City"></div>
+        <div class="filter-group"><h4>Degree</h4><select id="fDegree"><option value="">Any</option><option>Bachelor</option><option>Master</option></select></div>
+        <div class="filter-group"><h4>Program</h4><select id="fProgram"><option value="">Any</option></select></div>
+        <div class="filter-group"><h4>Budget</h4><select id="fBudget"><option value="">Any</option><option value="50000">Under 50k</option><option value="80000">Under 80k</option><option value="150000">Under 1.5L</option></select></div>
+        <div class="filter-group"><h4>NAAC</h4><select id="fNaac"><option value="">Any</option><option>A+</option><option>A++</option></select></div>
+        <div class="filter-group"><h4>NIRF</h4><select id="fNirf"><option value="">Any</option><option value="50">Top 50</option><option value="100">Top 100</option></select></div>
+        <div class="filter-group"><h4>Placement</h4><select id="fPlacement"><option value="">Any</option><option value="80">80%+</option><option value="90">90%+</option></select></div>
+        <div class="filter-group"><h4>EMI</h4><select id="fEmi"><option value="">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+        <div class="filter-group"><h4>Duration</h4><select id="fDuration"><option value="">Any</option><option>1 Year</option><option>2 Years</option><option>3 Years</option></select></div>
+        <div class="filter-group"><h4>State</h4><select id="fState"><option value="">Any</option></select></div>
+        <div class="filter-group"><h4>City</h4><select id="fCity"><option value="">Any</option></select></div>
+        <div class="filter-group"><h4>Learning Mode</h4><select id="fMode"><option value="">Any</option><option>Online</option><option>Hybrid</option></select></div>
+        <div class="filter-group"><h4>Specialization</h4><input id="fSpec" placeholder="e.g. Marketing"></div>
+        <div class="tool-actions"><button class="tiny-btn" id="resetFiltersBtn">Reset Filters</button></div>
+      </aside>
+
+      <div class="results-main">
+        <div class="results-toolbar">
+          <div id="resultCount">0 results</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label for="sortBy" style="font-size:12px;color:var(--muted)">Sort by</label>
+            <select id="sortBy" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;">
+              <option value="rating-desc">Rating (High to Low)</option>
+              <option value="fee-asc">Fee (Low to High)</option>
+              <option value="fee-desc">Fee (High to Low)</option>
+              <option value="nirf-asc">NIRF (Best Rank)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="result-cards" id="resultCards"></div>
+        <div class="pagination" id="pagination"></div>
+
+        <div class="tool-card">
+          <h3>Recently Viewed Universities</h3>
+          <div id="recentlyViewed" class="tool-result">None yet.</div>
+        </div>
+
+        {% include 'includes/faq.html' %}
+      </div>
+    </div>
+  </div>
+</section>

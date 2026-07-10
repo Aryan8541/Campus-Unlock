@@ -1,0 +1,68 @@
+<section style="background:var(--white);border-top:1px solid var(--border);">
+  <div class="section">
+    <div class="section-eyebrow reveal">Advanced tools</div>
+    <h2 class="section-title reveal">Finder, checker & calculator suite</h2>
+    <p class="section-sub reveal">All core workflows are now fully interactive with vanilla JavaScript.</p>
+
+    <div class="tools-grid">
+      <div class="tool-card">
+        <h3>Course Finder (Multi-step)</h3>
+        <div class="wizard-steps" id="wizardSteps"></div>
+        <div class="form-group"><label for="cfQualification">Qualification</label><select id="cfQualification"><option value="">Select</option><option>12th</option><option>Graduate</option><option>Postgraduate</option></select></div>
+        <div class="form-group"><label for="cfDegree">Degree</label><select id="cfDegree"><option value="">Select</option><option>Bachelor</option><option>Master</option></select></div>
+        <div class="form-group"><label for="cfSpec">Specialization</label><input id="cfSpec" placeholder="e.g. Marketing, AI"></div>
+        <div class="form-group"><label for="cfBudget">Budget (₹/yr)</label><input id="cfBudget" type="number" placeholder="e.g. 80000"></div>
+        <div class="form-group"><label for="cfCareer">Career Goal</label><input id="cfCareer" placeholder="e.g. Product Manager"></div>
+        <div class="tool-actions"><button class="tiny-btn" id="cfPrev">Back</button><button class="tiny-btn" id="cfNext">Next</button><button class="tiny-btn" id="cfRun">Recommend</button></div>
+        <div class="tool-result" id="cfResult">Fill all steps and click Recommend.</div>
+      </div>
+
+      <div class="tool-card">
+        <h3>Eligibility Checker</h3>
+        <div class="form-group"><label for="elQual">Qualification</label><select id="elQual"><option>12th</option><option>Graduate</option><option>Postgraduate</option></select></div>
+        <div class="form-group"><label for="elMarks">Marks %</label><input id="elMarks" type="number" placeholder="e.g. 55"></div>
+        <div class="form-group"><label for="elAge">Age</label><input id="elAge" type="number" placeholder="e.g. 24"></div>
+        <div class="form-group"><label for="elCourse">Course</label><select id="elCourse"><option>Online MBA</option><option>Online MCA</option><option>Online BBA</option><option>Online BCA</option><option>Executive MBA</option></select></div>
+        <div class="tool-actions"><button class="tiny-btn" id="eligibilityBtn">Check Eligibility</button></div>
+        <div class="tool-result" id="eligibilityResult">No check yet.</div>
+      </div>
+
+      <div class="tool-card">
+        <h3>EMI Calculator</h3>
+        <div class="form-group"><label for="emiFees">Fees (₹)</label><input id="emiFees" type="number" placeholder="e.g. 120000"></div>
+        <div class="form-group"><label for="emiInterest">Interest % annual</label><input id="emiInterest" type="number" placeholder="e.g. 10"></div>
+        <div class="form-group"><label for="emiMonths">Months</label><input id="emiMonths" type="number" placeholder="e.g. 24"></div>
+        <div class="tool-actions"><button class="tiny-btn" id="emiCalcBtn">Calculate EMI</button></div>
+        <div class="tool-result" id="emiResult">Monthly EMI will appear here.</div>
+      </div>
+
+      <div class="tool-card">
+        <h3>Scholarship Checker</h3>
+        <div class="form-group"><label for="scIncome">Annual Income (₹)</label><input id="scIncome" type="number"></div>
+        <div class="form-group"><label for="scCategory">Category</label><select id="scCategory"><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select></div>
+        <div class="form-group"><label for="scGender">Gender</label><select id="scGender"><option>Female</option><option>Male</option><option>Other</option></select></div>
+        <div class="form-group"><label for="scMarks">Marks %</label><input id="scMarks" type="number"></div>
+        <div class="tool-actions"><button class="tiny-btn" id="scholarshipBtn">Check Scholarship</button></div>
+        <div class="tool-result" id="scholarshipResult">No check yet.</div>
+      </div>
+
+      <div class="tool-card">
+        <h3>Dynamic Compare Tool</h3>
+        <p class="tool-result">Select any 2 universities using “Compare” on cards below and this box updates.</p>
+        <div class="tool-result" id="compareSelected">Selected: none</div>
+      </div>
+
+      <div class="tool-card">
+        <h3>Blog Search & Category</h3>
+        <div class="form-group"><label for="blogSearchInput">Search blogs</label><input id="blogSearchInput" placeholder="Type blog keyword"></div>
+        <div class="tool-actions">
+          <button class="tiny-btn" data-blog-filter="all">All</button>
+          <button class="tiny-btn" data-blog-filter="Guide">Guide</button>
+          <button class="tiny-btn" data-blog-filter="Finance">Finance</button>
+          <button class="tiny-btn" data-blog-filter="Careers">Careers</button>
+        </div>
+        <div class="tool-result" id="blogFilterInfo">Showing all blog posts.</div>
+      </div>
+    </div>
+  </div>
+</section>

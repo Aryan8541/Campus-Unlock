@@ -1,0 +1,19 @@
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <div id="modalFormView">
+      <div class="modal-title" id="modalTitle">Get free guidance</div>
+      <div class="modal-sub">Tell us a bit about yourself and a counsellor will call you within 24 hours.</div>
+      <form id="leadForm" novalidate>
+        <div class="form-group"><label for="leadName">Full name</label><input type="text" id="leadName" name="name" placeholder="e.g. Priya Sharma" autocomplete="name" aria-describedby="err-leadName"><div class="form-error" id="err-leadName" role="alert">⚠ Please enter your name.</div></div>
+        <div class="form-group"><label for="leadPhone">Phone number</label><input type="tel" id="leadPhone" name="phone" placeholder="10-digit mobile number" autocomplete="tel" aria-describedby="err-leadPhone"><div class="form-error" id="err-leadPhone" role="alert">⚠ Please enter a valid 10-digit phone number.</div></div>
+        <div class="form-group"><label for="leadEmail">Email</label><input type="email" id="leadEmail" name="email" placeholder="you@example.com" autocomplete="email" aria-describedby="err-leadEmail"><div class="form-error" id="err-leadEmail" role="alert">⚠ Please enter a valid email address.</div></div>
+        <div class="form-group"><label for="leadProgram">Program you're interested in</label><select id="leadProgram" name="program"><option value="">Select a program</option></select></div>
+        <button type="submit" class="form-submit">Request a callback</button>
+      </form>
+    </div>
+    <div class="form-success" id="modalSuccessView">
+      <div class="fs-icon">✅</div><h3>Thanks — you're on the list!</h3><p>A counsellor will reach out to you shortly. In the meantime, feel free to keep browsing programs.</p>
+    </div>
+  </div>
+</div>
