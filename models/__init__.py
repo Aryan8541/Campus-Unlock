@@ -16,3 +16,11 @@ from flask_migrate import Migrate
 
 db = SQLAlchemy()
 migrate = Migrate()
+
+from .university import University
+from .category import Category
+from .specialization import Specialization
+from .program import Program
+
+from .user import User
+from .lead import Lead

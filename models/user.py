@@ -1,0 +1,52 @@
+"""
+Campus Unlock — User Model
+===========================
+Represents a platform user account. Password storage uses Werkzeug's
+salted hashing (generate_password_hash / check_password_hash) — the
+plain-text password is never persisted.
+
+No authentication routes, sessions, or login logic are implemented
+here; this is the model definition only.
+"""
+
+from datetime import datetime
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from models import db
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(180), nullable=False, unique=True, index=True)
+    mobile = db.Column(db.String(20), nullable=False, unique=True, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    profile_image = db.Column(db.String(255), nullable=True)
+    is_verified = db.Column(db.Boolean, nullable=False, default=False)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    last_login = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    # ------------------------------------------------------------------
+    # Password handling
+    # ------------------------------------------------------------------
+    def set_password(self, raw_password):
+        """Hash and store the given plain-text password."""
+        self.password_hash = generate_password_hash(raw_password)
+
+    def check_password(self, raw_password):
+        """Verify a plain-text password against the stored hash."""
+        return check_password_hash(self.password_hash, raw_password)
+
+    def __repr__(self):
+        return f"<User id={self.id} email={self.email!r}>"
