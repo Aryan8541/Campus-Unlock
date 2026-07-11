@@ -28,7 +28,7 @@ class Config:
     # Database (SQLAlchemy / SQLite)
     # ------------------------------------------------------------------
     SQLITE_DB_PATH = os.path.join(
-        BASE_DIR, "instance", os.environ.get("SQLITE_DB_NAME", "Campus_Unlock.db")
+        BASE_DIR, "instance", os.environ.get("SQLITE_DB_NAME", "campus_unlock.db")
     )
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", f"sqlite:///{SQLITE_DB_PATH}"

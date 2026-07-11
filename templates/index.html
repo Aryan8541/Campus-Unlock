@@ -3,6 +3,8 @@
 {% block title %}Campus Unlock — Your Dream Degree, Found in Minutes{% endblock %}
 
 {% block content %}
+<script type="application/json" id="campus-data">{{ campus_data | tojson }}</script>
+
 {% include 'includes/hero.html' %}
 
 {% include 'includes/stats.html' %}

@@ -3,6 +3,23 @@
     <div class="section-eyebrow reveal">Top-rated on our platform</div>
     <h2 class="section-title reveal">Universities students love</h2>
     <p class="section-sub reveal">All universities are UGC-DEB entitled and NAAC accredited. No surprises post-admission.</p>
-    <div class="uni-grid" id="uniGrid"></div>
+    <div class="uni-grid" id="uniGrid">
+      {% if top_universities %}
+        {% for university in top_universities %}
+        <div class="uni-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms" data-id="{{ university.id }}">
+          <div class="uni-top">
+            <div class="uni-avatar">{% if university.logo %}<img src="{{ university.logo }}" alt="{{ university.name }} logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">{% else %}{{ university.avatar }}{% endif %}</div>
+            <div><div class="uni-name">{{ university.name }}</div><div class="uni-naac">{{ university.naac or 'Accreditation pending' }}{% if university.nirf %} · NIRF #{{ university.nirf }}{% endif %}</div></div>
+          </div>
+          <div class="uni-chips">
+            {% for name in university.programs[:4] %}<span class="uni-chip">{{ name.replace('Online ', '') }}</span>{% endfor %}
+          </div>
+          <div class="uni-fee">{% if university.fee %}From ₹{{ '{:,.0f}'.format(university.fee) }}/yr{% else %}Fees on request{% endif %}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="tool-result">No universities available yet. Please check back soon.</div>
+      {% endif %}
+    </div>
   </div>
 </section>

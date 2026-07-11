@@ -2,27 +2,11 @@
   'use strict';
 
   const appData = {
-    programs: [
-      { id:'p1', name:'Online MBA', degree:'Master', duration:'2 Years', tag:'#1 Choice', spec:['Marketing','Finance','HR'], emoji:'🎓' },
-      { id:'p2', name:'Online MCA', degree:'Master', duration:'2 Years', tag:'Trending', spec:['AI','Cyber Security','Cloud'], emoji:'💻' },
-      { id:'p3', name:'Online BBA', degree:'Bachelor', duration:'3 Years', tag:'Popular', spec:['Business Analytics','Marketing'], emoji:'📊' },
-      { id:'p4', name:'1-Year MBA', degree:'Master', duration:'1 Year', tag:'Fast Track', spec:['General Management'], emoji:'⚡' },
-      { id:'p5', name:'Dual MBA', degree:'Master', duration:'2 Years', tag:'New', spec:['Dual Specialization'], emoji:'🔗' },
-      { id:'p6', name:'Online BCA', degree:'Bachelor', duration:'3 Years', tag:'Tech', spec:['Programming','Data Science'], emoji:'🖥️' },
-      { id:'p7', name:'Executive MBA', degree:'Master', duration:'1 Year', tag:'Premium', spec:['Leadership','Strategy'], emoji:'🏛️' },
-      { id:'p8', name:'Online M.Tech', degree:'Master', duration:'2 Years', tag:'New', spec:['CS','AI'], emoji:'⚙️' },
-      { id:'p9', name:'Online M.Com', degree:'Master', duration:'2 Years', tag:'Affordable', spec:['Finance','Accounting'], emoji:'📈' }
-    ],
-    universities: [
-      { id:'u1', name:'Amity University Online', naac:'A+', nirf:35, rating:4.8, fee:65000, emi:'Yes', placement:88, duration:'2 Years', state:'Uttar Pradesh', city:'Noida', mode:'Online', programs:['Online MBA','Online MCA','Online BBA'], specs:['Marketing','Finance','AI'], degree:['Bachelor','Master'], avatar:'AM' },
-      { id:'u2', name:'NMIMS Online', naac:'A++', nirf:21, rating:4.9, fee:100000, emi:'Yes', placement:92, duration:'2 Years', state:'Maharashtra', city:'Mumbai', mode:'Online', programs:['Online MBA','Online BBA','Executive MBA'], specs:['Finance','Leadership'], degree:['Bachelor','Master'], avatar:'NM' },
-      { id:'u3', name:'Manipal University Online', naac:'A++', nirf:43, rating:4.7, fee:70000, emi:'Yes', placement:86, duration:'2 Years', state:'Karnataka', city:'Manipal', mode:'Online', programs:['Online MBA','Online MCA','Online M.Com'], specs:['Cloud','Cyber Security','Accounting'], degree:['Master'], avatar:'MP' },
-      { id:'u4', name:'LPU Online', naac:'A+', nirf:46, rating:4.6, fee:45000, emi:'Yes', placement:82, duration:'3 Years', state:'Punjab', city:'Jalandhar', mode:'Online', programs:['Online MBA','Online BCA','Online BBA'], specs:['Programming','Marketing'], degree:['Bachelor','Master'], avatar:'LP' },
-      { id:'u5', name:'Jain University Online', naac:'A++', nirf:68, rating:4.7, fee:55000, emi:'Yes', placement:85, duration:'2 Years', state:'Karnataka', city:'Bengaluru', mode:'Online', programs:['Online MBA','Online MCA','Online BBA'], specs:['AI','Business Analytics'], degree:['Bachelor','Master'], avatar:'JN' },
-      { id:'u6', name:'Chandigarh University', naac:'A+', nirf:45, rating:4.5, fee:40000, emi:'Yes', placement:80, duration:'2 Years', state:'Punjab', city:'Mohali', mode:'Online', programs:['Online MBA','Online MCA'], specs:['Cyber Security','HR'], degree:['Master'], avatar:'CU' },
-      { id:'u7', name:'Symbiosis Centre for Distance Learning', naac:'A', nirf:88, rating:4.4, fee:52000, emi:'No', placement:78, duration:'2 Years', state:'Maharashtra', city:'Pune', mode:'Hybrid', programs:['Online MBA','Online BBA'], specs:['Operations','Marketing'], degree:['Bachelor','Master'], avatar:'SY' },
-      { id:'u8', name:'UPES Online', naac:'A', nirf:61, rating:4.3, fee:85000, emi:'Yes', placement:84, duration:'2 Years', state:'Uttarakhand', city:'Dehradun', mode:'Online', programs:['Online MBA','Online BCA','Online M.Tech'], specs:['AI','Energy Management'], degree:['Bachelor','Master'], avatar:'UP' }
-    ],
+    // programs / universities are no longer hardcoded here — they are
+    // hydrated from the server-rendered JSON payload (see hydrateAppData()
+    // below), which is populated from SQLAlchemy objects by Flask.
+    programs: [],
+    universities: [],
     blogs: [
       { id:'b1', title:"UGC-DEB vs UGC-Regular: what's the real difference?", category:'Guide', read:'6 min', updated:'Jul 2026', cover:'🎓' },
       { id:'b2', title:'How EMI plans for online degrees actually work', category:'Finance', read:'4 min', updated:'Jun 2026', cover:'💰' },
@@ -46,6 +30,24 @@
   const $$ = (s, p=document) => Array.from(p.querySelectorAll(s));
   const inr = n => '₹' + Number(n).toLocaleString('en-IN');
 
+  // Populates appData.programs / appData.universities from the JSON payload
+  // Flask renders into a <script type="application/json" id="campus-data">
+  // tag (see index.html). This replaces the old hardcoded arrays with real
+  // SQLAlchemy-backed data, without changing how any of the functions below
+  // consume appData.
+  function hydrateAppData() {
+    const dataEl = document.getElementById('campus-data');
+    if (!dataEl) return;
+    try {
+      const parsed = JSON.parse(dataEl.textContent || '{}');
+      appData.programs = Array.isArray(parsed.programs) ? parsed.programs : [];
+      appData.universities = Array.isArray(parsed.universities) ? parsed.universities : [];
+    } catch (err) {
+      appData.programs = [];
+      appData.universities = [];
+    }
+  }
+
   function saveLS() {
     localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
     localStorage.setItem('bookmarks', JSON.stringify([...state.bookmarks]));
@@ -53,37 +55,20 @@
   }
 
   function renderPrograms() {
-    const grid = $('#progGrid');
-    grid.innerHTML = appData.programs.map((p, i) => `
-      <div class="prog-card reveal reveal-stagger" style="--d:${i*40}ms" data-name="${p.name}" data-program-id="${p.id}">
-        <div class="prog-icon">${p.emoji}</div>
-        <div>
-          <div class="prog-name">${p.name}</div>
-          <div class="prog-meta">${p.duration} · ${p.spec.join(', ')}</div>
-          <div class="prog-tag">${p.tag}</div>
-        </div>
-      </div>
-    `).join('');
+    // #progGrid is now rendered server-side by Flask/Jinja from real
+    // Program rows — see templates/includes/programs.html. This function
+    // now only keeps the dependent <select> dropdowns in sync with the
+    // same (DB-backed) program list.
     const leadProgram = $('#leadProgram');
     leadProgram.innerHTML = '<option value="">Select a program</option>' + appData.programs.map(p => `<option>${p.name}</option>`).join('') + '<option>Not sure yet</option>';
     const fProgram = $('#fProgram');
     fProgram.innerHTML = '<option value="">Any</option>' + appData.programs.map(p => `<option>${p.name}</option>`).join('');
   }
 
-  function renderUniversities() {
-    const grid = $('#uniGrid');
-    grid.innerHTML = appData.universities.slice(0, 6).map((u, i) => `
-      <div class="uni-card reveal reveal-stagger" style="--d:${i*60}ms" data-id="${u.id}">
-        <div class="uni-top">
-          <div class="uni-avatar">${u.avatar}</div>
-          <div><div class="uni-name">${u.name}</div><div class="uni-naac">NAAC ${u.naac} · NIRF #${u.nirf}</div></div>
-          <div class="uni-rating">★ ${u.rating}</div>
-        </div>
-        <div class="uni-chips">${u.programs.slice(0,4).map(p=>`<span class="uni-chip">${p.replace('Online ','')}</span>`).join('')}</div>
-        <div class="uni-fee">From ${inr(u.fee)}/yr</div>
-      </div>
-    `).join('');
-  }
+  // renderUniversities() previously overwrote #uniGrid with hardcoded
+  // appData.universities. #uniGrid is now rendered server-side by Flask/
+  // Jinja from real University rows — see templates/includes/universities.html.
+  // No client-side rendering is needed for it anymore.
 
   function renderCompareTable() {
     const body = $('#compareBody');
@@ -96,8 +81,8 @@
         <td>${u.programs[0]}</td>
         <td>${u.duration}</td>
         <td class="fee-cell">${inr(u.fee)}/yr</td>
-        <td>${u.emi}</td>
-        <td>${u.placement}%</td>
+        <td>${u.emi != null ? u.emi : '—'}</td>
+        <td>${u.placement != null ? u.placement + '%' : '—'}</td>
       </tr>
     `).join('');
     $('#compareSelected').textContent = state.compareSet.size ? `Selected: ${[...state.compareSet].map(id => appData.universities.find(u => u.id===id)?.name).join(' vs ')}` : 'Selected: none';
@@ -127,82 +112,103 @@
     $('#fCity').innerHTML = '<option value="">Any</option>' + cities.map(c => `<option>${c}</option>`).join('');
   }
 
-  function getFilteredUniversities() {
-    const f = {
-      search: $('#fSearch').value.toLowerCase().trim(),
-      degree: $('#fDegree').value,
-      program: $('#fProgram').value,
-      budget: Number($('#fBudget').value || 0),
-      naac: $('#fNaac').value,
-      nirf: Number($('#fNirf').value || 0),
-      placement: Number($('#fPlacement').value || 0),
-      emi: $('#fEmi').value,
-      duration: $('#fDuration').value,
-      state: $('#fState').value,
-      city: $('#fCity').value,
-      mode: $('#fMode').value,
-      spec: $('#fSpec').value.toLowerCase().trim()
-    };
+  // ---------------------------------------------------------------------------
+  // Server-driven filter state
+  // ---------------------------------------------------------------------------
+  const filterState = {
+    controller: null,   // AbortController for in-flight /filter request
+    debounceTimer: null,
+    totalPages: 1,
+  };
 
-    return appData.universities.filter(u => {
-      const hitSearch = !f.search || [u.name, u.city, u.state, u.mode, u.naac, ...u.programs, ...u.specs].join(' ').toLowerCase().includes(f.search);
-      const hitDegree = !f.degree || u.degree.includes(f.degree);
-      const hitProgram = !f.program || u.programs.includes(f.program);
-      const hitBudget = !f.budget || u.fee <= f.budget;
-      const hitNaac = !f.naac || u.naac === f.naac;
-      const hitNirf = !f.nirf || u.nirf <= f.nirf;
-      const hitPlacement = !f.placement || u.placement >= f.placement;
-      const hitEmi = !f.emi || u.emi === f.emi;
-      const hitDuration = !f.duration || u.duration === f.duration;
-      const hitState = !f.state || u.state === f.state;
-      const hitCity = !f.city || u.city === f.city;
-      const hitMode = !f.mode || u.mode === f.mode;
-      const hitSpec = !f.spec || u.specs.join(' ').toLowerCase().includes(f.spec);
-      return hitSearch && hitDegree && hitProgram && hitBudget && hitNaac && hitNirf && hitPlacement && hitEmi && hitDuration && hitState && hitCity && hitMode && hitSpec;
-    });
+  // Build a URLSearchParams from the current filter controls.
+  function _buildFilterParams() {
+    const params = new URLSearchParams();
+    const add = (key, id) => { const v = ($(id) ? $(id).value : '').trim(); if (v) params.set(key, v); };
+    add('search',   '#fSearch');
+    add('degree',   '#fDegree');
+    add('program',  '#fProgram');
+    add('budget',   '#fBudget');
+    add('naac',     '#fNaac');
+    add('nirf',     '#fNirf');
+    add('duration', '#fDuration');
+    add('state',    '#fState');
+    add('city',     '#fCity');
+    add('mode',     '#fMode');
+    add('spec',     '#fSpec');
+    add('sort',     '#sortBy');
+    params.set('page',      String(state.resultPage));
+    params.set('page_size', String(state.pageSize));
+    return params;
   }
 
-  function sortUniversities(list) {
-    const sort = $('#sortBy').value;
-    const arr = [...list];
-    if (sort === 'rating-desc') arr.sort((a,b) => b.rating-a.rating);
-    if (sort === 'fee-asc') arr.sort((a,b) => a.fee-b.fee);
-    if (sort === 'fee-desc') arr.sort((a,b) => b.fee-a.fee);
-    if (sort === 'nirf-asc') arr.sort((a,b) => a.nirf-b.nirf);
-    return arr;
-  }
+  // Render university cards from a /filter JSON response payload.
+  function _renderFilterResponse(data) {
+    const rows = Array.isArray(data.universities) ? data.universities : [];
+    filterState.totalPages = data.total_pages || 1;
 
-  function renderResults() {
-    let rows = sortUniversities(getFilteredUniversities());
-    $('#resultCount').textContent = `${rows.length} result(s)`;
-    const totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
-    if (state.resultPage > totalPages) state.resultPage = totalPages;
-    const start = (state.resultPage - 1) * state.pageSize;
-    const pageRows = rows.slice(start, start + state.pageSize);
+    $('#resultCount').textContent = `${data.total || 0} result(s)`;
 
-    $('#resultCards').innerHTML = pageRows.map(u => `
-      <article class="result-card" data-id="${u.id}">
-        <div class="uni-top">
-          <div class="uni-avatar">${u.avatar}</div>
-          <div><div class="uni-name">${u.name}</div><div class="uni-naac">NAAC ${u.naac} · NIRF #${u.nirf} · ${u.city}</div></div>
-          <div class="uni-rating">★ ${u.rating}</div>
-        </div>
-        <div class="uni-chips">${u.programs.map(p=>`<span class="uni-chip">${p.replace('Online ','')}</span>`).join('')}</div>
-        <div class="uni-fee">From ${inr(u.fee)}/yr · Placement ${u.placement}% · EMI ${u.emi}</div>
-        <div class="result-actions">
-          <button class="action-btn action-light" data-fav="${u.id}">${state.favorites.has(u.id) ? '★ Favorited' : '☆ Favorite'}</button>
-          <button class="action-btn action-light" data-bookmark="${u.id}">${state.bookmarks.has(u.id) ? '🔖 Bookmarked' : '🔖 Bookmark'}</button>
-          <button class="action-btn action-light" data-compare="${u.id}">Compare</button>
-          <button class="action-btn action-light" data-detail="${u.id}">View Details</button>
-          <button class="action-btn action-apply" data-apply="${u.id}">Apply</button>
-          <button class="action-btn action-light" data-brochure="${u.id}">Download Brochure</button>
-        </div>
-      </article>
-    `).join('') || `<div class="tool-result">No universities match your filters.</div>`;
+    $('#resultCards').innerHTML = rows.length
+      ? rows.map(u => `
+          <article class="result-card" data-id="${u.id}">
+            <div class="uni-top">
+              <div class="uni-avatar">${u.avatar}</div>
+              <div><div class="uni-name">${u.name}</div><div class="uni-naac">NAAC ${u.naac || '—'} · NIRF #${u.nirf || '—'} · ${u.city || '—'}</div></div>
+              <div class="uni-rating">${u.rating != null ? '★ ' + u.rating : ''}</div>
+            </div>
+            <div class="uni-chips">${(u.programs || []).map(p => `<span class="uni-chip">${p.replace('Online ','')}</span>`).join('')}</div>
+            <div class="uni-fee">From ${u.fee != null ? inr(u.fee) + '/yr' : 'Fees on request'}${u.placement != null ? ' · Placement ' + u.placement + '%' : ''}${u.emi != null ? ' · EMI ' + u.emi : ''}</div>
+            <div class="result-actions">
+              <button class="action-btn action-light" data-fav="${u.id}">${state.favorites.has(u.id) ? '★ Favorited' : '☆ Favorite'}</button>
+              <button class="action-btn action-light" data-bookmark="${u.id}">${state.bookmarks.has(u.id) ? '🔖 Bookmarked' : '🔖 Bookmark'}</button>
+              <button class="action-btn action-light" data-compare="${u.id}">Compare</button>
+              <button class="action-btn action-light" data-detail="${u.id}">View Details</button>
+              <button class="action-btn action-apply" data-apply="${u.id}">Apply</button>
+              <button class="action-btn action-light" data-brochure="${u.id}">Download Brochure</button>
+            </div>
+          </article>
+        `).join('')
+      : `<div class="tool-result">No programs match your selected filters.</div>`;
 
-    $('#pagination').innerHTML = Array.from({length: totalPages}, (_,i) => `
-      <button class="${state.resultPage === i+1 ? 'active' : ''}" data-page="${i+1}">${i+1}</button>
+    const totalPages = filterState.totalPages;
+    $('#pagination').innerHTML = Array.from({ length: totalPages }, (_, i) => `
+      <button class="${state.resultPage === i + 1 ? 'active' : ''}" data-page="${i + 1}">${i + 1}</button>
     `).join('');
+  }
+
+  // Abort any in-flight request, then fire a new debounced /filter fetch.
+  function fetchFilteredResults() {
+    if (filterState.controller) {
+      filterState.controller.abort();
+    }
+    clearTimeout(filterState.debounceTimer);
+
+    filterState.debounceTimer = setTimeout(() => {
+      const controller = new AbortController();
+      filterState.controller = controller;
+
+      const params = _buildFilterParams();
+
+      fetch(`/filter?${params.toString()}`, { signal: controller.signal })
+        .then(res => (res.ok ? res.json() : { total: 0, page: 1, page_size: state.pageSize, total_pages: 1, universities: [] }))
+        .then(data => {
+          filterState.controller = null;
+          _renderFilterResponse(data);
+        })
+        .catch(err => {
+          if (err && err.name === 'AbortError') return; // superseded — ignore
+          filterState.controller = null;
+          _renderFilterResponse({ total: 0, page: 1, page_size: state.pageSize, total_pages: 1, universities: [] });
+        });
+    }, 280); // 280 ms debounce — fast enough to feel live, avoids hammering on every keystroke
+  }
+
+  // Kept as a thin alias so every existing internal call to renderResults()
+  // (pagination click, fav toggle, bookmark toggle, wizard, etc.) automatically
+  // goes through the server-driven path without any other changes.
+  function renderResults() {
+    fetchFilteredResults();
   }
 
   function updateRecentlyViewedView() {
@@ -228,8 +234,8 @@
   }
 
   function boot() {
+    hydrateAppData();
     renderPrograms();
-    renderUniversities();
     renderCompareTable();
     renderBlogs();
     setupFiltersMeta();
@@ -290,33 +296,155 @@
     const heroSearchBudget = $('#heroSearchBudget');
     const suggestionsBox = $('#searchSuggestions');
 
+    // --- Live search: hero box wired to the real /search API ---
+    // Replaces the old client-side suggestionsFor() lookup with a
+    // debounced fetch to the server search endpoint. The dropdown
+    // reuses the exact same DOM shape/classes (.suggestion-item /
+    // .suggestion-tag on #searchSuggestions) so no CSS changes are
+    // needed and the existing open/close styling still applies.
+    const searchState = {
+      controller: null,
+      lastQuery: null,
+      results: [],
+      activeIndex: -1,
+    };
+
+    function closeSearchSuggestions() {
+      suggestionsBox.classList.remove('open');
+      suggestionsBox.innerHTML = '';
+      searchState.results = [];
+      searchState.activeIndex = -1;
+    }
+
+    function formatFee(fees) {
+      return (fees === null || fees === undefined) ? 'Fees on request' : (inr(fees) + '/yr');
+    }
+
+    function updateActiveSuggestion() {
+      Array.from(suggestionsBox.children).forEach((el, i) => {
+        // Inline style only — no CSS file changes — so keyboard
+        // navigation has a visible highlight regardless of stylesheet.
+        el.style.background = (i === searchState.activeIndex) ? 'rgba(37,99,235,0.08)' : '';
+      });
+      const activeEl = suggestionsBox.children[searchState.activeIndex];
+      if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block: 'nearest' });
+    }
+
+    function renderSearchResults(results) {
+      searchState.results = results;
+      searchState.activeIndex = -1;
+      if (!results.length) {
+        suggestionsBox.innerHTML = `<div class="suggestion-item" aria-disabled="true"><span>No matching universities or programs found.</span></div>`;
+        suggestionsBox.classList.add('open');
+        return;
+      }
+      suggestionsBox.innerHTML = results.map((r, i) => {
+        const location = [r.university, r.city].filter(Boolean).join(', ');
+        const meta = [location, r.duration, formatFee(r.fees)].filter(Boolean).join(' · ');
+        const tag = [r.category, r.specialization].filter(Boolean).join(' · ') || 'Program';
+        return `<div class="suggestion-item" data-sindex="${i}" role="option" tabindex="-1"><span>${r.program || r.university || ''}${meta ? ' — ' + meta : ''}</span><span class="suggestion-tag">${tag}</span></div>`;
+      }).join('');
+      suggestionsBox.classList.add('open');
+    }
+
+    function selectSearchResult(result) {
+      if (!result) return;
+      // No standalone program/university detail pages exist yet, so
+      // "opening the appropriate page" means jumping to the live
+      // Results section pre-filtered to this result — the same pattern
+      // the rest of the app already uses for search/filter deep-links.
+      if (result.university) $('#fSearch').value = result.university;
+      if (result.program) $('#fProgram').value = result.program;
+      state.resultPage = 1;
+      renderResults();
+      heroSearchInput.value = result.program || result.university || heroSearchInput.value;
+      closeSearchSuggestions();
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function runSearch(query) {
+      if (searchState.controller) searchState.controller.abort();
+      const controller = new AbortController();
+      searchState.controller = controller;
+
+      fetch(`/search?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+        .then(res => (res.ok ? res.json() : []))
+        .then(data => {
+          if (searchState.lastQuery !== query) return; // stale response, ignore
+          renderSearchResults(Array.isArray(data) ? data.slice(0, 10) : []);
+        })
+        .catch(err => {
+          if (err && err.name === 'AbortError') return;
+          renderSearchResults([]);
+        });
+    }
+
+    const debouncedSearch = (() => {
+      let timer = null;
+      return (query) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => runSearch(query), 300);
+      };
+    })();
+
     heroSearchInput.addEventListener('input', () => {
-      const list = suggestionsFor(heroSearchInput.value);
-      suggestionsBox.innerHTML = list.map((s, i) => `<div class="suggestion-item" data-sindex="${i}"><span>${s.label}</span><span class="suggestion-tag">${s.type}</span></div>`).join('');
-      suggestionsBox.classList.toggle('open', list.length > 0);
-      suggestionsBox.dataset.payload = JSON.stringify(list.map(s => ({type:s.type,label:s.label})));
-      suggestionsBox._actions = list.map(s => s.action);
-      // live search across cards
-      const q = heroSearchInput.value.trim().toLowerCase();
+      const rawQuery = heroSearchInput.value.trim();
+
+      // live highlight across program cards (unchanged local behaviour)
+      const q = rawQuery.toLowerCase();
       $$('#progGrid .prog-card').forEach(card => {
         const match = !q || (card.dataset.name || '').toLowerCase().includes(q);
         card.classList.toggle('is-match', !!q && match);
         card.classList.toggle('no-match', !!q && !match);
       });
+
+      if (rawQuery.length < 2) {
+        if (searchState.controller) searchState.controller.abort();
+        searchState.lastQuery = null;
+        closeSearchSuggestions();
+        return;
+      }
+
+      if (rawQuery === searchState.lastQuery && suggestionsBox.classList.contains('open')) {
+        return; // identical to the last search already shown — skip duplicate request
+      }
+
+      searchState.lastQuery = rawQuery;
+      debouncedSearch(rawQuery);
+    });
+
+    heroSearchInput.addEventListener('keydown', (e) => {
+      if (!suggestionsBox.classList.contains('open') || !searchState.results.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        searchState.activeIndex = Math.min(searchState.activeIndex + 1, searchState.results.length - 1);
+        updateActiveSuggestion();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        searchState.activeIndex = Math.max(searchState.activeIndex - 1, 0);
+        updateActiveSuggestion();
+      } else if (e.key === 'Enter' && searchState.activeIndex >= 0) {
+        e.preventDefault();
+        selectSearchResult(searchState.results[searchState.activeIndex]);
+      }
     });
 
     suggestionsBox.addEventListener('click', (e) => {
       const item = e.target.closest('.suggestion-item');
-      if (!item) return;
+      if (!item || item.hasAttribute('aria-disabled')) return;
       const idx = Number(item.dataset.sindex);
-      const fn = suggestionsBox._actions?.[idx];
-      if (fn) fn();
-      suggestionsBox.classList.remove('open');
-      heroSearchInput.value = item.firstElementChild.textContent;
+      selectSearchResult(searchState.results[idx]);
     });
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.hero-search-wrap')) suggestionsBox.classList.remove('open');
+      if (!e.target.closest('.hero-search-wrap')) closeSearchSuggestions();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && suggestionsBox.classList.contains('open')) {
+        closeSearchSuggestions();
+      }
     });
 
     heroSearch.addEventListener('submit', (e) => {

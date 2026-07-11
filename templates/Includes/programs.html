@@ -3,6 +3,21 @@
     <div class="section-eyebrow reveal">What would you like to study?</div>
     <h2 class="section-title reveal">Popular Online Programs</h2>
     <p class="section-sub reveal">UGC-approved degrees you can pursue from anywhere in India.</p>
-    <div class="prog-grid" id="progGrid"></div>
+    <div class="prog-grid" id="progGrid">
+      {% if featured_programs %}
+        {% for program in featured_programs %}
+        <div class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 40 }}ms" data-name="{{ program.name }}" data-program-id="{{ program.id }}">
+          <div class="prog-icon">{{ program.emoji }}</div>
+          <div>
+            <div class="prog-name">{{ program.name }}</div>
+            <div class="prog-meta">{{ program.duration or 'Duration on request' }}{% if program.specialization %} · {{ program.specialization }}{% elif program.category %} · {{ program.category }}{% endif %}</div>
+            <div class="prog-tag">{{ program.university or '' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="tool-result">No programs available yet. Please check back soon.</div>
+      {% endif %}
+    </div>
   </div>
 </div>
