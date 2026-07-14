@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | Campus Unlock{% endblock %}
+{% block meta_description %}View your Campus Unlock account details.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:480px;padding-top:64px;padding-bottom:64px;">
+  <div class="section-eyebrow">Account</div>
+  <h1 class="section-title" style="font-size:26px;">My Profile</h1>
+
+  <div class="pdp-info-card">
+    <h3 class="pdp-info-card-title">Account Details</h3>
+    <ul class="pdp-info-list">
+      <li><span class="pdp-info-key">Full Name</span><span class="pdp-info-val">{{ current_user.full_name }}</span></li>
+      <li><span class="pdp-info-key">Email</span><span class="pdp-info-val">{{ current_user.email }}</span></li>
+      <li><span class="pdp-info-key">Mobile</span><span class="pdp-info-val">{{ current_user.mobile }}</span></li>
+      <li><span class="pdp-info-key">Member Since</span><span class="pdp-info-val">{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</span></li>
+    </ul>
+    <a href="{{ url_for('main.logout') }}" class="btn-outline pdp-apply-btn" style="display:block;text-align:center;">Logout</a>
+  </div>
+</section>
+{% endblock %}

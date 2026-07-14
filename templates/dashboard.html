@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboard | Campus Unlock{% endblock %}
+{% block meta_description %}Manage your Campus Unlock account, track your enquiries, and update your profile.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:720px;padding-top:64px;padding-bottom:64px;">
+  <div class="section-eyebrow">Account</div>
+  <h1 class="section-title" style="font-size:26px;">My Dashboard</h1>
+  <p class="section-sub" style="margin-bottom:28px;">Welcome back, {{ current_user.full_name.split(' ')[0] }}.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="form-error show" style="{% if category == 'success' %}color:var(--success);{% endif %}position:static;display:flex;margin-bottom:16px;">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {# ── Profile Summary ──────────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;">
+    <h3 class="pdp-info-card-title">Profile</h3>
+    <ul class="pdp-info-list">
+      <li><span class="pdp-info-key">Full Name</span><span class="pdp-info-val">{{ current_user.full_name }}</span></li>
+      <li><span class="pdp-info-key">Email</span><span class="pdp-info-val">{{ current_user.email }}</span></li>
+      <li><span class="pdp-info-key">Mobile</span><span class="pdp-info-val">{{ current_user.mobile }}</span></li>
+      <li><span class="pdp-info-key">Registered On</span><span class="pdp-info-val">{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</span></li>
+    </ul>
+  </div>
+
+  {# ── My Enquiries ─────────────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;">
+    <h3 class="pdp-info-card-title">My Enquiries</h3>
+    {% if leads %}
+      <ul class="pdp-info-list" style="gap:16px;">
+        {% for lead in leads %}
+        <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
+          <span class="pdp-info-val" style="text-align:left;">{{ lead.interested_university or 'University not specified' }}</span>
+          <span class="pdp-info-key">{{ lead.interested_program or 'Program not specified' }}</span>
+          <span class="pdp-info-key">Status: <strong style="color:var(--text);">{{ lead.status }}</strong> · Submitted {{ lead.created_at.strftime('%d %b %Y') if lead.created_at else '—' }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result">You haven't submitted any enquiries yet.</div>
+    {% endif %}
+  </div>
+
+  {# ── Edit Profile ─────────────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;">
+    <h3 class="pdp-info-card-title">Edit Profile</h3>
+    <form method="POST" action="{{ url_for('main.update_profile') }}" novalidate>
+      <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <input type="text" id="full_name" name="full_name" value="{{ current_user.full_name }}" required minlength="2" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="mobile">Mobile Number</label>
+        <input type="tel" id="mobile" name="mobile" value="{{ current_user.mobile }}" required pattern="[0-9]{10}" maxlength="10" autocomplete="tel">
+      </div>
+      <div class="form-group">
+        <label for="email_readonly">Email</label>
+        <input type="email" id="email_readonly" value="{{ current_user.email }}" disabled style="background:var(--bg);color:var(--muted);">
+      </div>
+      <button type="submit" class="form-submit">Save Changes</button>
+    </form>
+  </div>
+
+  {# ── Saved Universities ───────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;">
+    <h3 class="pdp-info-card-title">Saved Universities</h3>
+    {% if saved_universities %}
+      <ul class="pdp-info-list" style="gap:16px;">
+        {% for su in saved_universities %}
+        <li style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
+          <a href="{{ url_for('main.university_detail', slug=su.university.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
+            {{ su.university.name }}
+          </a>
+          {% if su.university.city or su.university.state %}
+            <span class="pdp-info-key">📍 {{ [su.university.city, su.university.state] | select | join(', ') }}</span>
+          {% endif %}
+          <button
+            class="btn-outline saved-toggle-btn"
+            style="font-size:12px;padding:6px 12px;margin-top:4px;color:var(--muted);border-color:var(--border-teal);"
+            data-save-type="university"
+            data-save-id="{{ su.university.id }}"
+            data-saved="true">
+            ✕ Remove
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result">You haven't saved any universities yet. Click the bookmark icon on any university page to save it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Saved Programs ────────────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;">
+    <h3 class="pdp-info-card-title">Saved Programs</h3>
+    {% if saved_programs %}
+      <ul class="pdp-info-list" style="gap:16px;">
+        {% for sp in saved_programs %}
+        <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
+          <a href="{{ url_for('main.program_detail', slug=sp.program.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
+            {{ sp.program.title }}
+          </a>
+          {% if sp.program.university %}
+            <span class="pdp-info-key">{{ sp.program.university.name }}</span>
+          {% endif %}
+          {% if sp.program.category %}
+            <span class="pdp-info-key">{{ sp.program.category.name }}{% if sp.program.duration %} · {{ sp.program.duration }}{% endif %}</span>
+          {% endif %}
+          <button
+            class="btn-outline saved-toggle-btn"
+            style="font-size:12px;padding:6px 12px;margin-top:4px;color:var(--muted);border-color:var(--border-teal);"
+            data-save-type="program"
+            data-save-id="{{ sp.program.id }}"
+            data-saved="true">
+            ✕ Remove
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result">You haven't saved any programs yet. Click the bookmark icon on any program page to save it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Recently Viewed Universities ────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;" id="card-viewed-universities">
+    <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Recently Viewed Universities</span>
+      {% if recent_universities %}
+        <button class="btn-outline cu-clear-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="viewed" data-clear-filter="universities">Clear</button>
+      {% endif %}
+    </h3>
+    {% if recent_universities %}
+      <ul class="pdp-info-list" style="gap:12px;" id="list-viewed-universities">
+        {% for rv in recent_universities %}
+        <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
+          <a href="{{ url_for('main.university_detail', slug=rv.university.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
+            {{ rv.university.name }}
+          </a>
+          {% if rv.university.city or rv.university.state %}
+            <span class="pdp-info-key">📍 {{ [rv.university.city, rv.university.state] | select | join(', ') }}</span>
+          {% endif %}
+          <span class="pdp-info-key">Visited {{ rv.viewed_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result" id="empty-viewed-universities">No recently viewed universities yet. Visit any university page to track it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Recently Viewed Programs ──────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;" id="card-viewed-programs">
+    <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Recently Viewed Programs</span>
+      {% if recent_programs %}
+        <button class="btn-outline cu-clear-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="viewed" data-clear-filter="programs">Clear</button>
+      {% endif %}
+    </h3>
+    {% if recent_programs %}
+      <ul class="pdp-info-list" style="gap:12px;" id="list-viewed-programs">
+        {% for rv in recent_programs %}
+        <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
+          <a href="{{ url_for('main.program_detail', slug=rv.program.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
+            {{ rv.program.title }}
+          </a>
+          {% if rv.program.university %}
+            <span class="pdp-info-key">{{ rv.program.university.name }}</span>
+          {% endif %}
+          {% if rv.program.category %}
+            <span class="pdp-info-key">{{ rv.program.category.name }}</span>
+          {% endif %}
+          <span class="pdp-info-key">Visited {{ rv.viewed_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result" id="empty-viewed-programs">No recently viewed programs yet. Visit any program page to track it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Compare History ──────────────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;" id="card-compare">
+    <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Recent Comparisons</span>
+      {% if compare_history %}
+        <button class="btn-outline cu-clear-history-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="compare" data-card="card-compare" data-empty-msg="No recent comparisons.">Clear</button>
+      {% endif %}
+    </h3>
+    {% if compare_history %}
+      <ul class="pdp-info-list" style="gap:16px;" id="list-compare">
+        {% for ch in compare_history %}
+        <li style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
+          <span class="pdp-info-val" style="text-align:left;">{{ ch.university_names or ch.university_ids }}</span>
+          <span class="pdp-info-key">Compared {{ ch.compared_at.strftime('%d %b %Y, %H:%M') }}</span>
+          <a
+            href="/?compare={{ ch.university_ids | replace(', ', ',') }}"
+            class="btn-outline"
+            style="font-size:12px;padding:5px 12px;margin-top:4px;text-decoration:none;"
+            title="Open comparison on the results page">
+            🔄 Compare Again
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result" id="empty-compare">No recent comparisons yet. Use the Compare feature on any university to track it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Brochure Download History ─────────────────────────────────────── #}
+  <div class="pdp-info-card" style="margin-bottom:24px;" id="card-brochure">
+    <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Downloaded Brochures</span>
+      {% if brochure_history %}
+        <button class="btn-outline cu-clear-history-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="brochure" data-card="card-brochure" data-empty-msg="No brochure downloads yet.">Clear</button>
+      {% endif %}
+    </h3>
+    {% if brochure_history %}
+      <ul class="pdp-info-list" style="gap:12px;" id="list-brochure">
+        {% for bd in brochure_history %}
+        <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
+          {% if bd.program %}
+            <span class="pdp-info-val" style="text-align:left;">{{ bd.program.title }}</span>
+            {% if bd.program.university %}
+              <span class="pdp-info-key">{{ bd.program.university.name }}</span>
+            {% endif %}
+          {% elif bd.university %}
+            <span class="pdp-info-val" style="text-align:left;">{{ bd.university.name }}</span>
+          {% else %}
+            <span class="pdp-info-val" style="text-align:left;">Brochure</span>
+          {% endif %}
+          <span class="pdp-info-key">Downloaded {{ bd.downloaded_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="tool-result" id="empty-brochure">No brochure downloads yet. Download a brochure from any university or program page to track it here.</div>
+    {% endif %}
+  </div>
+
+  {# ── Change Password ──────────────────────────────────────────────── #}
+  <div class="pdp-info-card">
+    <h3 class="pdp-info-card-title">Change Password</h3>
+    <form method="POST" action="{{ url_for('main.change_password') }}" novalidate>
+      <div class="form-group">
+        <label for="current_password">Current Password</label>
+        <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="confirm_new_password">Confirm New Password</label>
+        <input type="password" id="confirm_new_password" name="confirm_new_password" required minlength="8" autocomplete="new-password">
+      </div>
+      <button type="submit" class="form-submit">Change Password</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Phase 7C-1 — Remove saved items from the dashboard without a page reload.
+  // After a successful remove the list item fades out; if the list is then
+  // empty the section updates to the empty-state message automatically.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.saved-toggle-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var type = btn.dataset.saveType;   // "university" | "program"
+        var id   = btn.dataset.saveId;
+
+        fetch('/save/' + type + '/' + id, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.saved === false) {
+            var li = btn.closest('li');
+            if (li) {
+              li.style.transition = 'opacity 0.3s';
+              li.style.opacity = '0';
+              setTimeout(function () {
+                var ul = li.parentNode;
+                li.remove();
+                if (ul && ul.children.length === 0) {
+                  var card = ul.closest('.pdp-info-card');
+                  if (card) {
+                    ul.remove();
+                    var msg = document.createElement('div');
+                    msg.className = 'tool-result';
+                    msg.textContent = type === 'university'
+                      ? "You haven't saved any universities yet."
+                      : "You haven't saved any programs yet.";
+                    card.appendChild(msg);
+                  }
+                }
+              }, 300);
+            }
+          }
+        })
+        .catch(function () { /* silent — DB truth shown on next load */ });
+      });
+    });
+
+    // Phase 7C-2 — Clear viewed history (universities or programs separately)
+    // The "viewed" table holds both university and program rows; we clear
+    // both sub-lists with a single POST /history/clear/viewed, then
+    // hide whichever list the button belongs to.
+    document.querySelectorAll('.cu-clear-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = btn.dataset.clearTarget;   // "viewed"
+        var filter = btn.dataset.clearFilter;   // "universities" | "programs"
+
+        fetch('/history/clear/' + target, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            // If clearing universities clear both lists (server clears the whole table)
+            // If clearing programs, same — server clears all viewed rows.
+            // Visually clear only the relevant card.
+            var listId  = 'list-viewed-' + filter;
+            var emptyId = 'empty-viewed-' + filter;
+            var list    = document.getElementById(listId);
+            var card    = btn.closest('.pdp-info-card');
+            if (list) list.remove();
+            btn.remove();
+            if (card) {
+              var emptyEl = card.querySelector('.tool-result');
+              if (!emptyEl) {
+                var msg = document.createElement('div');
+                msg.className = 'tool-result';
+                msg.textContent = filter === 'universities'
+                  ? 'No recently viewed universities yet.'
+                  : 'No recently viewed programs yet.';
+                card.appendChild(msg);
+              }
+            }
+          }
+        })
+        .catch(function () {});
+      });
+    });
+
+    // Phase 7C-2 — Clear compare or brochure history (full-table wipe for that type)
+    document.querySelectorAll('.cu-clear-history-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target   = btn.dataset.clearTarget;  // "compare" | "brochure"
+        var cardId   = btn.dataset.card;
+        var emptyMsg = btn.dataset.emptyMsg;
+
+        fetch('/history/clear/' + target, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            var card = document.getElementById(cardId);
+            if (card) {
+              var list = card.querySelector('ul');
+              if (list) list.remove();
+              btn.remove();
+              if (!card.querySelector('.tool-result')) {
+                var msg = document.createElement('div');
+                msg.className = 'tool-result';
+                msg.textContent = emptyMsg || 'History cleared.';
+                card.appendChild(msg);
+              }
+            }
+          }
+        })
+        .catch(function () {});
+      });
+    });
+  });
+</script>
+{% endblock %}

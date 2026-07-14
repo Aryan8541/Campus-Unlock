@@ -72,6 +72,9 @@ def create_app(config_class=Config):
     from routes.main import main_bp
     app.register_blueprint(main_bp)
 
+    from routes.admin import admin_bp
+    app.register_blueprint(admin_bp)
+
     app.logger.info("Campus Unlock application initialized successfully.")
     return app
 

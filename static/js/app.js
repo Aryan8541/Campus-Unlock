@@ -70,22 +70,147 @@
   // Jinja from real University rows — see templates/includes/universities.html.
   // No client-side rendering is needed for it anymore.
 
+  // ---------------------------------------------------------------------------
+  // Compare — API-driven
+  // ---------------------------------------------------------------------------
+  const compareState = {
+    controller: null,   // AbortController for in-flight /compare request
+  };
+
+  // Update "#compareSelected" using the local compareSet only.
+  function _updateCompareStatus() {
+    const sel = document.getElementById('compareSelected');
+    if (!sel) return;
+    const count = state.compareSet.size;
+    if (!count) { sel.textContent = 'Selected: none'; return; }
+    const names = [...state.compareSet].map(
+      id => (appData.universities.find(u => u.id === id) || {}).name || ('#' + id)
+    );
+    sel.textContent = 'Selected (' + count + '/4): ' + names.join(' vs ');
+  }
+
+  // Write a message row into #compareBody (colspan 8 to span all columns).
+  function _compareBodyMessage(html) {
+    const body = document.getElementById('compareBody');
+    if (body) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;">' + html + '</td></tr>';
+  }
+
+  // Build one <tr> per university from the /compare API response.
+  // Columns match the existing compare.html <thead>:
+  //   University | NAAC Grade | NIRF | Popular Program | Duration | Starting Fee | EMI | Placement
+  // Extra detail (city, state, established year, website, categories,
+  // specializations, modes) is embedded inside the University cell so the
+  // existing table layout and CSS are untouched.
+  function _renderCompareRows(universities) {
+    const body = document.getElementById('compareBody');
+    if (!body) return;
+    if (!universities.length) {
+      _compareBodyMessage('No data returned from the server.');
+      return;
+    }
+
+    body.innerHTML = universities.map(function(u) {
+      var logoHtml = u.logo
+        ? '<img src="' + u.logo + '" alt="' + u.name + ' logo" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">'
+        : '<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:#e0e7ff;font-weight:700;font-size:13px;color:#4f46e5;margin-right:8px;vertical-align:middle;">' + (u.avatar || '?') + '</span>';
+
+      var location   = [u.city, u.state].filter(Boolean).join(', ') || '\u2014';
+      var established = u.established_year ? 'Est. ' + u.established_year : '';
+      var websiteHtml = u.website
+        ? '<a href="' + u.website + '" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-size:11px;">' + u.website.replace(/^https?:\/\//, '') + '</a>'
+        : '';
+      var cats  = (u.categories      || []).join(', ') || '\u2014';
+      var specs = (u.specializations || []).slice(0, 4).join(', ') || '\u2014';
+      var modes = (u.modes           || []).join(', ') || '\u2014';
+
+      var uniCell = '<td class="uni-cell"><div style="display:flex;align-items:flex-start;gap:4px;">'
+        + logoHtml
+        + '<div>'
+        + '<div style="font-weight:600;font-size:14px;">' + u.name + '</div>'
+        + '<div style="color:#64748b;font-size:11px;margin-top:2px;">' + location + (established ? ' \u00b7 ' + established : '') + '</div>'
+        + (websiteHtml ? '<div style="margin-top:2px;">' + websiteHtml + '</div>' : '')
+        + '<div style="color:#475569;font-size:11px;margin-top:4px;"><strong>Categories:</strong> ' + cats + '</div>'
+        + '<div style="color:#475569;font-size:11px;"><strong>Specs:</strong> ' + specs + '</div>'
+        + '<div style="color:#475569;font-size:11px;"><strong>Mode:</strong> ' + modes + '</div>'
+        + '</div></div></td>';
+
+      var naacCell     = '<td>' + (u.naac || '\u2014') + '</td>';
+      var nirfCell     = '<td>' + (u.nirf != null ? '#' + u.nirf : '\u2014') + '</td>';
+      var firstProg    = (u.programs && u.programs[0]) ? (u.programs[0].title || u.programs[0]) : '\u2014';
+      var progCell     = '<td>' + firstProg + '</td>';
+      var firstDur     = (u.programs && u.programs[0] && u.programs[0].duration) ? u.programs[0].duration : '\u2014';
+      var durationCell = '<td>' + firstDur + '</td>';
+      var feeCell      = '<td class="fee-cell">' + (u.min_fee != null ? inr(u.min_fee) + '/yr' : 'On request') + '</td>';
+      var emiCell      = '<td>\u2014</td>';
+      var placementCell = '<td>\u2014</td>';
+
+      return '<tr>' + uniCell + naacCell + nirfCell + progCell + durationCell + feeCell + emiCell + placementCell + '</tr>';
+    }).join('');
+  }
+
+  // Main compare entry point — validates selection, then calls
+  // GET /compare?ids=… and populates #compareBody.
   function renderCompareTable() {
-    const body = $('#compareBody');
-    const source = state.compareSet.size === 2 ? appData.universities.filter(u => state.compareSet.has(u.id)) : appData.universities.slice(0,6);
-    body.innerHTML = source.map(u => `
-      <tr>
-        <td class="uni-cell">${u.name}</td>
-        <td>${u.naac}</td>
-        <td>#${u.nirf}</td>
-        <td>${u.programs[0]}</td>
-        <td>${u.duration}</td>
-        <td class="fee-cell">${inr(u.fee)}/yr</td>
-        <td>${u.emi != null ? u.emi : '—'}</td>
-        <td>${u.placement != null ? u.placement + '%' : '—'}</td>
-      </tr>
-    `).join('');
-    $('#compareSelected').textContent = state.compareSet.size ? `Selected: ${[...state.compareSet].map(id => appData.universities.find(u => u.id===id)?.name).join(' vs ')}` : 'Selected: none';
+    _updateCompareStatus();
+
+    var count = state.compareSet.size;
+
+    // 0 selected — show default overview rows from already-hydrated appData
+    if (count === 0) {
+      var body = document.getElementById('compareBody');
+      if (!body) return;
+      var source = appData.universities.slice(0, 6);
+      if (!source.length) {
+        _compareBodyMessage('Select 2\u20134 universities from the results list to compare.');
+        return;
+      }
+      body.innerHTML = source.map(function(u) {
+        return '<tr>'
+          + '<td class="uni-cell">' + u.name + '</td>'
+          + '<td>' + (u.naac || '\u2014') + '</td>'
+          + '<td>' + (u.nirf != null ? '#' + u.nirf : '\u2014') + '</td>'
+          + '<td>' + ((u.programs && u.programs[0]) || '\u2014') + '</td>'
+          + '<td>' + (u.duration || '\u2014') + '</td>'
+          + '<td class="fee-cell">' + (u.fee != null ? inr(u.fee) + '/yr' : 'On request') + '</td>'
+          + '<td>\u2014</td>'
+          + '<td>\u2014</td>'
+          + '</tr>';
+      }).join('');
+      return;
+    }
+
+    if (count < 2) {
+      _compareBodyMessage('Please select at least two universities.');
+      return;
+    }
+
+    if (count > 4) {
+      _compareBodyMessage('You can compare a maximum of four universities.');
+      return;
+    }
+
+    // Abort any in-flight request
+    if (compareState.controller) compareState.controller.abort();
+    var controller = new AbortController();
+    compareState.controller = controller;
+
+    var ids = [...state.compareSet].join(',');
+    _compareBodyMessage('Loading comparison\u2026');
+
+    fetch('/compare?ids=' + encodeURIComponent(ids), { signal: controller.signal })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(err) { return Promise.reject(err); });
+        return res.json();
+      })
+      .then(function(data) {
+        compareState.controller = null;
+        _renderCompareRows(Array.isArray(data.universities) ? data.universities : []);
+      })
+      .catch(function(err) {
+        if (err && err.name === 'AbortError') return;
+        compareState.controller = null;
+        _compareBodyMessage((err && err.error) ? err.error : 'Failed to load comparison. Please try again.');
+      });
   }
 
   function renderBlogs() {
@@ -476,8 +601,10 @@
       modalFormView.style.display = 'block';
       modalSuccessView.style.display = 'none';
       leadForm.reset();
-      $$('.form-error').forEach(e => e.classList.remove('show'));
-      $$('.form-group input').forEach(i => i.classList.remove('valid', 'invalid'));
+      $$('.form-error').forEach(e => { e.classList.remove('show'); });
+      $$('.form-group input, .form-group select').forEach(i => i.classList.remove('valid', 'invalid'));
+      const uniField = $('#leadUniversity');
+      if (uniField) uniField.value = '';
       modalOverlay.classList.add('open');
       document.body.style.overflow = 'hidden';
       setTimeout(() => $('#leadName').focus(), 250);
@@ -489,32 +616,69 @@
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal(); });
 
-    const nameInput = $('#leadName'), phoneInput = $('#leadPhone'), emailInput = $('#leadEmail');
-    function showError(input, show) {
+    const nameInput = $('#leadName'), phoneInput = $('#leadPhone'), emailInput = $('#leadEmail'), programSelect = $('#leadProgram');
+    function showError(input, show, msg) {
       const errorEl = $('#err-' + input.id);
+      if (msg) errorEl.textContent = '⚠ ' + msg;
       errorEl.classList.toggle('show', show);
       input.classList.toggle('invalid', show);
-      input.classList.toggle('valid', !show && input.value.trim().length > 0);
+      input.classList.toggle('valid', !show && (input.value || '').trim().length > 0);
+    }
+    function showServerError(msg) {
+      const el = $('#err-leadServer');
+      if (!el) return;
+      el.textContent = msg ? '⚠ ' + msg : '';
+      el.classList.toggle('show', !!msg);
     }
     function validateName() { const ok = nameInput.value.trim().length >= 2; showError(nameInput, !ok); return ok; }
     function validatePhone() { const digits = phoneInput.value.replace(/\D/g, ''); const ok = digits.length === 10; showError(phoneInput, !ok); return ok; }
     function validateEmail() { const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim()); showError(emailInput, !ok); return ok; }
+    function validateProgram() { const ok = !!(programSelect && programSelect.value.trim()); if (programSelect) { const el = $('#err-leadProgram'); if (el) el.classList.toggle('show', !ok); programSelect.classList.toggle('invalid', !ok); programSelect.classList.toggle('valid', ok); } return ok; }
     nameInput.addEventListener('input', () => { if (nameInput.classList.contains('invalid')) validateName(); });
     phoneInput.addEventListener('input', () => { if (phoneInput.classList.contains('invalid')) validatePhone(); });
     emailInput.addEventListener('input', () => { if (emailInput.classList.contains('invalid')) validateEmail(); });
+    if (programSelect) programSelect.addEventListener('change', () => { if (programSelect.classList.contains('invalid')) validateProgram(); });
     nameInput.addEventListener('blur', validateName); phoneInput.addEventListener('blur', validatePhone); emailInput.addEventListener('blur', validateEmail);
 
     leadForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!validateName() || !validatePhone() || !validateEmail()) return;
+      showServerError('');
+      const nameOk = validateName(), phoneOk = validatePhone(), emailOk = validateEmail(), programOk = validateProgram();
+      if (!nameOk || !phoneOk || !emailOk || !programOk) return;
+
       const submitBtn = leadForm.querySelector('.form-submit');
       submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
-      setTimeout(() => {
-        modalFormView.style.display = 'none';
-        modalSuccessView.style.display = 'block';
-        submitBtn.disabled = false; submitBtn.textContent = 'Request a callback';
-        setTimeout(closeModal, 1800);
-      }, 450);
+
+      const payload = {
+        name:       nameInput.value.trim(),
+        phone:      phoneInput.value.replace(/\D/g, ''),
+        email:      emailInput.value.trim(),
+        program:    programSelect ? programSelect.value.trim() : '',
+        university: ($('#leadUniversity') || {}).value || '',
+      };
+
+      fetch('/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify(payload),
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+        .then(({ ok, data }) => {
+          submitBtn.disabled = false; submitBtn.textContent = 'Request a callback';
+          if (ok) {
+            modalFormView.style.display = 'none';
+            modalSuccessView.style.display = 'block';
+            setTimeout(closeModal, 1800);
+          } else {
+            // Server-side validation or duplicate — surface the error inline
+            const msg = (data && data.error) ? data.error : 'Something went wrong. Please try again.';
+            showServerError(msg);
+          }
+        })
+        .catch(() => {
+          submitBtn.disabled = false; submitBtn.textContent = 'Request a callback';
+          showServerError('Network error. Please check your connection and try again.');
+        });
     });
 
     document.body.addEventListener('click', (e) => {
@@ -523,6 +687,19 @@
         const id = uniCard.dataset.id;
         state.recentlyViewed = [id, ...state.recentlyViewed.filter(x => x !== id)].slice(0, 10);
         saveLS(); updateRecentlyViewedView();
+
+        // Navigate to the university details page. Guarded so clicks on
+        // any interactive element inside the card (favourite, bookmark,
+        // compare, apply, brochure, view-details, or any other link/button)
+        // are left alone for their own handlers below — only a click on
+        // the card itself triggers navigation.
+        const hitInteractive = e.target.closest(
+          '[data-fav], [data-bookmark], [data-compare], [data-detail], [data-apply], [data-brochure], a, button'
+        );
+        if (!hitInteractive && uniCard.dataset.slug) {
+          window.location.href = '/university/' + uniCard.dataset.slug;
+          return;
+        }
       }
 
       const favBtn = e.target.closest('[data-fav]');
@@ -544,7 +721,7 @@
         const id = cmpBtn.dataset.compare;
         if (state.compareSet.has(id)) state.compareSet.delete(id);
         else {
-          if (state.compareSet.size >= 2) state.compareSet = new Set([...state.compareSet].slice(1));
+          if (state.compareSet.size >= 4) state.compareSet = new Set([...state.compareSet].slice(1));
           state.compareSet.add(id);
         }
         renderCompareTable();
@@ -559,7 +736,29 @@
       const applyBtn = e.target.closest('[data-apply]');
       if (applyBtn) {
         const u = appData.universities.find(x => x.id === applyBtn.dataset.apply);
-        $('#leadProgram').value = u.programs[0] || '';
+        if (u) {
+          $('#leadProgram').value = u.programs[0] || '';
+          const uniField = $('#leadUniversity');
+          if (uniField) uniField.value = u.name || '';
+        }
+        openModal();
+      }
+
+      // Server-rendered cards (homepage uni grid, uni details page, program details page)
+      // embed context directly as data attributes — no appData lookup needed.
+      // data-apply-uni="<university name>"  (optional on program-only buttons)
+      // data-apply-program="<program name>" (optional on uni-only buttons)
+      const applyCtxBtn = e.target.closest('[data-apply-uni],[data-apply-program]');
+      if (applyCtxBtn && !applyBtn) {
+        const uniName  = applyCtxBtn.dataset.applyUni     || '';
+        const progName = applyCtxBtn.dataset.applyProgram || '';
+        const uniField = $('#leadUniversity');
+        if (uniField) uniField.value = uniName;
+        if (progName && programSelect) {
+          // Try to match an existing <option>; if not found leave select at current value.
+          const opt = Array.from(programSelect.options).find(o => o.value === progName || o.text === progName);
+          if (opt) programSelect.value = opt.value;
+        }
         openModal();
       }
 

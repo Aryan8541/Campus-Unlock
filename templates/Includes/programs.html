@@ -13,6 +13,12 @@
             <div class="prog-meta">{{ program.duration or 'Duration on request' }}{% if program.specialization %} · {{ program.specialization }}{% elif program.category %} · {{ program.category }}{% endif %}</div>
             <div class="prog-tag">{{ program.university or '' }}</div>
           </div>
+          <button class="action-btn action-apply"
+            style="margin-top:10px;width:100%;"
+            data-apply-program="{{ program.name }}"
+            data-apply-uni="{{ program.university or '' }}">
+            Apply Now
+          </button>
         </div>
         {% endfor %}
       {% else %}

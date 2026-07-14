@@ -2,7 +2,17 @@
   <div class="section">
     <div class="section-eyebrow">Search Results</div>
     <h2 class="section-title">Dynamic Results Page</h2>
-    <p class="section-sub">Live filtering, sorting, pagination, sticky filters, favorites, bookmarks, recently viewed, compare, details, apply and brochure actions.</p>
+    <p class="section-sub">
+      Live filtering, sorting, pagination, sticky filters, favorites, bookmarks, recently viewed, compare, details, apply and brochure actions.
+      {%- if stats %}
+      <span class="results-stats-summary">
+        Explore
+        <strong>{{ stats.total_universities }}</strong> universities,
+        <strong>{{ stats.total_programs }}</strong> programs across
+        <strong>{{ stats.total_states }}</strong> states.
+      </span>
+      {%- endif %}
+    </p>
 
     <div class="results-layout">
       <aside class="filters-panel" id="filtersPanel">
@@ -24,7 +34,13 @@
 
       <div class="results-main">
         <div class="results-toolbar">
-          <div id="resultCount">0 results</div>
+          <div id="resultCount">
+            {%- if stats and stats.total_universities %}
+              {{ stats.total_universities }} universities
+            {%- else %}
+              0 results
+            {%- endif %}
+          </div>
           <div style="display:flex; gap:8px; align-items:center;">
             <label for="sortBy" style="font-size:12px;color:var(--muted)">Sort by</label>
             <select id="sortBy" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;">

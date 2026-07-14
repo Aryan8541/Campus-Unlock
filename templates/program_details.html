@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}{{ program.title }}{% if university %} — {{ university.name }}{% endif %} | Campus Unlock{% endblock %}
+
+{% block meta_description %}{{ program.description[:155] if program.description else ('Study ' ~ program.title ~ ' at ' ~ (university.name if university else '') ~ '. Duration: ' ~ (program.duration or 'Flexible') ~ '. ' ~ ('Fees from ₹' ~ '{:,.0f}'.format(program.fees) ~ '/yr.' if program.fees else '')) }}{% endblock %}
+
+{% block content %}
+
+{# ── Hero ──────────────────────────────────────────────────────────────── #}
+<section class="pdp-hero">
+  <div class="udp-hero-overlay"></div>
+  <div class="pdp-hero-inner">
+
+    {# University logo / avatar #}
+    <div class="pdp-hero-logo">
+      {% if university and (university.logo_url or university.logo) %}
+        <img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo">
+      {% else %}
+        <span>{{ uni_avatar }}</span>
+      {% endif %}
+    </div>
+
+    <div class="pdp-hero-body">
+      {# Breadcrumb #}
+      <nav class="pdp-breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span aria-hidden="true">›</span>
+        {% if university %}
+          <a href="{{ url_for('main.university_detail', slug=university.slug) }}">{{ university.name }}</a>
+          <span aria-hidden="true">›</span>
+        {% endif %}
+        <span>{{ program.title }}</span>
+      </nav>
+
+      <h1 class="udp-hero-name">{{ program.title }}</h1>
+
+      {% if university %}
+        <a href="{{ url_for('main.university_detail', slug=university.slug) }}" class="pdp-uni-link">
+          {{ university.name }}{% if university.city or university.state %} · {{ [university.city, university.state] | select | join(', ') }}{% endif %}
+        </a>
+      {% endif %}
+
+      <div class="udp-hero-badges" style="margin-top:14px;">
+        {% if category %}<span class="udp-badge">{{ category.name }}</span>{% endif %}
+        {% if specialization %}<span class="udp-badge">{{ specialization.name }}</span>{% endif %}
+        {% if program.duration %}<span class="udp-badge">⏱ {{ program.duration }}</span>{% endif %}
+        {% if program.mode %}<span class="udp-badge">📡 {{ program.mode }}</span>{% endif %}
+        {% if program.fees %}<span class="udp-badge udp-badge-approved">₹{{ '{:,.0f}'.format(program.fees) }}/yr</span>{% endif %}
+      </div>
+
+      <div class="udp-hero-actions">
+        <button type="button" class="btn-primary" data-program-apply data-program-name="{{ program.title }}">Apply Now</button>
+        <button
+          type="button"
+          class="btn-outline pdp-save-btn"
+          style="color:#fff;border-color:rgba(255,255,255,0.5);"
+          data-save-type="program"
+          data-save-id="{{ program.id }}"
+          data-saved="{{ 'true' if is_saved else 'false' }}"
+          data-login-url="{{ url_for('main.login') }}">
+          {{ '🔖 Saved' if is_saved else '🔖 Save' }}
+        </button>
+        {% if program.brochure %}
+          <a href="{{ program.brochure }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);" target="_blank" rel="noopener">Download Brochure</a>
+        {% elif university and university.brochure_url %}
+          <a href="{{ university.brochure_url }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);" target="_blank" rel="noopener">Download Brochure</a>
+        {% endif %}
+        {% if university %}
+          <a href="{{ url_for('main.university_detail', slug=university.slug) }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);">View University</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Quick Stats Bar ──────────────────────────────────────────────────── #}
+<section class="section" style="padding-top:40px;padding-bottom:40px;" id="overview">
+  <div class="pdp-stats-bar">
+    {% if program.duration %}
+    <div class="pdp-stat reveal reveal-stagger" style="--d:0ms">
+      <div class="pdp-stat-icon">⏱</div>
+      <div class="pdp-stat-value">{{ program.duration }}</div>
+      <div class="pdp-stat-label">Duration</div>
+    </div>
+    {% endif %}
+    {% if program.mode %}
+    <div class="pdp-stat reveal reveal-stagger" style="--d:60ms">
+      <div class="pdp-stat-icon">📡</div>
+      <div class="pdp-stat-value">{{ program.mode }}</div>
+      <div class="pdp-stat-label">Study Mode</div>
+    </div>
+    {% endif %}
+    {% if program.fees %}
+    <div class="pdp-stat reveal reveal-stagger" style="--d:120ms">
+      <div class="pdp-stat-icon">💰</div>
+      <div class="pdp-stat-value">₹{{ '{:,.0f}'.format(program.fees) }}</div>
+      <div class="pdp-stat-label">Annual Fees</div>
+    </div>
+    {% endif %}
+    {% if category %}
+    <div class="pdp-stat reveal reveal-stagger" style="--d:180ms">
+      <div class="pdp-stat-icon">🎓</div>
+      <div class="pdp-stat-value">{{ category.name }}</div>
+      <div class="pdp-stat-label">Category</div>
+    </div>
+    {% endif %}
+    {% if specialization %}
+    <div class="pdp-stat reveal reveal-stagger" style="--d:240ms">
+      <div class="pdp-stat-icon">🔬</div>
+      <div class="pdp-stat-value">{{ specialization.name }}</div>
+      <div class="pdp-stat-label">Specialization</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ── Program Overview ─────────────────────────────────────────────────── #}
+<section class="section prog-bg" id="program-overview">
+  <div class="section-eyebrow reveal">Details</div>
+  <h2 class="section-title reveal">Program Overview</h2>
+
+  <div class="pdp-overview-grid">
+    {% if program.description %}
+    <div class="pdp-overview-main reveal">
+      <h3 class="udp-subheading">About this Program</h3>
+      <p class="udp-prose">{{ program.description }}</p>
+    </div>
+    {% endif %}
+
+    <div class="pdp-overview-aside reveal">
+      <div class="pdp-info-card">
+        <h3 class="pdp-info-card-title">Program Details</h3>
+        <ul class="pdp-info-list">
+          {% if program.duration %}
+          <li>
+            <span class="pdp-info-key">Duration</span>
+            <span class="pdp-info-val">{{ program.duration }}</span>
+          </li>
+          {% endif %}
+          {% if program.mode %}
+          <li>
+            <span class="pdp-info-key">Study Mode</span>
+            <span class="pdp-info-val">{{ program.mode }}</span>
+          </li>
+          {% endif %}
+          {% if program.fees %}
+          <li>
+            <span class="pdp-info-key">Fees</span>
+            <span class="pdp-info-val">₹{{ '{:,.0f}'.format(program.fees) }}/yr</span>
+          </li>
+          {% endif %}
+          {% if category %}
+          <li>
+            <span class="pdp-info-key">Category</span>
+            <span class="pdp-info-val">{{ category.name }}</span>
+          </li>
+          {% endif %}
+          {% if specialization %}
+          <li>
+            <span class="pdp-info-key">Specialization</span>
+            <span class="pdp-info-val">{{ specialization.name }}</span>
+          </li>
+          {% endif %}
+          {% if program.eligibility %}
+          <li>
+            <span class="pdp-info-key">Eligibility</span>
+            <span class="pdp-info-val">{{ program.eligibility }}</span>
+          </li>
+          {% endif %}
+        </ul>
+        <button type="button" class="btn-primary pdp-apply-btn" data-program-apply data-program-name="{{ program.title }}">Apply Now</button>
+      </div>
+    </div>
+  </div>
+
+  {% if program.eligibility and program.description %}
+  <div style="margin-top: 32px;" class="reveal">
+    <h3 class="udp-subheading">Eligibility Criteria</h3>
+    <p class="udp-prose">{{ program.eligibility }}</p>
+  </div>
+  {% endif %}
+</section>
+
+{# ── University Info ──────────────────────────────────────────────────── #}
+{% if university %}
+<section class="section" id="university-info">
+  <div class="section-eyebrow reveal">Institution</div>
+  <h2 class="section-title reveal">About the University</h2>
+
+  <div class="pdp-uni-card reveal">
+    <div class="pdp-uni-card-logo">
+      {% if university.logo_url or university.logo %}
+        <img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo">
+      {% else %}
+        <span class="pdp-uni-avatar">{{ uni_avatar }}</span>
+      {% endif %}
+    </div>
+    <div class="pdp-uni-card-body">
+      <div class="pdp-uni-card-name">{{ university.name }}</div>
+      {% if university.city or university.state %}
+        <div class="pdp-uni-card-loc">📍 {{ [university.city, university.state] | select | join(', ') }}</div>
+      {% endif %}
+      {% if university.short_description %}
+        <p class="pdp-uni-card-desc">{{ university.short_description }}</p>
+      {% elif university.description %}
+        <p class="pdp-uni-card-desc">{{ university.description[:280] }}{% if university.description|length > 280 %}…{% endif %}</p>
+      {% endif %}
+      <div class="udp-hero-badges" style="margin-top:12px;">
+        {% if university.accreditation %}<span class="udp-badge" style="background:var(--teal-xlight);color:var(--teal-deep);border-color:var(--teal-mid);">NAAC {{ university.accreditation }}</span>{% endif %}
+        {% if university.ranking %}<span class="udp-badge" style="background:var(--teal-xlight);color:var(--teal-deep);border-color:var(--teal-mid);">NIRF #{{ university.ranking }}</span>{% endif %}
+        {% if university.ugc_approved %}<span class="udp-badge" style="background:var(--teal-xlight);color:var(--teal-deep);border-color:var(--teal-mid);">UGC Approved</span>{% endif %}
+        {% if university.aicte_approved %}<span class="udp-badge" style="background:var(--teal-xlight);color:var(--teal-deep);border-color:var(--teal-mid);">AICTE Approved</span>{% endif %}
+      </div>
+      <div class="pdp-uni-card-actions">
+        <a href="{{ url_for('main.university_detail', slug=university.slug) }}" class="btn-outline" style="font-size:13px;padding:9px 18px;">View University →</a>
+        {% if university.website %}
+          <a href="{{ university.website }}" target="_blank" rel="noopener" class="udp-hero-website" style="color:var(--teal-dark);">Official Website ↗</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Related Programs ─────────────────────────────────────────────────── #}
+{% if related_programs %}
+<section class="section prog-bg" id="related">
+  <div class="section-eyebrow reveal">Explore more</div>
+  <h2 class="section-title reveal">Related Programs</h2>
+  <div class="prog-grid">
+    {% for rp in related_programs %}
+    <a href="{{ url_for('main.program_detail', slug=rp.slug) }}" class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
+      <div class="prog-icon">{{ rp.emoji }}</div>
+      <div>
+        <div class="prog-name">{{ rp.title }}</div>
+        <div class="prog-meta">
+          {{ rp.university or '' }}{% if rp.category %} · {{ rp.category }}{% endif %}{% if rp.duration %} · {{ rp.duration }}{% endif %}
+        </div>
+        {% if rp.fees %}<div class="prog-meta">From ₹{{ '{:,.0f}'.format(rp.fees) }}/yr</div>{% endif %}
+        {% if rp.mode %}<span class="prog-tag">{{ rp.mode }}</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Phase 7C-1: expose login state to inline JS (0 = anonymous).
+  window.__cuUserId = {{ session.get('user_id', 0) | tojson }};
+  // Phase 7C-2: program/university context for brochure tracking
+  window.__cuProgId = {{ program.id | tojson }};
+  window.__cuUniId  = {{ (university.id if university else 'null') | tojson }};
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-program-apply]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var navCta = document.querySelector('.nav-cta');
+        if (navCta) { navCta.click(); }
+      });
+    });
+
+    // Phase 7C-1 — Save / unsave program toggle
+    document.querySelectorAll('.pdp-save-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var loginUrl = btn.dataset.loginUrl;
+        var type     = btn.dataset.saveType;
+        var id       = btn.dataset.saveId;
+
+        if (!window.__cuUserId) {
+          window.location.href = loginUrl + '?next=' + encodeURIComponent(window.location.pathname);
+          return;
+        }
+
+        fetch('/save/' + type + '/' + id, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          btn.dataset.saved = data.saved ? 'true' : 'false';
+          btn.textContent   = data.saved ? '🔖 Saved' : '🔖 Save';
+        })
+        .catch(function () {});
+      });
+    });
+
+    // Phase 7C-2 — Intercept brochure download links to record history
+    if (window.__cuUserId) {
+      document.querySelectorAll('a[href][rel~="noopener"]').forEach(function (link) {
+        var href = link.getAttribute('href') || '';
+        var isBrochure = /brochure/i.test(href) || /brochure/i.test(link.textContent);
+        if (!isBrochure) return;
+
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var url = link.href;
+          fetch('/brochure/track', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              university_id: window.__cuUniId || null,
+              program_id: window.__cuProgId || null
+            })
+          })
+          .finally(function () {
+            window.open(url, '_blank', 'noopener');
+          });
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}

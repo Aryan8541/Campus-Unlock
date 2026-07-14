@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Log In | Campus Unlock{% endblock %}
+{% block meta_description %}Log in to your Campus Unlock account to view saved universities and manage your applications.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:480px;padding-top:64px;padding-bottom:64px;">
+  <div class="section-eyebrow">Welcome back</div>
+  <h1 class="section-title" style="font-size:26px;">Log in to your account</h1>
+  <p class="section-sub" style="margin-bottom:28px;">Pick up right where you left off.</p>
+
+  <div class="pdp-info-card">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="form-error show" style="{% if category == 'success' %}color:var(--success);{% endif %}position:static;display:flex;margin-bottom:12px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST" action="{{ url_for('main.login') }}" novalidate>
+
+    
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ email or '' }}" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="form-submit">Log In</button>
+    </form>
+  </div>
+
+  <p class="tool-result" style="margin-top:18px;text-align:center;">
+    Don't have an account? <a href="{{ url_for('main.register') }}" style="color:var(--teal);font-weight:700;">Register</a>
+  </p>
+</section>
+{% endblock %}

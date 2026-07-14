@@ -407,3 +407,194 @@
     .section { padding: 64px 20px; }
     .float-btn { width: 48px; height: 48px; font-size: 20px; }
   }
+
+  /* ==========================================================================
+     University Details Page (/university/<slug>) — Phase 6D
+     New rules only. Reuses .section, .section-title, .feat-*, .prog-*,
+     .schol-*, .uni-*, .btn-* and .tool-result from the design system above.
+     ========================================================================== */
+
+  /* Anchor-tag variants so existing card classes (used as <div> elsewhere)
+     can also be used as <a> here without inheriting default link styling. */
+  a.prog-card, a.uni-card { text-decoration: none; color: inherit; }
+
+  .udp-hero { position: relative; background: var(--navy) center/cover no-repeat; border-bottom: 1px solid var(--border-teal); }
+  .udp-hero-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.88)); }
+  .udp-hero-inner { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 64px 32px; display: flex; align-items: center; gap: 28px; }
+  .udp-hero-logo { width: 88px; height: 88px; border-radius: 16px; background: var(--white); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+  .udp-hero-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .udp-hero-logo span { font-size: 28px; font-weight: 900; color: var(--teal-deep); }
+  .udp-hero-name { font-size: clamp(24px, 3.2vw, 34px); font-weight: 900; color: #fff; letter-spacing: -0.6px; margin-bottom: 8px; }
+  .udp-hero-sub { color: rgba(255,255,255,0.75); font-size: 14.5px; line-height: 1.6; max-width: 640px; margin-bottom: 16px; }
+  .udp-hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .udp-badge { background: rgba(255,255,255,0.12); color: #fff; font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.18); }
+  .udp-badge-approved { background: rgba(59,130,246,0.25); border-color: rgba(96,165,250,0.4); color: var(--accent-light); }
+  .udp-hero-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .udp-hero-website { color: rgba(255,255,255,0.8); font-size: 13.5px; font-weight: 600; text-decoration: none; }
+  .udp-hero-website:hover { color: #fff; text-decoration: underline; }
+
+  .udp-prose { color: var(--text2); font-size: 15px; line-height: 1.75; max-width: 780px; margin-bottom: 20px; }
+  .udp-subheading { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+
+  .udp-placement-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+  .udp-stat-box { background: var(--white); border: 1px solid var(--border-teal); border-radius: 14px; padding: 24px 18px; text-align: center; }
+  .udp-stat-num { font-size: 24px; font-weight: 900; color: var(--teal-deep); letter-spacing: -0.5px; }
+  .udp-stat-label { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+  .udp-recruiters { margin-bottom: 20px; }
+  .udp-partner-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
+  .udp-partner-logo { background: var(--white); border: 1px solid var(--border-teal); border-radius: 10px; padding: 14px; display: flex; align-items: center; justify-content: center; min-height: 60px; }
+  .udp-partner-logo img { max-height: 32px; max-width: 100%; object-fit: contain; }
+  .udp-partner-logo span { font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; }
+
+  .udp-faq-list { display: flex; flex-direction: column; gap: 8px; }
+  .udp-faq-item { background: var(--white); border: 1px solid var(--border-teal); border-radius: 10px; overflow: hidden; }
+  .udp-faq-q { padding: 14px 16px; font-weight: 700; font-size: 14px; color: var(--text); cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .udp-faq-q::-webkit-details-marker { display: none; }
+  .udp-faq-q::after { content: "+"; font-size: 18px; color: var(--teal); flex-shrink: 0; transition: transform .2s var(--ease); }
+  .udp-faq-item[open] .udp-faq-q::after { transform: rotate(45deg); }
+  .udp-faq-a { padding: 0 16px 16px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+  .udp-contact-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+  .udp-contact-item { background: var(--white); border: 1px solid var(--border-teal); border-radius: 12px; padding: 16px 18px; }
+  .udp-contact-item strong { display: block; font-size: 11.5px; color: var(--teal-deep); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .udp-contact-item span, .udp-contact-item a { font-size: 14px; color: var(--text); text-decoration: none; }
+  .udp-contact-item a:hover { color: var(--teal); text-decoration: underline; }
+
+  @media (max-width: 960px) {
+    .udp-hero-inner { flex-direction: column; align-items: flex-start; text-align: left; }
+    .udp-placement-stats { grid-template-columns: repeat(2,1fr); }
+    .udp-partner-grid { grid-template-columns: repeat(3,1fr); }
+  }
+  @media (max-width: 600px) {
+    .udp-partner-grid { grid-template-columns: repeat(2,1fr); }
+    .udp-contact-grid { grid-template-columns: 1fr; }
+    .udp-hero-badges { gap: 6px; }
+  }
+
+  
+  /* ==========================================================================
+     Program Details Page (/program/<slug>) — appended
+     Reuses: .section, .section-title, .section-eyebrow, .prog-*, .udp-hero-*,
+     .udp-badge, .udp-prose, .udp-subheading, .btn-primary, .btn-outline,
+     .reveal, .reveal-stagger from the design system above.
+     ========================================================================== */
+
+  /* Hero — reuses overlay from UDP hero */
+  .pdp-hero {
+    position: relative;
+    background: var(--navy) center/cover no-repeat;
+    border-bottom: 1px solid var(--border-teal);
+  }
+
+  .pdp-hero-inner {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 64px 32px;
+    display: flex; align-items: flex-start; gap: 28px;
+  }
+
+  .pdp-hero-logo {
+    width: 88px; height: 88px; border-radius: 16px;
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .pdp-hero-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .pdp-hero-logo span { font-size: 28px; font-weight: 900; color: var(--teal-deep); }
+
+  .pdp-hero-body { flex: 1; }
+
+  .pdp-breadcrumb {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 14px;
+    font-size: 12.5px; color: rgba(255,255,255,0.55);
+  }
+  .pdp-breadcrumb a { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; }
+  .pdp-breadcrumb a:hover { color: #fff; text-decoration: underline; }
+  .pdp-breadcrumb span[aria-hidden] { color: rgba(255,255,255,0.35); }
+
+  .pdp-uni-link {
+    display: inline-block; margin-top: 6px;
+    color: rgba(255,255,255,0.75); font-size: 14px; font-weight: 600;
+    text-decoration: none;
+  }
+  .pdp-uni-link:hover { color: #fff; text-decoration: underline; }
+
+  /* Quick stats bar */
+  .pdp-stats-bar {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    justify-content: center;
+    max-width: 900px; margin: 0 auto;
+  }
+  .pdp-stat {
+    flex: 1 1 140px;
+    background: var(--white); border: 1px solid var(--border-teal);
+    border-radius: 14px; padding: 20px 16px; text-align: center;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.05);
+  }
+  .pdp-stat-icon { font-size: 22px; margin-bottom: 6px; }
+  .pdp-stat-value { font-size: 15px; font-weight: 800; color: var(--teal-deep); letter-spacing: -0.3px; }
+  .pdp-stat-label { font-size: 11.5px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+  /* Overview two-column layout */
+  .pdp-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+    align-items: start;
+  }
+  .pdp-overview-main { /* natural flow */ }
+
+  /* Sticky info card */
+  .pdp-info-card {
+    background: var(--white); border: 1.5px solid var(--border-teal);
+    border-radius: 16px; padding: 24px;
+    position: sticky; top: calc(var(--header-h) + 20px);
+    box-shadow: 0 4px 20px rgba(37,99,235,0.08);
+  }
+  .pdp-info-card-title {
+    font-size: 15px; font-weight: 800; color: var(--text);
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-teal);
+  }
+  .pdp-info-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .pdp-info-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; font-size: 13.5px; }
+  .pdp-info-key { color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .pdp-info-val { color: var(--text); font-weight: 700; text-align: right; }
+  .pdp-apply-btn { width: 100%; text-align: center; }
+
+  /* University info card */
+  .pdp-uni-card {
+    background: var(--white); border: 1.5px solid var(--border-teal);
+    border-radius: 16px; padding: 28px;
+    display: flex; gap: 24px; align-items: flex-start;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+    max-width: 860px;
+  }
+  .pdp-uni-card-logo {
+    width: 80px; height: 80px; border-radius: 14px;
+    background: var(--teal-xlight); flex-shrink: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--teal-mid);
+  }
+  .pdp-uni-card-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .pdp-uni-avatar { font-size: 22px; font-weight: 900; color: var(--teal-deep); }
+  .pdp-uni-card-body { flex: 1; }
+  .pdp-uni-card-name { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .pdp-uni-card-loc { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .pdp-uni-card-desc { font-size: 13.5px; color: var(--text2); line-height: 1.65; margin-bottom: 4px; }
+  .pdp-uni-card-actions { display: flex; gap: 14px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+
+  /* Responsive */
+  @media (max-width: 960px) {
+    .pdp-hero-inner { flex-direction: column; align-items: flex-start; }
+    .pdp-overview-grid { grid-template-columns: 1fr; }
+    .pdp-info-card { position: static; }
+    .pdp-uni-card { flex-direction: column; }
+  }
+  @media (max-width: 600px) {
+    .pdp-stats-bar { flex-direction: row; }
+    .pdp-stat { flex: 1 1 calc(50% - 8px); }
+    .pdp-breadcrumb { font-size: 11.5px; }
+  }

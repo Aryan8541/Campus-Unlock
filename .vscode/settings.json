@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "Campus Unlock",
+            "database": "${workspaceFolder:Campus Unlock}/instance/campus_unlock.db",
+            "group": "Local"
+        }
+    ]
+}

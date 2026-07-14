@@ -19,14 +19,101 @@ app.js already uses for appData.universities — so the existing
 renderResults() card template works without modification.
 """
 
-from flask import Blueprint, render_template, render_template_string, request, jsonify
+import re
+from datetime import datetime
+from functools import wraps
 
-from sqlalchemy import or_, and_
+from flask import (
+    Blueprint,
+    render_template,
+    render_template_string,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+    session,
+    flash,
+)
+
+from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import joinedload
 
-from models import University, Program, Category, Specialization
+from models import (
+    University,
+    Program,
+    Category,
+    Specialization,
+    Scholarship,
+    FAQ,
+    PlacementPartner,
+    db,
+)
+from models.lead import Lead
+from models.user import User
+from models.saved import SavedUniversity, SavedProgram
+from models.history import RecentlyViewed, CompareHistory, BrochureDownload
 
 main_bp = Blueprint("main", __name__)
+
+# ---------------------------------------------------------------------------
+# Auth constants/helpers (merged from the former routes/auth.py)
+# ---------------------------------------------------------------------------
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+MIN_PASSWORD_LENGTH = 8
+
+
+def _digits_only(value):
+    """Strip everything but digits from a raw mobile number string."""
+    return re.sub(r"\D", "", value or "")
+
+
+def login_required(view):
+    """Redirect anonymous visitors to /login, preserving the original
+    destination via ?next=, instead of letting the view execute."""
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Please log in to continue.", "error")
+            return redirect(url_for("main.login", next=request.path))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def admin_required(view):
+    """
+    Phase 8A — Admin System foundation.
+
+    Gate a view behind two checks, in order:
+      1. Logged in (same redirect-to-login behavior as login_required)
+      2. session user's role == "admin"
+
+    Non-admins (including logged-out visitors) never reach the view.
+    A logged-in non-admin is redirected to their own dashboard rather
+    than shown a raw 403, so student functionality is never disrupted.
+    """
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            flash("Please log in to continue.", "error")
+            return redirect(url_for("main.login", next=request.path))
+
+        user = User.query.get(user_id)
+        if user is None or not user.is_active:
+            session.pop("user_id", None)
+            flash("Please log in to continue.", "error")
+            return redirect(url_for("main.login", next=request.path))
+
+        if not user.is_admin_role():
+            flash("You do not have permission to access that page.", "error")
+            return redirect(url_for("main.dashboard"))
+
+        return view(*args, **kwargs)
+
+    return wrapped
 
 _COMING_SOON_TEMPLATE = """
 <!DOCTYPE html>
@@ -133,6 +220,7 @@ def _serialize_university(university, active_programs):
 
     return {
         "id": str(university.id),
+        "slug": university.slug,
         "name": university.name,
         "logo": university.logo,
         "naac": university.accreditation,
@@ -196,6 +284,156 @@ def _load_campus_data():
             "programs": serialized_programs,
         },
     }
+
+
+def _compute_stats():
+    """
+    Compute site-wide statistics for display in the results section header.
+
+    Returns a dict with:
+      total_universities  — count of active universities
+      total_programs      — count of active programs
+      total_states        — count of distinct states with active universities
+      total_specializations — count of distinct active specializations
+
+    All queries are single-column COUNT / COUNT DISTINCT — sub-millisecond
+    on SQLite even with thousands of rows.
+    """
+    try:
+        total_universities = University.query.filter_by(is_active=True).count()
+        total_programs = Program.query.filter_by(is_active=True).count()
+        total_states = (
+            University.query
+            .filter(University.is_active.is_(True), University.state.isnot(None))
+            .with_entities(func.count(func.distinct(University.state)))
+            .scalar() or 0
+        )
+        total_specializations = (
+            Specialization.query.count()
+        )
+    except Exception:
+        total_universities = 0
+        total_programs = 0
+        total_states = 0
+        total_specializations = 0
+
+    return {
+        "total_universities": total_universities,
+        "total_programs": total_programs,
+        "total_states": total_states,
+        "total_specializations": total_specializations,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Fallback scholarship cards shown when the DB has no active global entries.
+# ---------------------------------------------------------------------------
+_FALLBACK_SCHOLARSHIPS = [
+    {
+        "amount_label": "Up to 20%",
+        "title": "Merit Scholarship",
+        "description": "For students with strong academic records in their previous qualifying degree.",
+        "is_fallback": True,
+    },
+    {
+        "amount_label": "Up to 15%",
+        "title": "Women in Tech Grant",
+        "description": "Supporting women enrolling in MCA, BCA, and M.Tech programs.",
+        "is_fallback": True,
+    },
+    {
+        "amount_label": "No-cost EMI",
+        "title": "Easy Payment Plans",
+        "description": "Split your fees into monthly instalments with 0% processing charges.",
+        "is_fallback": True,
+    },
+]
+
+
+def _format_amount_label(scholarship):
+    """
+    Derive a short display label for a scholarship's value.
+
+    Priority:
+      1. If the model exposes a ``discount_pct`` field, use "Up to X%".
+      2. If ``amount`` is < 1 (i.e. a fraction like 0.20), treat as a
+         percentage: "Up to 20%".
+      3. If ``amount`` >= 1, treat as an absolute INR value: "₹X,XXX".
+      4. Fall back to the scholarship title.
+    """
+    try:
+        # Try percentage-style field first (future-proof)
+        pct = getattr(scholarship, "discount_pct", None)
+        if pct is not None:
+            return f"Up to {int(pct)}%"
+
+        amt = scholarship.amount
+        if amt is None:
+            return scholarship.title or "Scholarship"
+
+        amt = float(amt)
+        if 0 < amt <= 1:
+            # Stored as decimal fraction, e.g. 0.20 → "Up to 20%"
+            return f"Up to {int(amt * 100)}%"
+        if amt < 100:
+            # Stored as integer percentage, e.g. 20 → "Up to 20%"
+            return f"Up to {int(amt)}%"
+        # Stored as rupee amount
+        return f"₹{int(amt):,}"
+    except Exception:
+        return scholarship.title or "Scholarship"
+
+
+def _load_global_scholarships(limit=3):
+    """
+    Load the top ``limit`` active scholarships that are NOT tied to a
+    specific university (university_id IS NULL), ordered by sort_order
+    then id.  Falls back to the three hardcoded cards when no rows exist.
+    """
+    try:
+        rows = (
+            Scholarship.query
+            .filter(Scholarship.is_active.is_(True))
+            .filter(
+                or_(
+                    ~Scholarship.__table__.columns.keys().__contains__("university_id"),
+                    Scholarship.university_id.is_(None),
+                )
+            )
+            .order_by(
+                # sort_order may not exist on all schema versions — safe fallback
+                Scholarship.id
+            )
+            .limit(limit)
+            .all()
+        )
+    except Exception:
+        # university_id column might not exist in this schema version;
+        # fall back to fetching any active scholarships.
+        try:
+            rows = (
+                Scholarship.query
+                .filter(Scholarship.is_active.is_(True))
+                .order_by(Scholarship.id)
+                .limit(limit)
+                .all()
+            )
+        except Exception:
+            rows = []
+
+    if not rows:
+        return _FALLBACK_SCHOLARSHIPS
+
+    return [
+        {
+            "amount_label": _format_amount_label(s),
+            "title": s.title,
+            "description": s.description or "",
+            "deadline": s.deadline,
+            "is_fallback": False,
+        }
+        for s in rows
+    ]
 
 
 def _serialize_search_result(program):
@@ -578,14 +816,126 @@ def search():
 
 @main_bp.route("/")
 def index():
-    """Home page — backed by SQLAlchemy data."""
+    """
+    Home page — backed by SQLAlchemy data.
+
+    Passes to index.html:
+      top_universities    — list of up to 6 serialised university dicts (NIRF sorted)
+      featured_programs   — list of up to 9 featured / fallback program dicts
+      campus_data         — full universities + programs JSON for app.js
+      scholarships        — list of up to 3 global scholarship dicts for the
+                            scholarships section (falls back to hardcoded cards)
+      stats               — dict of site-wide counts for the results section header
+    """
     data = _load_campus_data()
+    scholarships = _load_global_scholarships(limit=3)
+    stats = _compute_stats()
+
     return render_template(
         "index.html",
         top_universities=data["top_universities"],
         featured_programs=data["featured_programs"],
         campus_data=data["campus_data"],
+        scholarships=scholarships,
+        stats=stats,
     )
+
+
+@main_bp.route("/lead", methods=["POST"])
+def submit_lead():
+    """
+    AJAX lead capture endpoint.
+
+    Accepts JSON: { name, phone, email, program, university }
+
+    Validation
+    ----------
+    • name    — required, ≥ 2 characters
+    • email   — required, basic format check
+    • phone   — required, exactly 10 digits after stripping non-digits
+    • program — required, non-empty
+
+    Duplicate check
+    ---------------
+    A lead is a duplicate when the same email + university + program
+    combination already exists in the leads table.  Returns 409 with an
+    explanatory error message so the frontend can surface it inline.
+
+    Success
+    -------
+    201 { "ok": true, "id": <lead_id> }
+
+    Validation failure
+    ------------------
+    400 { "error": "<first failing field message>" }
+
+    Duplicate
+    ---------
+    409 { "error": "You've already registered interest in this program …" }
+    """
+    import re
+
+    data = request.get_json(silent=True) or {}
+
+    # ---- Field extraction ------------------------------------------------
+    name      = (data.get("name") or "").strip()
+    email     = (data.get("email") or "").strip().lower()
+    phone_raw = (data.get("phone") or "")
+    phone     = re.sub(r"\D", "", str(phone_raw))
+    program   = (data.get("program") or "").strip()
+    university = (data.get("university") or "").strip()
+
+    # ---- Server-side validation ------------------------------------------
+    if len(name) < 2:
+        return jsonify({"error": "Please enter your full name (at least 2 characters)."}), 400
+
+    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+        return jsonify({"error": "Please enter a valid email address."}), 400
+
+    if len(phone) != 10:
+        return jsonify({"error": "Please enter a valid 10-digit mobile number."}), 400
+
+    if not program:
+        return jsonify({"error": "Please select the program you are interested in."}), 400
+
+    # ---- Duplicate check -------------------------------------------------
+    try:
+        duplicate = Lead.query.filter_by(
+            email=email,
+            interested_university=university or None,
+            interested_program=program,
+        ).first()
+    except Exception:
+        duplicate = None
+
+    if duplicate:
+        prog_label = program or "this program"
+        uni_label  = f" at {university}" if university else ""
+        return jsonify({
+            "error": (
+                f"You've already registered interest in {prog_label}{uni_label}. "
+                "A counsellor will be in touch soon."
+            )
+        }), 409
+
+    # ---- Persist ---------------------------------------------------------
+    try:
+        lead = Lead(
+            full_name=name,
+            email=email,
+            mobile=phone,
+            interested_university=university or None,
+            interested_program=program,
+            source="modal",
+            status="New",
+        )
+        db.session.add(lead)
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"error": "Could not save your enquiry. Please try again shortly."}), 500
+
+    return jsonify({"ok": True, "id": lead.id}), 201
 
 
 @main_bp.route("/about")
@@ -615,9 +965,1029 @@ def blog():
 
 @main_bp.route("/compare")
 def compare():
-    return _coming_soon("Compare")
+    """
+    Compare API — GET /compare?ids=<comma-separated university IDs>
+
+    Phase 7C-2: when a logged-in user sends at least 2 IDs, a CompareHistory
+    row is written so the dashboard can show "Recent Comparisons".
+
+    The endpoint is intentionally separate from the coming-soon Compare page
+    so the existing app.js renderCompareTable() call path is not broken.
+    """
+    ids_param = request.args.get("ids", "").strip()
+
+    # No IDs supplied — this is the Compare page navigation, not the API.
+    # Keep the page as coming-soon so existing nav still works.
+    if not ids_param:
+        return _coming_soon("Compare")
+
+    # Parse and validate IDs
+    raw_ids = [x.strip() for x in ids_param.split(",") if x.strip()]
+    try:
+        int_ids = [int(i) for i in raw_ids]
+    except ValueError:
+        return jsonify({"error": "Invalid university IDs."}), 400
+
+    if len(int_ids) < 2:
+        return jsonify({"error": "Please select at least two universities."}), 400
+
+    if len(int_ids) > 4:
+        return jsonify({"error": "You can compare a maximum of four universities."}), 400
+
+    universities = (
+        University.query
+        .filter(University.id.in_(int_ids), University.is_active.is_(True))
+        .options(
+            joinedload(University.programs).joinedload(Program.category),
+            joinedload(University.programs).joinedload(Program.specialization),
+        )
+        .all()
+    )
+
+    if not universities:
+        return jsonify({"error": "No matching universities found."}), 404
+
+    # Phase 7C-2: persist compare history for logged-in users
+    if session.get("user_id") and len(universities) >= 2:
+        try:
+            names_str = ", ".join(u.name for u in universities)
+            ids_str   = ", ".join(str(u.id) for u in universities)
+            ch = CompareHistory(
+                user_id=session["user_id"],
+                university_ids=ids_str,
+                university_names=names_str,
+            )
+            db.session.add(ch)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    result = []
+    for u in universities:
+        active_programs = [p for p in u.programs if p.is_active]
+        min_fee = min(
+            (float(p.fees) for p in active_programs if p.fees is not None),
+            default=None,
+        )
+        categories    = sorted({p.category.name for p in active_programs if p.category})
+        specializations = sorted({p.specialization.name for p in active_programs if p.specialization})
+        modes         = sorted({p.mode for p in active_programs if p.mode})
+
+        result.append({
+            "id":               str(u.id),
+            "name":             u.name,
+            "slug":             u.slug,
+            "logo":             u.logo_url or u.logo,
+            "avatar":           _avatar_initials(u.name),
+            "naac":             u.accreditation,
+            "nirf":             u.ranking,
+            "established_year": u.established_year,
+            "city":             u.city,
+            "state":            u.state,
+            "website":          u.website,
+            "min_fee":          min_fee,
+            "categories":       categories,
+            "specializations":  specializations,
+            "modes":            modes,
+            "programs": [
+                {"title": p.title, "duration": p.duration}
+                for p in active_programs[:5]
+            ],
+        })
+
+    return jsonify({"universities": result})
 
 
 @main_bp.route("/scholarships")
 def scholarships():
     return _coming_soon("Scholarships")
+
+
+def _record_recently_viewed(user_id, university_id, program_id):
+    """
+    Upsert a recently-viewed row for (user, university|program).
+
+    Strategy: delete the existing row for the same (user, item) if it
+    exists, then insert a fresh one with the current timestamp.  This
+    keeps the list chronologically sorted by viewed_at DESC without
+    needing a partial-index UPSERT that SQLite can't do cleanly.
+
+    Enforces a per-user limit of 10 rows per item type (university /
+    program) — the oldest rows beyond the limit are pruned in the same
+    transaction.
+    """
+    LIMIT = 10
+
+    if university_id:
+        # Remove stale row for this exact university
+        RecentlyViewed.query.filter_by(
+            user_id=user_id, university_id=university_id
+        ).delete()
+        db.session.add(RecentlyViewed(user_id=user_id, university_id=university_id))
+        db.session.flush()
+
+        # Prune to LIMIT: keep newest LIMIT rows, delete the rest
+        old_ids = (
+            db.session.query(RecentlyViewed.id)
+            .filter(
+                RecentlyViewed.user_id == user_id,
+                RecentlyViewed.university_id.isnot(None),
+            )
+            .order_by(RecentlyViewed.viewed_at.desc())
+            .offset(LIMIT)
+            .all()
+        )
+        if old_ids:
+            RecentlyViewed.query.filter(
+                RecentlyViewed.id.in_([r.id for r in old_ids])
+            ).delete(synchronize_session=False)
+
+    elif program_id:
+        RecentlyViewed.query.filter_by(
+            user_id=user_id, program_id=program_id
+        ).delete()
+        db.session.add(RecentlyViewed(user_id=user_id, program_id=program_id))
+        db.session.flush()
+
+        old_ids = (
+            db.session.query(RecentlyViewed.id)
+            .filter(
+                RecentlyViewed.user_id == user_id,
+                RecentlyViewed.program_id.isnot(None),
+            )
+            .order_by(RecentlyViewed.viewed_at.desc())
+            .offset(LIMIT)
+            .all()
+        )
+        if old_ids:
+            RecentlyViewed.query.filter(
+                RecentlyViewed.id.in_([r.id for r in old_ids])
+            ).delete(synchronize_session=False)
+
+    db.session.commit()
+
+
+# ---------------------------------------------------------------------------
+# /university/<slug> — Database-driven University Details Page
+# ---------------------------------------------------------------------------
+
+def _serialize_scholarship(scholarship):
+    """Plain-dict view of a Scholarship for the details-page template."""
+    return {
+        "title": scholarship.title,
+        "description": scholarship.description,
+        "amount": float(scholarship.amount) if scholarship.amount is not None else None,
+        "deadline": scholarship.deadline,
+    }
+
+
+def _serialize_faq(faq):
+    """Plain-dict view of an FAQ for the details-page template."""
+    return {"question": faq.question, "answer": faq.answer}
+
+
+def _serialize_placement_partner(partner):
+    """Plain-dict view of a PlacementPartner for the details-page template."""
+    return {"name": partner.company_name, "logo": partner.logo_url}
+
+
+def _get_similar_universities(university, limit=4):
+    """
+    Recommendation rail for the details page: same state first, then
+    universities sharing at least one Program category, excluding the
+    current university. Only active universities/programs are considered.
+    Returns plain dicts in the same shape as the homepage university cards
+    (via the shared _serialize_university helper), so the same uni-card
+    markup/CSS can be reused without changes.
+    """
+    same_state = []
+    if university.state:
+        same_state = (
+            University.query.filter(
+                University.is_active.is_(True),
+                University.id != university.id,
+                University.state == university.state,
+            )
+            .options(
+                joinedload(University.programs).joinedload(Program.category),
+                joinedload(University.programs).joinedload(Program.specialization),
+            )
+            .limit(limit)
+            .all()
+        )
+
+    remaining = limit - len(same_state)
+    same_category = []
+    if remaining > 0:
+        category_ids = {
+            p.category_id
+            for p in university.programs
+            if p.is_active and p.category_id
+        }
+        if category_ids:
+            exclude_ids = {university.id} | {u.id for u in same_state}
+            same_category = (
+                University.query.join(University.programs)
+                .filter(
+                    University.is_active.is_(True),
+                    Program.is_active.is_(True),
+                    Program.category_id.in_(category_ids),
+                    ~University.id.in_(exclude_ids),
+                )
+                .options(
+                    joinedload(University.programs).joinedload(Program.category),
+                    joinedload(University.programs).joinedload(Program.specialization),
+                )
+                .distinct()
+                .limit(remaining)
+                .all()
+            )
+
+    combined = same_state + same_category
+    return [
+        _serialize_university(uni, [p for p in uni.programs if p.is_active])
+        for uni in combined
+    ]
+
+
+@main_bp.route("/university/<slug>")
+def university_detail(slug):
+    """
+    Fully database-driven University Details Page.
+
+    Loads a single active university plus every related collection
+    (active programs w/ category + specialization, scholarships, FAQs,
+    placement partners) in one round-trip via joinedload — no N+1
+    queries — and a small "similar universities" recommendation set.
+    404s automatically for an unknown or inactive slug.
+    """
+    university = (
+        University.query.filter_by(slug=slug, is_active=True)
+        .options(
+            joinedload(University.programs).joinedload(Program.category),
+            joinedload(University.programs).joinedload(Program.specialization),
+            joinedload(University.scholarships),
+            joinedload(University.faqs),
+            joinedload(University.placement_partners),
+        )
+        .first_or_404()
+    )
+
+    active_programs = [p for p in university.programs if p.is_active]
+    programs = [_serialize_program(p) for p in active_programs]
+
+    active_scholarships = [s for s in university.scholarships if s.is_active]
+    scholarships_list = [_serialize_scholarship(s) for s in active_scholarships]
+
+    active_faqs = sorted(
+        (f for f in university.faqs if f.is_active),
+        key=lambda f: (f.sort_order is None, f.sort_order, f.id),
+    )
+    faqs = [_serialize_faq(f) for f in active_faqs]
+
+    active_partners = [p for p in university.placement_partners if p.is_active]
+    placement_partners = [_serialize_placement_partner(p) for p in active_partners]
+
+    top_recruiters = []
+    if university.top_recruiters:
+        top_recruiters = [r.strip() for r in university.top_recruiters.split(",") if r.strip()]
+
+    similar_universities = _get_similar_universities(university)
+
+    # Phase 7C-1: has the current user saved this university?
+    is_saved = False
+    if session.get("user_id"):
+        is_saved = SavedUniversity.query.filter_by(
+            user_id=session["user_id"],
+            university_id=university.id,
+        ).first() is not None
+
+    # Phase 7C-2: record recently-viewed (collapse duplicate, keep newest)
+    if session.get("user_id"):
+        try:
+            _record_recently_viewed(
+                user_id=session["user_id"],
+                university_id=university.id,
+                program_id=None,
+            )
+        except Exception:
+            db.session.rollback()
+
+    return render_template(
+        "university_details.html",
+        university=university,
+        programs=programs,
+        scholarships=scholarships_list,
+        faqs=faqs,
+        placement_partners=placement_partners,
+        top_recruiters=top_recruiters,
+        similar_universities=similar_universities,
+        avatar=_avatar_initials(university.name),
+        is_saved=is_saved,
+    )
+
+
+# ---------------------------------------------------------------------------
+# /program/<slug> — Database-driven Program Details Page
+# ---------------------------------------------------------------------------
+
+_PROGRAM_EMOJI = {
+    "MBA":    "🎓",
+    "MCA":    "💻",
+    "BCA":    "🖥️",
+    "BBA":    "📊",
+    "B.Tech": "⚙️",
+    "M.Tech": "🔬",
+}
+
+
+def _get_related_programs(program, limit=4):
+    """
+    Return up to `limit` related Program objects (as plain dicts).
+
+    Priority:
+      1. Same university, different program.
+      2. Same category (any university), excluding current.
+    Only active programs are considered.
+    """
+    from sqlalchemy.orm import joinedload  # already imported at top, safe to re-ref
+
+    same_uni = []
+    if program.university_id:
+        same_uni = (
+            Program.query
+            .filter(
+                Program.is_active.is_(True),
+                Program.university_id == program.university_id,
+                Program.id != program.id,
+            )
+            .options(
+                joinedload(Program.university),
+                joinedload(Program.category),
+                joinedload(Program.specialization),
+            )
+            .limit(limit)
+            .all()
+        )
+
+    remaining = limit - len(same_uni)
+    same_cat = []
+    if remaining > 0 and program.category_id:
+        exclude_ids = {program.id} | {p.id for p in same_uni}
+        same_cat = (
+            Program.query
+            .filter(
+                Program.is_active.is_(True),
+                Program.category_id == program.category_id,
+                ~Program.id.in_(exclude_ids),
+            )
+            .options(
+                joinedload(Program.university),
+                joinedload(Program.category),
+                joinedload(Program.specialization),
+            )
+            .limit(remaining)
+            .all()
+        )
+
+    results = []
+    for p in same_uni + same_cat:
+        cat_name = p.category.name if p.category else None
+        results.append({
+            "slug":         p.slug,
+            "title":        p.title,
+            "university":   p.university.name if p.university else None,
+            "category":     cat_name,
+            "specialization": p.specialization.name if p.specialization else None,
+            "duration":     p.duration,
+            "fees":         float(p.fees) if p.fees is not None else None,
+            "mode":         p.mode,
+            "emoji":        _PROGRAM_EMOJI.get(cat_name, "🎓"),
+        })
+    return results
+
+
+@main_bp.route("/program/<slug>")
+def program_detail(slug):
+    """
+    Fully database-driven Program Details Page.
+
+    Loads the program with its university, category, and specialization
+    in a single eager-loaded query. Derives 4 related programs (same
+    university first, then same category). 404s for unknown or inactive
+    slugs.
+    """
+    program = (
+        Program.query
+        .filter_by(slug=slug, is_active=True)
+        .options(
+            joinedload(Program.university).joinedload(University.programs)
+                .joinedload(Program.category),
+            joinedload(Program.university).joinedload(University.programs)
+                .joinedload(Program.specialization),
+            joinedload(Program.category),
+            joinedload(Program.specialization),
+        )
+        .first_or_404()
+    )
+
+    university    = program.university
+    category      = program.category
+    specialization = program.specialization
+
+    related_programs = _get_related_programs(program)
+
+    uni_avatar = _avatar_initials(university.name) if university else ""
+
+    # Phase 7C-1: has the current user saved this program?
+    is_saved = False
+    if session.get("user_id"):
+        is_saved = SavedProgram.query.filter_by(
+            user_id=session["user_id"],
+            program_id=program.id,
+        ).first() is not None
+
+    # Phase 7C-2: record recently-viewed
+    if session.get("user_id"):
+        try:
+            _record_recently_viewed(
+                user_id=session["user_id"],
+                university_id=None,
+                program_id=program.id,
+            )
+        except Exception:
+            db.session.rollback()
+
+    return render_template(
+        "program_details.html",
+        program=program,
+        university=university,
+        category=category,
+        specialization=specialization,
+        related_programs=related_programs,
+        uni_avatar=uni_avatar,
+        is_saved=is_saved,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Authentication (merged from the former routes/auth.py)
+# ---------------------------------------------------------------------------
+# Uses the existing User model (models/user.py) exactly as-is — password
+# hashing/verification goes through User.set_password() / User.check_password();
+# no new columns, no schema changes. Session-based auth: on success we store
+# the user's primary key in the signed Flask session (session["user_id"]);
+# no server-side session store or new tables required.
+
+
+@main_bp.app_context_processor
+def inject_current_user():
+    """
+    Expose `current_user` to all Jinja templates.
+
+    Returns the logged-in User row for the id stored in the session, or
+    None if there is no session / the session is stale (e.g. the user
+    was deactivated or deleted after logging in) — in the stale case the
+    dangling session is cleared so subsequent requests don't re-query.
+    """
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"current_user": None}
+
+    user = User.query.get(user_id)
+    if user is None or not user.is_active:
+        session.pop("user_id", None)
+        return {"current_user": None}
+
+    return {"current_user": user}
+
+
+@main_bp.route("/register", methods=["GET", "POST"])
+def register():
+    if session.get("user_id"):
+        return redirect(url_for("main.index"))
+
+    if request.method == "POST":
+        full_name = (request.form.get("full_name") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        mobile = _digits_only(request.form.get("mobile"))
+        password = request.form.get("password") or ""
+        confirm_password = request.form.get("confirm_password") or ""
+
+        errors = []
+
+        if len(full_name) < 2:
+            errors.append("Please enter your full name (at least 2 characters).")
+
+        if not EMAIL_RE.match(email):
+            errors.append("Please enter a valid email address.")
+
+        if len(mobile) != 10:
+            errors.append("Please enter a valid 10-digit mobile number.")
+
+        if len(password) < MIN_PASSWORD_LENGTH:
+            errors.append(
+                f"Password must be at least {MIN_PASSWORD_LENGTH} characters long."
+            )
+
+        if password != confirm_password:
+            errors.append("Passwords do not match.")
+
+        # Uniqueness checks only run once the basic field checks pass —
+        # no point hitting the DB for an already-invalid submission.
+        if not errors and User.query.filter_by(email=email).first():
+            errors.append("An account with this email already exists.")
+
+        if not errors and User.query.filter_by(mobile=mobile).first():
+            errors.append("An account with this mobile number already exists.")
+
+        if errors:
+            for message in errors:
+                flash(message, "error")
+            return (
+                render_template(
+                    "register.html",
+                    full_name=full_name,
+                    email=email,
+                    mobile=mobile,
+                ),
+                400,
+            )
+
+        user = User(
+            full_name=full_name,
+            email=email,
+            mobile=mobile,
+            is_verified=False,
+            is_admin=False,
+            is_active=True,
+        )
+        user.set_password(password)
+
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash("Could not create your account. Please try again.", "error")
+            return (
+                render_template(
+                    "register.html",
+                    full_name=full_name,
+                    email=email,
+                    mobile=mobile,
+                ),
+                500,
+            )
+
+        session.clear()
+        session["user_id"] = user.id
+        flash("Welcome to Campus Unlock! Your account has been created.", "success")
+        return redirect(url_for("main.index"))
+
+    return render_template("register.html")
+
+
+@main_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user_id"):
+        return redirect(url_for("main.index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not user.check_password(password):
+            flash("Invalid email or password.", "error")
+            return render_template("login.html", email=email), 401
+
+        if not user.is_active:
+            flash(
+                "This account has been deactivated. Please contact support.",
+                "error",
+            )
+            return render_template("login.html", email=email), 403
+
+        session.clear()
+        session["user_id"] = user.id
+
+        user.last_login = datetime.utcnow()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        flash(f"Welcome back, {user.full_name.split(' ')[0]}!", "success")
+
+        # Phase 8A: role-based landing. An explicit ?next= (e.g. from
+        # login_required/admin_required bouncing an anonymous visit)
+        # still wins, preserving existing redirect-back behavior.
+        next_url = request.args.get("next")
+        if next_url:
+            return redirect(next_url)
+
+        if user.is_admin_role():
+            return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("main.dashboard"))
+
+    return render_template("login.html")
+
+
+@main_bp.route("/profile")
+def profile():
+    """Read-only — required by the navbar's 'Profile' link; no CRUD."""
+    if not session.get("user_id"):
+        flash("Please log in to view your profile.", "error")
+        return redirect(url_for("main.login", next=request.path))
+
+    return render_template("profile.html")
+
+
+@main_bp.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.clear()
+    flash("You've been logged out.", "success")
+    return redirect(url_for("main.index"))
+
+
+# ---------------------------------------------------------------------------
+# Student Dashboard
+# ---------------------------------------------------------------------------
+# Read-only profile summary + "My Enquiries" (the logged-in user's own Lead
+# records) + self-service Edit Profile / Change Password. No admin surface,
+# no arbitrary CRUD, no schema changes.
+#
+# Leads have no user_id column (see models/lead.py — by design, leads are
+# plain-text captures, not FK'd to University/Program yet). The only
+# reliable existing link between a Lead and a User is email, so "My
+# Enquiries" matches Lead.email == current user's email. This is a
+# query-time join only; nothing about the leads table is altered.
+
+
+@main_bp.route("/dashboard")
+@login_required
+def dashboard():
+    """
+    Student dashboard: profile summary, enquiry history, and the
+    edit-profile / change-password forms all live on this one page.
+
+    Phase 7C-1 additions
+    --------------------
+    saved_universities  — user's bookmarked universities (eager-loaded)
+    saved_programs      — user's bookmarked programs (eager-loaded)
+    """
+    user = User.query.get(session["user_id"])
+
+    leads = []
+    if user and user.email:
+        leads = (
+            Lead.query.filter_by(email=user.email)
+            .order_by(Lead.created_at.desc())
+            .all()
+        )
+
+    # Eager-load university/program in the same query — no N+1.
+    saved_universities = (
+        SavedUniversity.query
+        .filter_by(user_id=user.id)
+        .options(joinedload(SavedUniversity.university))
+        .order_by(SavedUniversity.created_at.desc())
+        .all()
+    )
+
+    saved_programs = (
+        SavedProgram.query
+        .filter_by(user_id=user.id)
+        .options(
+            joinedload(SavedProgram.program).joinedload(Program.university),
+            joinedload(SavedProgram.program).joinedload(Program.category),
+        )
+        .order_by(SavedProgram.created_at.desc())
+        .all()
+    )
+
+    # Phase 7C-2: recently viewed universities
+    recent_universities = (
+        RecentlyViewed.query
+        .filter_by(user_id=user.id)
+        .filter(RecentlyViewed.university_id.isnot(None))
+        .options(joinedload(RecentlyViewed.university))
+        .order_by(RecentlyViewed.viewed_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    # Phase 7C-2: recently viewed programs
+    recent_programs = (
+        RecentlyViewed.query
+        .filter_by(user_id=user.id)
+        .filter(RecentlyViewed.program_id.isnot(None))
+        .options(
+            joinedload(RecentlyViewed.program).joinedload(Program.university),
+            joinedload(RecentlyViewed.program).joinedload(Program.category),
+        )
+        .order_by(RecentlyViewed.viewed_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    # Phase 7C-2: compare history (newest 5)
+    compare_history = (
+        CompareHistory.query
+        .filter_by(user_id=user.id)
+        .order_by(CompareHistory.compared_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Phase 7C-2: brochure downloads (newest 10)
+    brochure_history = (
+        BrochureDownload.query
+        .filter_by(user_id=user.id)
+        .options(
+            joinedload(BrochureDownload.university),
+            joinedload(BrochureDownload.program).joinedload(Program.university),
+        )
+        .order_by(BrochureDownload.downloaded_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    return render_template(
+        "dashboard.html",
+        leads=leads,
+        saved_universities=saved_universities,
+        saved_programs=saved_programs,
+        recent_universities=recent_universities,
+        recent_programs=recent_programs,
+        compare_history=compare_history,
+        brochure_history=brochure_history,
+    )
+
+
+@main_bp.route("/dashboard/profile", methods=["POST"])
+@login_required
+def update_profile():
+    """
+    Edit Profile — Name and Mobile Number only. Email is intentionally
+    not editable here (email is the account identifier and the join key
+    used for "My Enquiries").
+    """
+    user = User.query.get(session["user_id"])
+
+    full_name = (request.form.get("full_name") or "").strip()
+    mobile = _digits_only(request.form.get("mobile"))
+
+    errors = []
+
+    if len(full_name) < 2:
+        errors.append("Please enter your full name (at least 2 characters).")
+
+    if len(mobile) != 10:
+        errors.append("Please enter a valid 10-digit mobile number.")
+
+    if not errors and mobile != user.mobile:
+        existing = User.query.filter_by(mobile=mobile).first()
+        if existing and existing.id != user.id:
+            errors.append("An account with this mobile number already exists.")
+
+    if errors:
+        for message in errors:
+            flash(message, "error")
+        return redirect(url_for("main.dashboard"))
+
+    user.full_name = full_name
+    user.mobile = mobile
+
+    try:
+        db.session.commit()
+        flash("Your profile has been updated.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Could not update your profile. Please try again.", "error")
+
+    return redirect(url_for("main.dashboard"))
+
+
+@main_bp.route("/dashboard/password", methods=["POST"])
+@login_required
+def change_password():
+    """Change Password — requires the current password to be re-entered."""
+    user = User.query.get(session["user_id"])
+
+    current_password = request.form.get("current_password") or ""
+    new_password = request.form.get("new_password") or ""
+    confirm_new_password = request.form.get("confirm_new_password") or ""
+
+    errors = []
+
+    if not user.check_password(current_password):
+        errors.append("Current password is incorrect.")
+
+    if len(new_password) < MIN_PASSWORD_LENGTH:
+        errors.append(
+            f"New password must be at least {MIN_PASSWORD_LENGTH} characters long."
+        )
+
+    if new_password != confirm_new_password:
+        errors.append("New passwords do not match.")
+
+    if errors:
+        for message in errors:
+            flash(message, "error")
+        return redirect(url_for("main.dashboard"))
+
+    user.set_password(new_password)
+
+    try:
+        db.session.commit()
+        flash("Your password has been changed.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Could not change your password. Please try again.", "error")
+
+    return redirect(url_for("main.dashboard"))
+
+
+# ---------------------------------------------------------------------------
+# Phase 7C-1 — Saved Universities & Programs
+# ---------------------------------------------------------------------------
+# All endpoints are POST-only, require login, and return JSON so the frontend
+# can toggle the button state without a page reload.
+# Shape on success: { "saved": true|false }
+#
+# Security: user_id is always read from the server-side session — never from
+# the request body — so users can never touch another user's saved items.
+# ---------------------------------------------------------------------------
+
+@main_bp.route("/save/university/<int:university_id>", methods=["POST"])
+@login_required
+def toggle_save_university(university_id):
+    """
+    Toggle the saved state of a university for the current user.
+
+    POST /save/university/<id>
+    Returns 200 { "saved": bool }
+    Returns 404 if university does not exist / is inactive.
+    Returns 500 { "error": "..." } on DB failure.
+    """
+    user_id = session["user_id"]
+
+    university = University.query.filter_by(
+        id=university_id, is_active=True
+    ).first_or_404()
+
+    existing = SavedUniversity.query.filter_by(
+        user_id=user_id, university_id=university.id
+    ).first()
+
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({"saved": False})
+
+    row = SavedUniversity(user_id=user_id, university_id=university.id)
+    try:
+        db.session.add(row)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Could not save. Please try again."}), 500
+
+    return jsonify({"saved": True})
+
+
+@main_bp.route("/save/program/<int:program_id>", methods=["POST"])
+@login_required
+def toggle_save_program(program_id):
+    """
+    Toggle the saved state of a program for the current user.
+
+    POST /save/program/<id>
+    Returns 200 { "saved": bool }
+    Returns 404 if program does not exist / is inactive.
+    Returns 500 { "error": "..." } on DB failure.
+    """
+    user_id = session["user_id"]
+
+    program = Program.query.filter_by(
+        id=program_id, is_active=True
+    ).first_or_404()
+
+    existing = SavedProgram.query.filter_by(
+        user_id=user_id, program_id=program.id
+    ).first()
+
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({"saved": False})
+
+    row = SavedProgram(user_id=user_id, program_id=program.id)
+    try:
+        db.session.add(row)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Could not save. Please try again."}), 500
+
+    return jsonify({"saved": True})
+
+
+# ---------------------------------------------------------------------------
+# Phase 7C-2 — Brochure Download Tracker
+# ---------------------------------------------------------------------------
+
+@main_bp.route("/brochure/track", methods=["POST"])
+@login_required
+def track_brochure():
+    """
+    POST /brochure/track
+
+    Body (JSON): { "university_id": <int|null>, "program_id": <int|null> }
+
+    Records a brochure download event and returns the brochure URL so the
+    frontend can open it in a new tab.
+
+    At least one of university_id / program_id must be provided.
+    The URL is resolved server-side from the DB; the client never crafts it.
+    """
+    user_id = session["user_id"]
+    data = request.get_json(silent=True) or {}
+
+    university_id = data.get("university_id")
+    program_id    = data.get("program_id")
+
+    if not university_id and not program_id:
+        return jsonify({"error": "university_id or program_id required."}), 400
+
+    brochure_url = None
+
+    if program_id:
+        prog = Program.query.filter_by(id=program_id, is_active=True).first()
+        if prog:
+            brochure_url = prog.brochure
+            if not brochure_url and prog.university:
+                brochure_url = prog.university.brochure_url
+
+    if not brochure_url and university_id:
+        uni = University.query.filter_by(id=university_id, is_active=True).first()
+        if uni:
+            brochure_url = uni.brochure_url
+
+    try:
+        row = BrochureDownload(
+            user_id=user_id,
+            university_id=university_id if university_id else None,
+            program_id=program_id if program_id else None,
+        )
+        db.session.add(row)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({"ok": True, "url": brochure_url})
+
+
+# ---------------------------------------------------------------------------
+# Phase 7C-2 — Clear History
+# ---------------------------------------------------------------------------
+# Three distinct clear targets: recently_viewed, compare_history,
+# brochure_downloads.  Each is a separate POST so the dashboard can offer
+# per-section "Clear" buttons without a full page form submission.
+# Saved universities/programs are NOT affected by any of these.
+# ---------------------------------------------------------------------------
+
+@main_bp.route("/history/clear/<target>", methods=["POST"])
+@login_required
+def clear_history(target):
+    """
+    POST /history/clear/<target>
+    target: "viewed" | "compare" | "brochure"
+
+    Deletes the specified history table rows belonging to the current user.
+    Returns JSON { "ok": true } on success, 400 on unknown target.
+    Saved universities/programs are never touched.
+    """
+    user_id = session["user_id"]
+
+    allowed = {
+        "viewed":  RecentlyViewed,
+        "compare": CompareHistory,
+        "brochure": BrochureDownload,
+    }
+
+    model = allowed.get(target)
+    if model is None:
+        return jsonify({"error": f"Unknown target '{target}'."}), 400
+
+    try:
+        model.query.filter_by(user_id=user_id).delete()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Could not clear history. Please try again."}), 500
+
+    return jsonify({"ok": True})

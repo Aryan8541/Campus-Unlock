@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}{{ university.meta_title or (university.name ~ ' — Campus Unlock') }}{% endblock %}
+{% block meta_description %}{{ university.meta_description or university.short_description or ('Compare ' ~ university.name ~ ' online degree programs, fees, and NAAC accreditation on Campus Unlock.') }}{% endblock %}
+
+{% block content %}
+
+<section class="udp-hero"{% if university.banner_url or university.banner %} style="background-image:url('{{ university.banner_url or university.banner }}');"{% endif %}>
+  <div class="udp-hero-overlay"></div>
+  <div class="udp-hero-inner">
+    <div class="udp-hero-logo">
+      {% if university.logo_url or university.logo %}
+        <img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo">
+      {% else %}
+        <span>{{ avatar }}</span>
+      {% endif %}
+    </div>
+    <div>
+      <h1 class="udp-hero-name">{{ university.name }}</h1>
+      {% if university.short_description %}<p class="udp-hero-sub">{{ university.short_description }}</p>{% endif %}
+      <div class="udp-hero-badges">
+        {% if university.accreditation %}<span class="udp-badge">NAAC {{ university.accreditation }}</span>{% endif %}
+        {% if university.ranking %}<span class="udp-badge">NIRF #{{ university.ranking }}</span>{% endif %}
+        {% if university.established_year %}<span class="udp-badge">Est. {{ university.established_year }}</span>{% endif %}
+        {% if university.city or university.state %}<span class="udp-badge">{{ [university.city, university.state] | select | join(', ') }}</span>{% endif %}
+        {% if university.ugc_approved %}<span class="udp-badge udp-badge-approved">UGC Approved</span>{% endif %}
+        {% if university.aicte_approved %}<span class="udp-badge udp-badge-approved">AICTE Approved</span>{% endif %}
+        {% if university.aiu_member %}<span class="udp-badge udp-badge-approved">AIU Member</span>{% endif %}
+        {% if university.wes_approved %}<span class="udp-badge udp-badge-approved">WES Approved</span>{% endif %}
+      </div>
+      <div class="udp-hero-actions">
+        {% if university.brochure_url %}
+        <a href="{{ university.brochure_url }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);" target="_blank" rel="noopener">Download Brochure</a>
+        {% endif %}
+        <button type="button" class="btn-primary" data-university-apply data-university-name="{{ university.name }}">Apply Now</button>
+        <button
+          type="button"
+          class="btn-outline udp-save-btn"
+          style="color:#fff;border-color:rgba(255,255,255,0.5);"
+          data-save-type="university"
+          data-save-id="{{ university.id }}"
+          data-saved="{{ 'true' if is_saved else 'false' }}"
+          data-login-url="{{ url_for('main.login') }}">
+          {{ '🔖 Saved' if is_saved else '🔖 Save' }}
+        </button>
+        <a href="{{ url_for('main.compare') }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);">Compare</a>
+        {% if university.website %}<a href="{{ university.website }}" target="_blank" rel="noopener" class="udp-hero-website">Visit official website ↗</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="overview">
+  <div class="section-eyebrow reveal">Overview</div>
+  <h2 class="section-title reveal">About {{ university.name }}</h2>
+  {% if university.full_description %}
+    <p class="udp-prose reveal">{{ university.full_description }}</p>
+  {% endif %}
+  {% if university.why_choose %}
+    <h3 class="udp-subheading reveal">Why choose {{ university.name }}?</h3>
+    <p class="udp-prose reveal">{{ university.why_choose }}</p>
+  {% endif %}
+  {% if not university.full_description and not university.why_choose %}
+    <div class="tool-result">Overview details coming soon.</div>
+  {% endif %}
+</section>
+
+<section class="section prog-bg" id="highlights">
+  <div class="section-eyebrow reveal">At a glance</div>
+  <h2 class="section-title reveal">Highlights</h2>
+  <div class="feat-grid">
+    {% if university.ownership %}
+    <div class="feat-card reveal reveal-stagger" style="--d:0ms">
+      <div class="feat-icon">🏛️</div>
+      <div class="feat-title">{{ university.ownership }}</div>
+      <div class="feat-desc">Ownership</div>
+    </div>
+    {% endif %}
+    {% if university.university_type %}
+    <div class="feat-card reveal reveal-stagger" style="--d:60ms">
+      <div class="feat-icon">🎓</div>
+      <div class="feat-title">{{ university.university_type }}</div>
+      <div class="feat-desc">University type</div>
+    </div>
+    {% endif %}
+    {% if university.total_students %}
+    <div class="feat-card reveal reveal-stagger" style="--d:120ms">
+      <div class="feat-icon">👥</div>
+      <div class="feat-title">{{ '{:,}'.format(university.total_students) }}+</div>
+      <div class="feat-desc">Total students</div>
+    </div>
+    {% endif %}
+    {% if university.faculty_count %}
+    <div class="feat-card reveal reveal-stagger" style="--d:180ms">
+      <div class="feat-icon">🧑‍🏫</div>
+      <div class="feat-title">{{ '{:,}'.format(university.faculty_count) }}+</div>
+      <div class="feat-desc">Faculty members</div>
+    </div>
+    {% endif %}
+    {% if university.alumni_count %}
+    <div class="feat-card reveal reveal-stagger" style="--d:240ms">
+      <div class="feat-icon">🌍</div>
+      <div class="feat-title">{{ '{:,}'.format(university.alumni_count) }}+</div>
+      <div class="feat-desc">Alumni network</div>
+    </div>
+    {% endif %}
+    <div class="feat-card reveal reveal-stagger" style="--d:300ms">
+      <div class="feat-icon">💼</div>
+      <div class="feat-title">{{ 'Available' if university.placement_support else 'Not offered' }}</div>
+      <div class="feat-desc">Placement support</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="programs">
+  <div class="section-eyebrow reveal">Degrees offered</div>
+  <h2 class="section-title reveal">Programs at {{ university.name }}</h2>
+  {% if programs %}
+  <div class="prog-grid">
+    {% for program in programs %}
+    <a href="{{ url_for('main.programs') }}" class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
+      <div class="prog-icon">{{ program.emoji }}</div>
+      <div>
+        <div class="prog-name">{{ program.title }}</div>
+        <div class="prog-meta">
+          {{ program.category or '' }}{% if program.specialization %} · {{ program.specialization }}{% endif %}{% if program.duration %} · {{ program.duration }}{% endif %}
+        </div>
+        {% if program.fees %}<div class="prog-meta">From ₹{{ '{:,.0f}'.format(program.fees) }}/yr</div>{% endif %}
+        {% if program.eligibility %}<div class="prog-meta">Eligibility: {{ program.eligibility }}</div>{% endif %}
+        {% if program.mode %}<span class="prog-tag">{{ program.mode }}</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="tool-result">No programs listed yet for this university.</div>
+  {% endif %}
+</section>
+
+<section class="section prog-bg" id="placement">
+  <div class="section-eyebrow reveal">Careers</div>
+  <h2 class="section-title reveal">Placement Record</h2>
+  <div class="udp-placement-stats">
+    {% if university.highest_package %}
+    <div class="udp-stat-box reveal reveal-stagger" style="--d:0ms">
+      <div class="udp-stat-num">₹{{ '{:,.0f}'.format(university.highest_package) }}</div>
+      <div class="udp-stat-label">Highest Package</div>
+    </div>
+    {% endif %}
+    {% if university.average_package %}
+    <div class="udp-stat-box reveal reveal-stagger" style="--d:60ms">
+      <div class="udp-stat-num">₹{{ '{:,.0f}'.format(university.average_package) }}</div>
+      <div class="udp-stat-label">Average Package</div>
+    </div>
+    {% endif %}
+    <div class="udp-stat-box reveal reveal-stagger" style="--d:120ms">
+      <div class="udp-stat-num">{{ 'Yes' if university.placement_support else 'No' }}</div>
+      <div class="udp-stat-label">Placement Support</div>
+    </div>
+  </div>
+  {% if top_recruiters %}
+  <div class="uni-chips udp-recruiters">
+    {% for name in top_recruiters %}<span class="uni-chip">{{ name }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% if placement_partners %}
+  <div class="udp-partner-grid">
+    {% for partner in placement_partners %}
+    <div class="udp-partner-logo">
+      {% if partner.logo %}
+        <img src="{{ partner.logo }}" alt="{{ partner.name }}">
+      {% else %}
+        <span>{{ partner.name }}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if not university.highest_package and not university.average_package and not top_recruiters and not placement_partners %}
+  <div class="tool-result">Placement details coming soon.</div>
+  {% endif %}
+</section>
+
+<section class="section schol-bg" id="scholarships">
+  <div class="section-eyebrow reveal">Financial aid</div>
+  <h2 class="section-title reveal">Scholarships</h2>
+  {% if scholarships %}
+  <div class="schol-grid">
+    {% for s in scholarships %}
+    <div class="schol-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
+      {% if s.amount %}<div class="schol-amt">₹{{ '{:,.0f}'.format(s.amount) }}</div>{% endif %}
+      <div class="schol-name">{{ s.title }}</div>
+      {% if s.description %}<div class="schol-desc">{{ s.description }}</div>{% endif %}
+      {% if s.deadline %}<div class="schol-desc">Deadline: {{ s.deadline }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="tool-result">No scholarships listed yet.</div>
+  {% endif %}
+</section>
+
+<section class="section" id="faqs">
+  <div class="section-eyebrow reveal">Questions</div>
+  <h2 class="section-title reveal">Frequently Asked Questions</h2>
+  {% if faqs %}
+  <div class="udp-faq-list">
+    {% for f in faqs %}
+    <details class="udp-faq-item">
+      <summary class="udp-faq-q">{{ f.question }}</summary>
+      <div class="udp-faq-a">{{ f.answer }}</div>
+    </details>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="tool-result">No FAQs added yet.</div>
+  {% endif %}
+</section>
+
+<section class="section prog-bg" id="contact">
+  <div class="section-eyebrow reveal">Get in touch</div>
+  <h2 class="section-title reveal">Contact {{ university.name }}</h2>
+  <div class="udp-contact-grid">
+    {% if university.address %}
+    <div class="udp-contact-item"><strong>Address</strong><span>{{ university.address }}</span></div>
+    {% endif %}
+    {% if university.email %}
+    <div class="udp-contact-item"><strong>Email</strong><a href="mailto:{{ university.email }}">{{ university.email }}</a></div>
+    {% endif %}
+    {% if university.phone %}
+    <div class="udp-contact-item"><strong>Phone</strong><a href="tel:{{ university.phone }}">{{ university.phone }}</a></div>
+    {% endif %}
+    {% if university.website %}
+    <div class="udp-contact-item"><strong>Website</strong><a href="{{ university.website }}" target="_blank" rel="noopener">{{ university.website }}</a></div>
+    {% endif %}
+  </div>
+</section>
+
+{% if similar_universities %}
+<section class="section" id="similar">
+  <div class="section-eyebrow reveal">Explore more</div>
+  <h2 class="section-title reveal">Similar Universities</h2>
+  <div class="uni-grid">
+    {% for u in similar_universities %}
+    <a href="{{ url_for('main.university_detail', slug=u.slug) }}" class="uni-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
+      <div class="uni-top">
+        <div class="uni-avatar">{% if u.logo %}<img src="{{ u.logo }}" alt="{{ u.name }} logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">{% else %}{{ u.avatar }}{% endif %}</div>
+        <div><div class="uni-name">{{ u.name }}</div><div class="uni-naac">{{ u.naac or 'Accreditation pending' }}{% if u.nirf %} · NIRF #{{ u.nirf }}{% endif %}</div></div>
+      </div>
+      <div class="uni-chips">
+        {% for name in u.programs[:4] %}<span class="uni-chip">{{ name.replace('Online ', '') }}</span>{% endfor %}
+      </div>
+      <div class="uni-fee">{% if u.fee %}From ₹{{ '{:,.0f}'.format(u.fee) }}/yr{% else %}Fees on request{% endif %}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Phase 7C-1: expose login state to inline JS (0 = anonymous).
+  window.__cuUserId = {{ session.get('user_id', 0) | tojson }};
+  // Phase 7C-2: university context for brochure tracking
+  window.__cuUniId = {{ university.id | tojson }};
+</script>
+<script>
+  // Apply Now on this page reuses whichever lead-capture trigger the
+  // global nav CTA is already wired to in app.js, so behaviour stays
+  // consistent with the rest of the site without duplicating that logic.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-university-apply]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var navCta = document.querySelector('.nav-cta');
+        if (navCta) { navCta.click(); }
+      });
+    });
+
+    // Phase 7C-1 — Save / unsave university toggle
+    document.querySelectorAll('.udp-save-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var loginUrl = btn.dataset.loginUrl;
+        var type     = btn.dataset.saveType;
+        var id       = btn.dataset.saveId;
+
+        // Redirect guests to login (current_user_id is 0 when not logged in)
+        if (!window.__cuUserId) {
+          window.location.href = loginUrl + '?next=' + encodeURIComponent(window.location.pathname);
+          return;
+        }
+
+        fetch('/save/' + type + '/' + id, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          btn.dataset.saved = data.saved ? 'true' : 'false';
+          btn.textContent   = data.saved ? '🔖 Saved' : '🔖 Save';
+        })
+        .catch(function () {});
+      });
+    });
+
+    // Phase 7C-2 — Intercept brochure download links to record history
+    // Only fires for logged-in users; guests download directly.
+    if (window.__cuUserId) {
+      document.querySelectorAll('a[href][rel~="noopener"]').forEach(function (link) {
+        var href = link.getAttribute('href') || '';
+        // Heuristic: treat links containing 'brochure' in href or text as brochure links
+        var isBrochure = /brochure/i.test(href) || /brochure/i.test(link.textContent);
+        if (!isBrochure) return;
+
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var url = link.href;
+          fetch('/brochure/track', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              university_id: window.__cuUniId || null,
+              program_id: null
+            })
+          })
+          .finally(function () {
+            window.open(url, '_blank', 'noopener');
+          });
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}

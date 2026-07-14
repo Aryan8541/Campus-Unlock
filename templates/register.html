@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Create Your Account | Campus Unlock{% endblock %}
+{% block meta_description %}Create a free Campus Unlock account to save universities, compare programs, and track your applications.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:480px;padding-top:64px;padding-bottom:64px;">
+  <div class="section-eyebrow">Get started</div>
+  <h1 class="section-title" style="font-size:26px;">Create your account</h1>
+  <p class="section-sub" style="margin-bottom:28px;">Save universities, compare programs, and track your applications.</p>
+
+  <div class="pdp-info-card">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="form-error show" style="{% if category == 'success' %}color:var(--success);{% endif %}position:static;display:flex;margin-bottom:12px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('main.register') }}" novalidate>
+      <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <input type="text" id="full_name" name="full_name" value="{{ full_name or '' }}" required minlength="2" autocomplete="name">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ email or '' }}" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="mobile">Mobile Number</label>
+        <input type="tel" id="mobile" name="mobile" value="{{ mobile or '' }}" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" autocomplete="tel">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
+      </div>
+
+      <button type="submit" class="form-submit">Create Account</button>
+    </form>
+  </div>
+
+  <p class="tool-result" style="margin-top:18px;text-align:center;">
+    Already have an account? <a href="{{ url_for('main.login') }}" style="color:var(--teal);font-weight:700;">Log in</a>
+  </p>
+</section>
+{% endblock %}

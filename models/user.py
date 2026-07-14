@@ -28,6 +28,20 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, nullable=False, default=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    # ------------------------------------------------------------------
+    # Phase 8A — Role-based authentication (Admin System foundation)
+    # ------------------------------------------------------------------
+    # Additive column. `is_admin` above is left untouched for backward
+    # compatibility with any existing code paths that still read it;
+    # `role` is the new source of truth for authorization decisions
+    # going forward (admin_required, login redirects, navbar).
+    role = db.Column(
+        db.String(20),
+        nullable=False,
+        default="student",
+        server_default="student",
+    )
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
@@ -47,6 +61,14 @@ class User(db.Model):
     def check_password(self, raw_password):
         """Verify a plain-text password against the stored hash."""
         return check_password_hash(self.password_hash, raw_password)
+
+    # ------------------------------------------------------------------
+    # Phase 8A — Role helpers
+    # ------------------------------------------------------------------
+    def is_admin_role(self):
+        """True if this user's role is 'admin'. Used by admin_required
+        and login()'s post-auth redirect; does not read/alter is_admin."""
+        return self.role == "admin"
 
     def __repr__(self):
         return f"<User id={self.id} email={self.email!r}>"

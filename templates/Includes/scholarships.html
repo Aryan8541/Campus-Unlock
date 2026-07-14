@@ -4,9 +4,34 @@
     <h2 class="section-title reveal">Scholarships & financial aid</h2>
     <p class="section-sub reveal">We help you find funding before you pay full price. Ask your counsellor which of these you qualify for.</p>
     <div class="schol-grid">
-      <div class="schol-card reveal reveal-stagger" style="--d:0ms"><div class="schol-amt">Up to 20%</div><div class="schol-name">Merit Scholarship</div><div class="schol-desc">For students with strong academic records in their previous qualifying degree.</div><a href="#" class="schol-link" data-open-modal>Check eligibility →</a></div>
-      <div class="schol-card reveal reveal-stagger" style="--d:100ms"><div class="schol-amt">Up to 15%</div><div class="schol-name">Women in Tech Grant</div><div class="schol-desc">Supporting women enrolling in MCA, BCA, and M.Tech programs.</div><a href="#" class="schol-link" data-open-modal>Check eligibility →</a></div>
-      <div class="schol-card reveal reveal-stagger" style="--d:200ms"><div class="schol-amt">No-cost EMI</div><div class="schol-name">Easy Payment Plans</div><div class="schol-desc">Split your fees into monthly instalments with 0% processing charges.</div><a href="#" class="schol-link" data-open-modal>Check eligibility →</a></div>
+      {% for schol in scholarships %}
+      <div class="schol-card reveal reveal-stagger" style="--d:{{ loop.index0 * 100 }}ms">
+        <div class="schol-amt">{{ schol.amount_label }}</div>
+        <div class="schol-name">{{ schol.title }}</div>
+        <div class="schol-desc">{{ schol.description }}</div>
+        <a href="#" class="schol-link" data-open-modal>Check eligibility →</a>
+      </div>
+      {% else %}
+      {# Fallback: DB empty or query failed — render the three default cards #}
+      <div class="schol-card reveal reveal-stagger" style="--d:0ms">
+        <div class="schol-amt">Up to 20%</div>
+        <div class="schol-name">Merit Scholarship</div>
+        <div class="schol-desc">For students with strong academic records in their previous qualifying degree.</div>
+        <a href="#" class="schol-link" data-open-modal>Check eligibility →</a>
+      </div>
+      <div class="schol-card reveal reveal-stagger" style="--d:100ms">
+        <div class="schol-amt">Up to 15%</div>
+        <div class="schol-name">Women in Tech Grant</div>
+        <div class="schol-desc">Supporting women enrolling in MCA, BCA, and M.Tech programs.</div>
+        <a href="#" class="schol-link" data-open-modal>Check eligibility →</a>
+      </div>
+      <div class="schol-card reveal reveal-stagger" style="--d:200ms">
+        <div class="schol-amt">No-cost EMI</div>
+        <div class="schol-name">Easy Payment Plans</div>
+        <div class="schol-desc">Split your fees into monthly instalments with 0% processing charges.</div>
+        <a href="#" class="schol-link" data-open-modal>Check eligibility →</a>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

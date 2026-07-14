@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Campus Unlock{% endblock %}
+{% block meta_description %}Campus Unlock admin dashboard.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:720px;padding-top:64px;padding-bottom:64px;">
+  <div class="section-eyebrow">Admin</div>
+  <h1 class="section-title" style="font-size:26px;">Admin Dashboard</h1>
+
+  <div class="pdp-info-card" style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;">
+    <div>
+      <div class="section-sub" style="margin:0;">Users</div>
+      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.users }}</div>
+    </div>
+    <div>
+      <div class="section-sub" style="margin:0;">Universities</div>
+      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.universities }}</div>
+    </div>
+    <div>
+      <div class="section-sub" style="margin:0;">Programs</div>
+      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.programs }}</div>
+    </div>
+    <div>
+      <div class="section-sub" style="margin:0;">Leads</div>
+      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.leads }}</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
