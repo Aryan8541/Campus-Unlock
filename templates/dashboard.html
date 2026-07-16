@@ -4,7 +4,7 @@
 {% block meta_description %}Manage your Campus Unlock account, track your enquiries, and update your profile.{% endblock %}
 
 {% block content %}
-<section class="section" style="max-width:720px;padding-top:64px;padding-bottom:64px;">
+<section class="section dashboard-page" style="padding-top:64px;padding-bottom:64px;">
   <div class="section-eyebrow">Account</div>
   <h1 class="section-title" style="font-size:26px;">My Dashboard</h1>
   <p class="section-sub" style="margin-bottom:28px;">Welcome back, {{ current_user.full_name.split(' ')[0] }}.</p>
@@ -272,6 +272,34 @@
   // After a successful remove the list item fades out; if the list is then
   // empty the section updates to the empty-state message automatically.
   document.addEventListener('DOMContentLoaded', function () {
+    // Phase 8F — a single active dashboard card. Previous sticky cards are
+    // removed from the paint/accessibility tree as the following card reaches
+    // the stack line, eliminating the old visible overlap artefacts.
+    var dashboard = document.querySelector('.dashboard-page');
+    if (dashboard && window.matchMedia('(min-width: 961px)').matches) {
+      var cards = Array.prototype.slice.call(dashboard.querySelectorAll(':scope > .pdp-info-card'));
+      var frame = null;
+      var syncStack = function () {
+        frame = null;
+        var stackTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-offset')) || 112;
+        var activeIndex = 0;
+        cards.forEach(function (card, index) {
+          if (card.getBoundingClientRect().top <= stackTop + 8) activeIndex = index;
+        });
+        cards.forEach(function (card, index) {
+          var past = index < activeIndex;
+          card.classList.toggle('dashboard-card-past', past);
+          card.classList.toggle('dashboard-card-active', index === activeIndex);
+          card.setAttribute('aria-hidden', past ? 'true' : 'false');
+        });
+      };
+      var requestStackSync = function () {
+        if (!frame) frame = requestAnimationFrame(syncStack);
+      };
+      window.addEventListener('scroll', requestStackSync, { passive: true });
+      window.addEventListener('resize', requestStackSync, { passive: true });
+      syncStack();
+    }
     document.querySelectorAll('.saved-toggle-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var type = btn.dataset.saveType;   // "university" | "program"

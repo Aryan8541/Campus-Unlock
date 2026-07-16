@@ -1,46 +1,251 @@
 <section class="hero" aria-labelledby="hero-heading">
+
+  {# ── Background decorations (pure CSS blobs via aria-hidden spans) ── #}
+  <span class="hero-blob hero-blob--tl" aria-hidden="true"></span>
+  <span class="hero-blob hero-blob--br" aria-hidden="true"></span>
+  <span class="hero-grid-dots"          aria-hidden="true"></span>
+
   <div class="hero-inner">
-    <div>
-      <div class="hero-pill">✅ UGC-DEB Approved Universities Only</div>
-      <h1 id="hero-heading">Your Dream Degree.<br><span>Found in Minutes.</span></h1>
+
+    {# ═══════════════════════════════════════════════════════════════ #}
+    {# LEFT COLUMN                                                      #}
+    {# ═══════════════════════════════════════════════════════════════ #}
+    <div class="hero-left">
+
+      {# Trust pill #}
+      <div class="hero-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        UGC-DEB Approved Universities Only
+      </div>
+
+      {# Headline #}
+      <h1 id="hero-heading">
+        Your Dream Degree.<br>
+        <span>Found in Minutes.</span>
+      </h1>
+
+      {# Subtext #}
       <p>Compare online universities side-by-side — fees, specialisations, EMI plans, and NAAC ratings. Get unbiased guidance from India's most trusted education platform.</p>
 
+      {# ── Search box ──────────────────────────────────────────────── #}
+      {# IDs heroSearch / heroSearchInput / heroSearchBudget / searchSuggestions
+         are required by app.js — do NOT rename them.                   #}
       <div class="hero-search-wrap">
-        <form class="hero-search" id="heroSearch" role="search" aria-label="Search programs">
+        <form class="hero-search" id="heroSearch" role="search" aria-label="Search universities and programs">
+
           <label class="hero-search-field">
-            <span class="sr-only">Search universities, courses, blogs</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="heroSearchInput" placeholder="Search MBA, Amity, EMI, blog…" autocomplete="off">
+            <span class="sr-only">Search universities, courses, or blog topics</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              id="heroSearchInput"
+              placeholder="Search MBA, Amity, EMI, blog…"
+              autocomplete="off"
+              spellcheck="false"
+              aria-autocomplete="list"
+              aria-controls="searchSuggestions"
+            >
           </label>
-          <label class="hero-search-field" style="flex: 0 1 150px;">
-            <span class="sr-only">Budget range</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            <select id="heroSearchBudget">
+
+          <label class="hero-search-field" style="flex:0 1 160px;">
+            <span class="sr-only">Filter by budget</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <select id="heroSearchBudget" aria-label="Budget range">
               <option value="">Any budget</option>
               <option value="50000">Under ₹50,000/yr</option>
               <option value="80000">Under ₹80,000/yr</option>
               <option value="150000">Under ₹1,50,000/yr</option>
             </select>
           </label>
-          <button type="submit" class="hero-search-btn">Find My Program</button>
+
+          <button type="submit" class="hero-search-btn">
+            Find My Program
+          </button>
+
         </form>
-        <div class="search-suggestions" id="searchSuggestions"></div>
+
+        {# Live suggestions dropdown — class + id required by app.js #}
+        <div class="search-suggestions" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div>
       </div>
 
-      <div class="hero-search-hint">Popular: <strong>Online MBA</strong> · <strong>Online MCA</strong> · <strong>Online BBA</strong></div>
+      <p class="hero-search-hint">
+        Popular:
+        <strong>Online MBA</strong> ·
+        <strong>Online MCA</strong> ·
+        <strong>Online BBA</strong>
+      </p>
 
-      <div class="hero-btns" style="margin-top:24px;">
-        <button class="btn-primary" data-scroll-to="programs">Explore Programs →</button>
+      {# ── CTA buttons ─────────────────────────────────────────────── #}
+      {# .hero-btns, .btn-primary, .btn-arrow, .btn-outline consumed by app.js #}
+      <div class="hero-btns">
+        <button class="btn-primary" data-scroll-to="programs">
+          <span>Explore Programs</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.4"
+               stroke-linecap="round" stroke-linejoin="round"
+               class="btn-arrow" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
         <button class="btn-outline" data-open-modal>Talk to an Expert</button>
       </div>
-    </div>
-    <div class="hero-right">
-      <div class="hero-right-title">Trending Programs</div>
-      <div class="course-item"><div class="ci-icon">M</div><div><div class="ci-name">Online MBA</div><div class="ci-sub">2 Years · 35+ specialisations</div></div><div class="ci-badge">#1 Choice</div></div>
-      <div class="course-item"><div class="ci-icon">C</div><div><div class="ci-name">Online MCA</div><div class="ci-sub">2 Years · AI, Cloud, Cyber</div></div><div class="ci-badge">Trending</div></div>
-      <div class="course-item"><div class="ci-icon">B</div><div><div class="ci-name">Online BBA</div><div class="ci-sub">3 Years · 20+ specialisations</div></div><div class="ci-badge">Popular</div></div>
-      <div class="course-item"><div class="ci-icon">D</div><div><div class="ci-name">Dual MBA</div><div class="ci-sub">2 Years · Double specialisation</div></div><div class="ci-badge">New</div></div>
-      <div class="course-item"><div class="ci-icon">E</div><div><div class="ci-name">Executive MBA</div><div class="ci-sub">1-2 Years · Working professionals</div></div><div class="ci-badge">Premium</div></div>
-    </div>
-  </div>
+
+      {# ── Trust row ───────────────────────────────────────────────── #}
+      {# .hero-trust-row / .hero-trust-avatars / .hta / .hero-trust-copy
+         / .hero-trust-stars — all kept for CSS + JS references         #}
+      <div class="hero-trust-row" aria-label="Student trust indicators">
+        <div class="hero-trust-avatars" aria-hidden="true">
+          <span class="hta">R</span>
+          <span class="hta">S</span>
+          <span class="hta">P</span>
+          <span class="hta">A</span>
+        </div>
+        <div class="hero-trust-copy">
+          <strong>10,000+</strong> students guided this year ·
+          <span class="hero-trust-stars">★★★★★
+            <span>4.8/5 average rating</span>
+          </span>
+        </div>
+      </div>
+
+      {# ── Trust badge strip ───────────────────────────────────────── #}
+      <div class="hero-trust-badges" aria-label="Certifications and approvals">
+        <span class="hero-trust-badge">🎓 UGC-DEB</span>
+        <span class="hero-trust-badge">✅ NAAC Rated</span>
+        <span class="hero-trust-badge">🌐 WES Evaluated</span>
+        <span class="hero-trust-badge">🏅 AIU Member</span>
+      </div>
+
+    </div>{# /hero-left #}
+
+    {# ═══════════════════════════════════════════════════════════════ #}
+    {# RIGHT COLUMN                                                     #}
+    {# ═══════════════════════════════════════════════════════════════ #}
+    <div class="hero-right-wrap">
+
+      {# Floating illustration — class required by existing CSS #}
+      <div class="hero-illustration" aria-hidden="true">
+        <svg viewBox="0 0 420 380" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="hiGrad1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#3b82f6"/>
+              <stop offset="100%" stop-color="#1e3a8a"/>
+            </linearGradient>
+            <linearGradient id="hiGrad2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#dbeafe"/>
+              <stop offset="100%" stop-color="#bfdbfe"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="210" cy="330" rx="150" ry="18" fill="#1e3a8a" opacity="0.08"/>
+          <g transform="translate(60,150)">
+            <rect x="0" y="30" width="150" height="110" rx="14" fill="url(#hiGrad2)"/>
+            <rect x="0" y="30" width="150" height="26" rx="14" fill="#3b82f6"/>
+            <rect x="14" y="70" width="122" height="10" rx="5" fill="#93c5fd"/>
+            <rect x="14" y="90" width="90"  height="10" rx="5" fill="#93c5fd"/>
+            <rect x="14" y="110" width="106" height="10" rx="5" fill="#93c5fd"/>
+          </g>
+          <g transform="translate(190,40)">
+            <path d="M75 0 150 34 75 68 0 34 75 0Z" fill="url(#hiGrad1)"/>
+            <path d="M32 46v34c0 12 19 22 43 22s43-10 43-22V46"
+                  stroke="#1e3a8a" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <line x1="146" y1="34" x2="146" y2="76"
+                  stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="146" cy="82" r="5" fill="#1e3a8a"/>
+          </g>
+          <g transform="translate(255,165)">
+            <rect x="0" y="0" width="95" height="95" rx="18"
+                  fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+            <circle cx="47" cy="38" r="16" fill="#3b82f6"/>
+            <path d="M22 78c4-16 19-24 25-24s21 8 25 24"
+                  stroke="#1e3a8a" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+          <circle cx="82"  cy="72"  r="10" fill="#93c5fd"/>
+          <circle cx="360" cy="120" r="7"  fill="#3b82f6"/>
+          <circle cx="340" cy="290" r="9"  fill="#bfdbfe"/>
+          <path d="M35 210 Q20 230 40 250"
+                stroke="#93c5fd" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      {# Floating stat card — top #}
+      {# .hero-float-card .hero-float-card--top / .stat-num / .hfc-* all required #}
+      <div class="hero-float-card hero-float-card--top" role="img" aria-label="50+ partner universities">
+        <span class="hfc-icon" aria-hidden="true">🎓</span>
+        <div class="hfc-copy">
+          <span class="stat-num" data-count="50" data-suffix="+">0+</span>
+          <span class="hfc-label">Partner Universities</span>
+        </div>
+      </div>
+
+      {# ── Trending programs card ───────────────────────────────────── #}
+      {# .hero-right / .hero-right-title / .course-item / .ci-* all required #}
+      <div class="hero-right">
+        <div class="hero-right-title">Trending Programs</div>
+
+        <div class="course-item">
+          <div class="ci-icon" aria-hidden="true">M</div>
+          <div>
+            <div class="ci-name">Online MBA</div>
+            <div class="ci-sub">2 Years · 35+ specialisations</div>
+          </div>
+          <div class="ci-badge">#1 Choice</div>
+        </div>
+
+        <div class="course-item">
+          <div class="ci-icon" aria-hidden="true">C</div>
+          <div>
+            <div class="ci-name">Online MCA</div>
+            <div class="ci-sub">2 Years · AI, Cloud, Cyber</div>
+          </div>
+          <div class="ci-badge">Trending</div>
+        </div>
+
+        <div class="course-item">
+          <div class="ci-icon" aria-hidden="true">B</div>
+          <div>
+            <div class="ci-name">Online BBA</div>
+            <div class="ci-sub">3 Years · 20+ specialisations</div>
+          </div>
+          <div class="ci-badge">Popular</div>
+        </div>
+
+        <div class="course-item">
+          <div class="ci-icon" aria-hidden="true">D</div>
+          <div>
+            <div class="ci-name">Dual MBA</div>
+            <div class="ci-sub">2 Years · Double specialisation</div>
+          </div>
+          <div class="ci-badge">New</div>
+        </div>
+
+        <div class="course-item">
+          <div class="ci-icon" aria-hidden="true">E</div>
+          <div>
+            <div class="ci-name">Executive MBA</div>
+            <div class="ci-sub">1-2 Years · Working professionals</div>
+          </div>
+          <div class="ci-badge">Premium</div>
+        </div>
+      </div>{# /hero-right #}
+
+      {# Floating stat card — bottom #}
+      <div class="hero-float-card hero-float-card--bottom" role="img" aria-label="94% placement assistance">
+        <span class="hfc-icon" aria-hidden="true">📈</span>
+        <div class="hfc-copy">
+          <span class="stat-num" data-count="94" data-suffix="%">0%</span>
+          <span class="hfc-label">Placement Assistance</span>
+        </div>
+      </div>
+
+    </div>{# /hero-right-wrap #}
+
+  </div>{# /hero-inner #}
 </section>

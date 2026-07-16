@@ -4,16 +4,30 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="Campus Unlock — Compare UGC-DEB approved online universities side-by-side. Fees, specialisations, EMI plans and NAAC ratings. Free, unbiased counselling.">
-<meta name="theme-color" content="#2563eb" />
+<meta name="theme-color" content="#003da2" />
 <title>{% block title %}Campus Unlock — Your Dream Degree, Found in Minutes{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
 <a href="#top" class="skip-link">Skip to main content</a>
+
+{# ── Top info bar ─────────────────────────────────────────────────────── #}
+<div class="cu-info-bar" id="cuInfoBar" role="banner" aria-label="Site notice">
+  <div class="cu-info-bar-inner">
+    <span class="cu-info-bar-badge">✅ UGC-DEB Approved</span>
+    <span class="cu-info-bar-sep" aria-hidden="true">·</span>
+    <span class="cu-info-bar-text">10,000+ students guided · Free, unbiased counselling</span>
+    <span class="cu-info-bar-sep cu-info-bar-sep--desktop" aria-hidden="true">·</span>
+    <span class="cu-info-bar-text cu-info-bar-text--desktop">
+      📞 Talk to an expert: <strong>1800-XXX-XXXX</strong> (Mon–Sat, 9 am–6 pm)
+    </span>
+  </div>
+  <button class="cu-info-bar-close" id="cuInfoBarClose" aria-label="Dismiss notice" title="Dismiss">✕</button>
+</div>
 
 {% include 'includes/navbar.html' %}
 
@@ -26,6 +40,29 @@
 {% include 'includes/modal.html' %}
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  // Info bar dismiss — persists across page loads via sessionStorage
+  (function () {
+    var bar = document.getElementById('cuInfoBar');
+    var btn = document.getElementById('cuInfoBarClose');
+    if (!bar || !btn) return;
+    if (sessionStorage.getItem('cu_infobar_closed')) {
+      bar.style.display = 'none';
+      document.documentElement.style.setProperty('--infobar-h', '0px');
+    }
+    btn.addEventListener('click', function () {
+      bar.style.transition = 'opacity .25s, max-height .3s';
+      bar.style.opacity = '0';
+      bar.style.maxHeight = '0';
+      bar.style.overflow = 'hidden';
+      sessionStorage.setItem('cu_infobar_closed', '1');
+      setTimeout(function () {
+        bar.style.display = 'none';
+        document.documentElement.style.setProperty('--infobar-h', '0px');
+      }, 300);
+    });
+  })();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

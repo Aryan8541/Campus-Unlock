@@ -1,30 +1,55 @@
 <header id="siteHeader">
   <nav aria-label="Primary">
-    <a href="#top" class="logo">Campus<span>Unlock</span></a>
-    <div class="nav-links" id="navLinks">
-      <a href="#programs" data-section="programs">Programs</a>
-      <a href="#universities" data-section="universities">Universities</a>
-      <a href="#compare" data-section="compare">Compare</a>
-      <a href="#scholarships" data-section="scholarships">Scholarships</a>
-      <a href="#blog" data-section="blog">Blog</a>
+
+    {# ── Logo ──────────────────────────────────────────────────────────── #}
+    <a href="/" class="logo" aria-label="Campus Unlock home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3 2 8l10 5 10-5-10-5Z" fill="currentColor"/>
+          <path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="logo-text">Campus<span>Unlock</span></span>
+    </a>
+
+    {# ── Primary links + auth ─────────────────────────────────────────── #}
+    <div class="nav-links" id="navLinks" role="menubar" aria-label="Primary navigation links">
+      <a href="/#programs"      data-section="programs"      role="menuitem">Programs</a>
+      <a href="/#universities"  data-section="universities"  role="menuitem">Universities</a>
+      <a href="/#compare"       data-section="compare"       role="menuitem">Compare</a>
+      <a href="/#scholarships"  data-section="scholarships"  role="menuitem">Scholarships</a>
+      <a href="/#blog"          data-section="blog"          role="menuitem">Blog</a>
+
+      <span class="nav-divider" aria-hidden="true"></span>
+
       {% if current_user %}
-        {% if current_user.is_admin_role() %}
-          <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-          <a href="{{ url_for('admin.dashboard') }}">Admin Panel</a>
-          <a href="{{ url_for('main.logout') }}">Logout</a>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-link-auth" role="menuitem">Dashboard</a>
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin.dashboard') }}" class="nav-link-auth" role="menuitem">Admin</a>
         {% else %}
-          <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-          <a href="{{ url_for('main.profile') }}">Profile</a>
-          <a href="{{ url_for('main.logout') }}">Logout</a>
+          <a href="{{ url_for('main.profile') }}" class="nav-link-auth" role="menuitem">Profile</a>
         {% endif %}
+        <a href="{{ url_for('main.logout') }}" class="nav-link-auth" role="menuitem">Logout</a>
       {% else %}
-        <a href="{{ url_for('main.login') }}">Login</a>
-        <a href="{{ url_for('main.register') }}">Register</a>
+        <a href="{{ url_for('main.login') }}"    class="nav-link-auth"         role="menuitem">Login</a>
+        <a href="{{ url_for('main.register') }}" class="nav-link-auth-primary" role="menuitem">Register</a>
       {% endif %}
-      <a href="#" class="nav-cta" id="navCtaBtn">Get Free Guidance</a>
+
+      <a href="#" class="nav-cta" id="navCtaBtn" role="menuitem" aria-haspopup="dialog">
+        Get Free Guidance
+      </a>
     </div>
-    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
-      <span></span><span></span><span></span>
+
+    {# ── Hamburger ────────────────────────────────────────────────────── #}
+    <button class="hamburger" id="hamburger"
+            aria-label="Toggle navigation menu"
+            aria-expanded="false"
+            aria-controls="navLinks">
+      <span></span>
+      <span></span>
+      <span></span>
     </button>
+
   </nav>
 </header>

@@ -7,23 +7,51 @@
       {% if featured_programs %}
         {% for program in featured_programs %}
         <div class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 40 }}ms" data-name="{{ program.name }}" data-program-id="{{ program.id }}">
-          <div class="prog-icon">{{ program.emoji }}</div>
-          <div>
-            <div class="prog-name">{{ program.name }}</div>
-            <div class="prog-meta">{{ program.duration or 'Duration on request' }}{% if program.specialization %} · {{ program.specialization }}{% elif program.category %} · {{ program.category }}{% endif %}</div>
-            <div class="prog-tag">{{ program.university or '' }}</div>
+          <div class="prog-media">
+            {% if program.image %}
+              <img src="{{ program.image }}" alt="{{ program.name }}" class="prog-img" loading="lazy">
+            {% else %}
+              <div class="prog-img-fallback" aria-hidden="true"><span>{{ program.emoji }}</span></div>
+            {% endif %}
+            {% if program.university %}<span class="prog-badge prog-badge-uni">🏛️ {{ program.university }}</span>{% endif %}
+            {% if program.rating %}<span class="prog-rating"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>{{ '%.1f'|format(program.rating) }}</span>{% endif %}
+            <span class="prog-badge-approved" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              UGC Approved
+            </span>
           </div>
-          <button class="action-btn action-apply"
-            style="margin-top:10px;width:100%;"
-            data-apply-program="{{ program.name }}"
-            data-apply-uni="{{ program.university or '' }}">
-            Apply Now
-          </button>
+          <div class="prog-body">
+            <span class="prog-badge prog-badge-cat">{{ program.category or program.specialization or 'Program' }}</span>
+            <div class="prog-name">{{ program.name }}</div>
+            <div class="prog-meta">
+              <span class="prog-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+                {{ program.duration or 'Duration on request' }}
+              </span>
+              {% if program.specialization %}<span class="prog-meta-item">{{ program.specialization }}</span>{% endif %}
+            </div>
+            <div class="prog-footer">
+              <div class="prog-fee">
+                {% if program.fee %}
+                  <span class="prog-fee-amt">₹{{ '{:,.0f}'.format(program.fee) }}</span><span class="prog-fee-suffix">/yr</span>
+                {% else %}
+                  <span class="prog-fee-onrequest">Fees on request</span>
+                {% endif %}
+              </div>
+              <button class="action-btn action-apply prog-cta"
+                data-apply-program="{{ program.name }}"
+                data-apply-uni="{{ program.university or '' }}">
+                Apply Now
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </button>
+            </div>
+          </div>
         </div>
         {% endfor %}
       {% else %}
         <div class="tool-result">No programs available yet. Please check back soon.</div>
       {% endif %}
     </div>
+    <div class="prog-carousel-hint">← Swipe to see more programs →</div>
   </div>
 </div>

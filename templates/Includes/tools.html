@@ -6,54 +6,54 @@
 
     <div class="tools-grid">
       <div class="tool-card">
-        <h3>Course Finder (Multi-step)</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>Course Finder (Multi-step)</h3>
         <div class="wizard-steps" id="wizardSteps"></div>
         <div class="form-group"><label for="cfQualification">Qualification</label><select id="cfQualification"><option value="">Select</option><option>12th</option><option>Graduate</option><option>Postgraduate</option></select></div>
         <div class="form-group"><label for="cfDegree">Degree</label><select id="cfDegree"><option value="">Select</option><option>Bachelor</option><option>Master</option></select></div>
         <div class="form-group"><label for="cfSpec">Specialization</label><input id="cfSpec" placeholder="e.g. Marketing, AI"></div>
         <div class="form-group"><label for="cfBudget">Budget (₹/yr)</label><input id="cfBudget" type="number" placeholder="e.g. 80000"></div>
         <div class="form-group"><label for="cfCareer">Career Goal</label><input id="cfCareer" placeholder="e.g. Product Manager"></div>
-        <div class="tool-actions"><button class="tiny-btn" id="cfPrev">Back</button><button class="tiny-btn" id="cfNext">Next</button><button class="tiny-btn" id="cfRun">Recommend</button></div>
+        <div class="tool-actions"><button class="tiny-btn" id="cfPrev">Back</button><button class="tiny-btn" id="cfNext">Next</button><button class="tiny-btn tiny-btn-primary" id="cfRun">Recommend</button></div>
         <div class="tool-result" id="cfResult">Fill all steps and click Recommend.</div>
       </div>
 
       <div class="tool-card">
-        <h3>Eligibility Checker</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>Eligibility Checker</h3>
         <div class="form-group"><label for="elQual">Qualification</label><select id="elQual"><option>12th</option><option>Graduate</option><option>Postgraduate</option></select></div>
         <div class="form-group"><label for="elMarks">Marks %</label><input id="elMarks" type="number" placeholder="e.g. 55"></div>
         <div class="form-group"><label for="elAge">Age</label><input id="elAge" type="number" placeholder="e.g. 24"></div>
         <div class="form-group"><label for="elCourse">Course</label><select id="elCourse"><option>Online MBA</option><option>Online MCA</option><option>Online BBA</option><option>Online BCA</option><option>Executive MBA</option></select></div>
-        <div class="tool-actions"><button class="tiny-btn" id="eligibilityBtn">Check Eligibility</button></div>
+        <div class="tool-actions"><button class="tiny-btn tiny-btn-primary" id="eligibilityBtn">Check Eligibility</button></div>
         <div class="tool-result" id="eligibilityResult">No check yet.</div>
       </div>
 
       <div class="tool-card">
-        <h3>EMI Calculator</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>EMI Calculator</h3>
         <div class="form-group"><label for="emiFees">Fees (₹)</label><input id="emiFees" type="number" placeholder="e.g. 120000"></div>
         <div class="form-group"><label for="emiInterest">Interest % annual</label><input id="emiInterest" type="number" placeholder="e.g. 10"></div>
         <div class="form-group"><label for="emiMonths">Months</label><input id="emiMonths" type="number" placeholder="e.g. 24"></div>
-        <div class="tool-actions"><button class="tiny-btn" id="emiCalcBtn">Calculate EMI</button></div>
+        <div class="tool-actions"><button class="tiny-btn tiny-btn-primary" id="emiCalcBtn">Calculate EMI</button></div>
         <div class="tool-result" id="emiResult">Monthly EMI will appear here.</div>
       </div>
 
       <div class="tool-card">
-        <h3>Scholarship Checker</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4-7 4-7-4 7-4z"></path><path d="M5 10v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5"></path></svg></span>Scholarship Checker</h3>
         <div class="form-group"><label for="scIncome">Annual Income (₹)</label><input id="scIncome" type="number"></div>
         <div class="form-group"><label for="scCategory">Category</label><select id="scCategory"><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select></div>
         <div class="form-group"><label for="scGender">Gender</label><select id="scGender"><option>Female</option><option>Male</option><option>Other</option></select></div>
         <div class="form-group"><label for="scMarks">Marks %</label><input id="scMarks" type="number"></div>
-        <div class="tool-actions"><button class="tiny-btn" id="scholarshipBtn">Check Scholarship</button></div>
+        <div class="tool-actions"><button class="tiny-btn tiny-btn-primary" id="scholarshipBtn">Check Scholarship</button></div>
         <div class="tool-result" id="scholarshipResult">No check yet.</div>
       </div>
 
       <div class="tool-card">
-        <h3>Dynamic Compare Tool</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="21" y1="3" x2="12" y2="12"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="3" y1="21" x2="12" y2="12"></line></svg></span>Dynamic Compare Tool</h3>
         <p class="tool-result">Select any 2 universities using “Compare” on cards below and this box updates.</p>
         <div class="tool-result" id="compareSelected">Selected: none</div>
       </div>
 
       <div class="tool-card">
-        <h3>Blog Search & Category</h3>
+        <h3><span class="tool-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span>Blog Search & Category</h3>
         <div class="form-group"><label for="blogSearchInput">Search blogs</label><input id="blogSearchInput" placeholder="Type blog keyword"></div>
         <div class="tool-actions">
           <button class="tiny-btn" data-blog-filter="all">All</button>

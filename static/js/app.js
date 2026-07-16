@@ -60,8 +60,9 @@
     // now only keeps the dependent <select> dropdowns in sync with the
     // same (DB-backed) program list.
     const leadProgram = $('#leadProgram');
-    leadProgram.innerHTML = '<option value="">Select a program</option>' + appData.programs.map(p => `<option>${p.name}</option>`).join('') + '<option>Not sure yet</option>';
     const fProgram = $('#fProgram');
+    if (!leadProgram || !fProgram) return;
+    leadProgram.innerHTML = '<option value="">Select a program</option>' + appData.programs.map(p => `<option>${p.name}</option>`).join('') + '<option>Not sure yet</option>';
     fProgram.innerHTML = '<option value="">Any</option>' + appData.programs.map(p => `<option>${p.name}</option>`).join('');
   }
 
@@ -215,9 +216,11 @@
 
   function renderBlogs() {
     const grid = $('#blogGrid');
+    if (!grid) return;
     const query = ($('#blogSearchInput')?.value || '').toLowerCase().trim();
     let blogs = appData.blogs.filter(b => (state.blogCategory === 'all' || b.category === state.blogCategory) && b.title.toLowerCase().includes(query));
-    $('#blogFilterInfo').textContent = `Showing ${blogs.length} blog post(s)${state.blogCategory !== 'all' ? ` in ${state.blogCategory}` : ''}.`;
+    const filterInfo = $('#blogFilterInfo');
+    if (filterInfo) filterInfo.textContent = `Showing ${blogs.length} blog post(s)${state.blogCategory !== 'all' ? ` in ${state.blogCategory}` : ''}.`;
     grid.innerHTML = blogs.map((b, i) => `
       <div class="blog-card reveal reveal-stagger" style="--d:${i*80}ms" tabindex="0" role="button" data-blog-id="${b.id}" aria-label="Read: ${b.title}">
         <div class="blog-cover">${b.cover}</div>
@@ -231,6 +234,7 @@
   }
 
   function setupFiltersMeta() {
+    if (!$('#fState') || !$('#fCity')) return;
     const states = [...new Set(appData.universities.map(u => u.state))];
     const cities = [...new Set(appData.universities.map(u => u.city))];
     $('#fState').innerHTML = '<option value="">Any</option>' + states.map(s => `<option>${s}</option>`).join('');
@@ -304,6 +308,7 @@
 
   // Abort any in-flight request, then fire a new debounced /filter fetch.
   function fetchFilteredResults() {
+    if (!$('#resultCards')) return;
     if (filterState.controller) {
       filterState.controller.abort();
     }
@@ -415,6 +420,11 @@
     }
     const statObserver = new IntersectionObserver((entries, obs) => { entries.forEach(entry => { if (entry.isIntersecting) { animateCount(entry.target); obs.unobserve(entry.target); } }); }, { threshold: 0.5 });
     statEls.forEach(el => statObserver.observe(el));
+
+    // Detail, account and admin pages share the header but not the landing
+    // page controls below. Keeping the shared navigation active prevents
+    // absent homepage elements from creating runtime errors on those pages.
+    if (!document.getElementById('heroSearch')) return;
 
     const heroSearch = $('#heroSearch');
     const heroSearchInput = $('#heroSearchInput');
@@ -854,6 +864,79 @@
     });
 
     $$('a[href="#"]:not([data-section]):not(.nav-cta)').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+
+    /* ===== Phase 8E ===== */
+    // Enhances the existing menu handlers without replacing their navigation logic.
+    let menuTrigger = null;
+    let resizeTimer = null;
+    const syncMenuAccessibility = () => {
+      const isOpen = navLinks.classList.contains('open');
+      document.body.classList.toggle('nav-menu-open', isOpen && window.innerWidth <= 960);
+      navLinks.setAttribute('aria-hidden', window.innerWidth > 960 || isOpen ? 'false' : 'true');
+
+      if (isOpen) {
+        menuTrigger = document.activeElement === hamburger ? hamburger : menuTrigger;
+        const firstLink = navLinks.querySelector('a');
+        if (firstLink && document.activeElement === hamburger) firstLink.focus();
+      } else if (menuTrigger === hamburger && document.activeElement && navLinks.contains(document.activeElement)) {
+        hamburger.focus();
+      }
+    };
+
+    const closeMenu = () => {
+      if (navLinks.classList.contains('open')) {
+        navLinks.classList.remove('open');
+        hamburger.classList.remove('is-active');
+        hamburger.setAttribute('aria-expanded', 'false');
+      }
+      syncMenuAccessibility();
+    };
+
+    // Existing handlers run first; queueing this keeps one source of truth for state.
+    hamburger.addEventListener('click', () => requestAnimationFrame(syncMenuAccessibility));
+    navLinks.querySelectorAll('a').forEach(link => link.addEventListener('click', () => requestAnimationFrame(syncMenuAccessibility)));
+    document.addEventListener('click', event => {
+      if (window.innerWidth <= 960 && !navLinks.contains(event.target) && !hamburger.contains(event.target)) closeMenu();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeMenu();
+    });
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        if (window.innerWidth > 960) closeMenu();
+        else syncMenuAccessibility();
+      }, 150);
+    }, { passive: true });
+    syncMenuAccessibility();
+
+    // A rAF-throttled scroll pass adds a scroll state while avoiding layout work per event.
+    let scrollQueued = false;
+    window.addEventListener('scroll', () => {
+      if (scrollQueued) return;
+      scrollQueued = true;
+      window.requestAnimationFrame(() => {
+        document.documentElement.classList.toggle('is-scrolled', window.scrollY > 8);
+        scrollQueued = false;
+      });
+    }, { passive: true });
+
+    // Make reveal reusable for content rendered after initial observer setup.
+    const phase8eReveal = element => {
+      if (!element || element.classList.contains('in-view')) return;
+      element.classList.add('reveal', 'phase-8e-reveal');
+      revealObserver.observe(element);
+    };
+    const revealRoots = ['#blogGrid', '#resultsGrid', '#recentGrid'];
+    revealRoots.forEach(selector => {
+      const root = $(selector);
+      if (!root || !window.MutationObserver) return;
+      new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.matches('.reveal')) revealObserver.observe(node);
+        else if (node.matches('.blog-card, .result-card, .uni-card, .prog-card')) phase8eReveal(node);
+      }))).observe(root, { childList: true });
+    });
   }
 
   boot();
