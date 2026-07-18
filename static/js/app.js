@@ -16,10 +16,10 @@
   };
 
   const state = {
-    compareSet: new Set(),
     favorites: new Set(JSON.parse(localStorage.getItem('favorites') || '[]')),
     bookmarks: new Set(JSON.parse(localStorage.getItem('bookmarks') || '[]')),
     recentlyViewed: JSON.parse(localStorage.getItem('recentlyViewed') || '[]'),
+    recentSearches: JSON.parse(localStorage.getItem('recentSearches') || '[]'),
     resultPage: 1,
     pageSize: 4,
     blogCategory: 'all',
@@ -52,6 +52,43 @@
     localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
     localStorage.setItem('bookmarks', JSON.stringify([...state.bookmarks]));
     localStorage.setItem('recentlyViewed', JSON.stringify(state.recentlyViewed.slice(0, 10)));
+    // FIX: compareSet is now persisted like every other selection state.
+    // The Remove handler already calls saveLS(), so removals now actually stick.
+    localStorage.setItem('compareSet', JSON.stringify([...state.compareSet]));
+  }
+
+  // Curated static list — no backend call, purely a UI convenience shown
+  // in the idle/empty search dropdown alongside the person's own recent terms.
+  const POPULAR_SEARCHES = ['Online MBA', 'Online MCA', 'NAAC A+ Universities', 'Under ₹50,000/yr', 'Executive MBA'];
+
+  // Records a submitted/selected search query (deduped, most-recent-first,
+  // capped at 5) — display-only convenience layered on top of the existing
+  // /search flow; does not affect what the backend returns.
+  function pushRecentSearch(query) {
+    const q = (query || '').trim();
+    if (!q) return;
+    state.recentSearches = [q, ...state.recentSearches.filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 5);
+    localStorage.setItem('recentSearches', JSON.stringify(state.recentSearches));
+  }
+
+  // Escapes regex metacharacters so a user-typed query can be safely used
+  // inside a RegExp when highlighting matches.
+  function escapeRegex(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // Wraps the first case-insensitive match of `query` inside `text` with a
+  // <mark> tag for visual emphasis in the suggestions dropdown.
+  function highlightMatch(text, query) {
+    const t = String(text == null ? '' : text);
+    const q = (query || '').trim();
+    if (!q) return t;
+    try {
+      const re = new RegExp('(' + escapeRegex(q) + ')', 'ig');
+      return t.replace(re, '<mark class="suggestion-mark">$1</mark>');
+    } catch (err) {
+      return t;
+    }
   }
 
   function renderPrograms() {
@@ -71,149 +108,7 @@
   // Jinja from real University rows — see templates/includes/universities.html.
   // No client-side rendering is needed for it anymore.
 
-  // ---------------------------------------------------------------------------
-  // Compare — API-driven
-  // ---------------------------------------------------------------------------
-  const compareState = {
-    controller: null,   // AbortController for in-flight /compare request
-  };
-
-  // Update "#compareSelected" using the local compareSet only.
-  function _updateCompareStatus() {
-    const sel = document.getElementById('compareSelected');
-    if (!sel) return;
-    const count = state.compareSet.size;
-    if (!count) { sel.textContent = 'Selected: none'; return; }
-    const names = [...state.compareSet].map(
-      id => (appData.universities.find(u => u.id === id) || {}).name || ('#' + id)
-    );
-    sel.textContent = 'Selected (' + count + '/4): ' + names.join(' vs ');
-  }
-
-  // Write a message row into #compareBody (colspan 8 to span all columns).
-  function _compareBodyMessage(html) {
-    const body = document.getElementById('compareBody');
-    if (body) body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;">' + html + '</td></tr>';
-  }
-
-  // Build one <tr> per university from the /compare API response.
-  // Columns match the existing compare.html <thead>:
-  //   University | NAAC Grade | NIRF | Popular Program | Duration | Starting Fee | EMI | Placement
-  // Extra detail (city, state, established year, website, categories,
-  // specializations, modes) is embedded inside the University cell so the
-  // existing table layout and CSS are untouched.
-  function _renderCompareRows(universities) {
-    const body = document.getElementById('compareBody');
-    if (!body) return;
-    if (!universities.length) {
-      _compareBodyMessage('No data returned from the server.');
-      return;
-    }
-
-    body.innerHTML = universities.map(function(u) {
-      var logoHtml = u.logo
-        ? '<img src="' + u.logo + '" alt="' + u.name + ' logo" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">'
-        : '<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:#e0e7ff;font-weight:700;font-size:13px;color:#4f46e5;margin-right:8px;vertical-align:middle;">' + (u.avatar || '?') + '</span>';
-
-      var location   = [u.city, u.state].filter(Boolean).join(', ') || '\u2014';
-      var established = u.established_year ? 'Est. ' + u.established_year : '';
-      var websiteHtml = u.website
-        ? '<a href="' + u.website + '" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-size:11px;">' + u.website.replace(/^https?:\/\//, '') + '</a>'
-        : '';
-      var cats  = (u.categories      || []).join(', ') || '\u2014';
-      var specs = (u.specializations || []).slice(0, 4).join(', ') || '\u2014';
-      var modes = (u.modes           || []).join(', ') || '\u2014';
-
-      var uniCell = '<td class="uni-cell"><div style="display:flex;align-items:flex-start;gap:4px;">'
-        + logoHtml
-        + '<div>'
-        + '<div style="font-weight:600;font-size:14px;">' + u.name + '</div>'
-        + '<div style="color:#64748b;font-size:11px;margin-top:2px;">' + location + (established ? ' \u00b7 ' + established : '') + '</div>'
-        + (websiteHtml ? '<div style="margin-top:2px;">' + websiteHtml + '</div>' : '')
-        + '<div style="color:#475569;font-size:11px;margin-top:4px;"><strong>Categories:</strong> ' + cats + '</div>'
-        + '<div style="color:#475569;font-size:11px;"><strong>Specs:</strong> ' + specs + '</div>'
-        + '<div style="color:#475569;font-size:11px;"><strong>Mode:</strong> ' + modes + '</div>'
-        + '</div></div></td>';
-
-      var naacCell     = '<td>' + (u.naac || '\u2014') + '</td>';
-      var nirfCell     = '<td>' + (u.nirf != null ? '#' + u.nirf : '\u2014') + '</td>';
-      var firstProg    = (u.programs && u.programs[0]) ? (u.programs[0].title || u.programs[0]) : '\u2014';
-      var progCell     = '<td>' + firstProg + '</td>';
-      var firstDur     = (u.programs && u.programs[0] && u.programs[0].duration) ? u.programs[0].duration : '\u2014';
-      var durationCell = '<td>' + firstDur + '</td>';
-      var feeCell      = '<td class="fee-cell">' + (u.min_fee != null ? inr(u.min_fee) + '/yr' : 'On request') + '</td>';
-      var emiCell      = '<td>\u2014</td>';
-      var placementCell = '<td>\u2014</td>';
-
-      return '<tr>' + uniCell + naacCell + nirfCell + progCell + durationCell + feeCell + emiCell + placementCell + '</tr>';
-    }).join('');
-  }
-
-  // Main compare entry point — validates selection, then calls
-  // GET /compare?ids=… and populates #compareBody.
-  function renderCompareTable() {
-    _updateCompareStatus();
-
-    var count = state.compareSet.size;
-
-    // 0 selected — show default overview rows from already-hydrated appData
-    if (count === 0) {
-      var body = document.getElementById('compareBody');
-      if (!body) return;
-      var source = appData.universities.slice(0, 6);
-      if (!source.length) {
-        _compareBodyMessage('Select 2\u20134 universities from the results list to compare.');
-        return;
-      }
-      body.innerHTML = source.map(function(u) {
-        return '<tr>'
-          + '<td class="uni-cell">' + u.name + '</td>'
-          + '<td>' + (u.naac || '\u2014') + '</td>'
-          + '<td>' + (u.nirf != null ? '#' + u.nirf : '\u2014') + '</td>'
-          + '<td>' + ((u.programs && u.programs[0]) || '\u2014') + '</td>'
-          + '<td>' + (u.duration || '\u2014') + '</td>'
-          + '<td class="fee-cell">' + (u.fee != null ? inr(u.fee) + '/yr' : 'On request') + '</td>'
-          + '<td>\u2014</td>'
-          + '<td>\u2014</td>'
-          + '</tr>';
-      }).join('');
-      return;
-    }
-
-    if (count < 2) {
-      _compareBodyMessage('Please select at least two universities.');
-      return;
-    }
-
-    if (count > 4) {
-      _compareBodyMessage('You can compare a maximum of four universities.');
-      return;
-    }
-
-    // Abort any in-flight request
-    if (compareState.controller) compareState.controller.abort();
-    var controller = new AbortController();
-    compareState.controller = controller;
-
-    var ids = [...state.compareSet].join(',');
-    _compareBodyMessage('Loading comparison\u2026');
-
-    fetch('/compare?ids=' + encodeURIComponent(ids), { signal: controller.signal })
-      .then(function(res) {
-        if (!res.ok) return res.json().then(function(err) { return Promise.reject(err); });
-        return res.json();
-      })
-      .then(function(data) {
-        compareState.controller = null;
-        _renderCompareRows(Array.isArray(data.universities) ? data.universities : []);
-      })
-      .catch(function(err) {
-        if (err && err.name === 'AbortError') return;
-        compareState.controller = null;
-        _compareBodyMessage((err && err.error) ? err.error : 'Failed to load comparison. Please try again.');
-      });
-  }
-
+  
   function renderBlogs() {
     const grid = $('#blogGrid');
     if (!grid) return;
@@ -251,6 +146,62 @@
   };
 
   // Build a URLSearchParams from the current filter controls.
+  // Human labels for the filter fields that _buildFilterParams actually
+  // sends to /filter — used only to render removable "active filter" badges.
+  const FILTER_LABELS = {
+    fSearch: 'Search', fDegree: 'Degree', fProgram: 'Program', fBudget: 'Budget',
+    fNaac: 'NAAC', fNirf: 'NIRF', fDuration: 'Duration', fState: 'State',
+    fCity: 'City', fMode: 'Mode', fSpec: 'Specialization'
+  };
+
+  function _ensureActiveFilterBadgesContainer() {
+    let el = document.getElementById('activeFilterBadges');
+    if (el) return el;
+    const anchor = document.getElementById('resultCards');
+    if (!anchor || !anchor.parentNode) return null;
+    el = document.createElement('div');
+    el.id = 'activeFilterBadges';
+    el.className = 'active-filters';
+    anchor.parentNode.insertBefore(el, anchor);
+    el.addEventListener('click', (e) => {
+      const clearBtn = e.target.closest('[data-clear-filter]');
+      if (clearBtn) {
+        const input = document.getElementById(clearBtn.dataset.clearFilter);
+        if (input) { input.value = ''; state.resultPage = 1; renderResults(); }
+        return;
+      }
+      if (e.target.closest('#clearAllFiltersBadge')) {
+        Object.keys(FILTER_LABELS).forEach(id => { const input = document.getElementById(id); if (input) input.value = ''; });
+        state.resultPage = 1;
+        renderResults();
+      }
+    });
+    return el;
+  }
+
+  // Renders removable badges for every currently-set filter — a purely
+  // display-layer reflection of the same fields _buildFilterParams reads.
+  // Clearing a badge just blanks that field and calls renderResults(),
+  // identical to what #resetFiltersBtn already does for all fields at once.
+  function renderActiveFilterBadges() {
+    const container = _ensureActiveFilterBadgesContainer();
+    if (!container) return;
+    const active = Object.keys(FILTER_LABELS).map(id => {
+      const el = document.getElementById(id);
+      return (el && el.value.trim()) ? { id, label: FILTER_LABELS[id], value: el.value.trim() } : null;
+    }).filter(Boolean);
+    if (!active.length) {
+      container.innerHTML = '';
+      container.classList.remove('has-badges');
+      return;
+    }
+    container.classList.add('has-badges');
+    container.innerHTML = active.map(f => `
+      <button type="button" class="active-filter-badge" data-clear-filter="${f.id}">
+        ${f.label}: ${f.value} <span aria-hidden="true">×</span>
+      </button>`).join('') + `<button type="button" class="active-filter-clear-all" id="clearAllFiltersBadge">Clear all</button>`;
+  }
+
   function _buildFilterParams() {
     const params = new URLSearchParams();
     const add = (key, id) => { const v = ($(id) ? $(id).value : '').trim(); if (v) params.set(key, v); };
@@ -277,6 +228,7 @@
     filterState.totalPages = data.total_pages || 1;
 
     $('#resultCount').textContent = `${data.total || 0} result(s)`;
+    renderActiveFilterBadges();
 
     $('#resultCards').innerHTML = rows.length
       ? rows.map(u => `
@@ -291,7 +243,9 @@
             <div class="result-actions">
               <button class="action-btn action-light" data-fav="${u.id}">${state.favorites.has(u.id) ? '★ Favorited' : '☆ Favorite'}</button>
               <button class="action-btn action-light" data-bookmark="${u.id}">${state.bookmarks.has(u.id) ? '🔖 Bookmarked' : '🔖 Bookmark'}</button>
-              <button class="action-btn action-light" data-compare="${u.id}">Compare</button>
+              <!-- FIX: String(u.id) keeps this id in the same format compareSet
+                   uses everywhere else, so add/remove/has() never disagree. -->
+              <button class="action-btn action-light" data-compare="${String(u.id)}">Compare</button>
               <button class="action-btn action-light" data-detail="${u.id}">View Details</button>
               <button class="action-btn action-apply" data-apply="${u.id}">Apply</button>
               <button class="action-btn action-light" data-brochure="${u.id}">Download Brochure</button>
@@ -366,7 +320,6 @@
   function boot() {
     hydrateAppData();
     renderPrograms();
-    renderCompareTable();
     renderBlogs();
     setupFiltersMeta();
     renderResults();
@@ -456,30 +409,73 @@
     }
 
     function updateActiveSuggestion() {
-      Array.from(suggestionsBox.children).forEach((el, i) => {
-        // Inline style only — no CSS file changes — so keyboard
-        // navigation has a visible highlight regardless of stylesheet.
-        el.style.background = (i === searchState.activeIndex) ? 'rgba(37,99,235,0.08)' : '';
+      const items = Array.from(suggestionsBox.querySelectorAll('.suggestion-item[data-sindex]'));
+      items.forEach(el => {
+        el.classList.toggle('is-active', Number(el.dataset.sindex) === searchState.activeIndex);
       });
-      const activeEl = suggestionsBox.children[searchState.activeIndex];
+      const activeEl = items[searchState.activeIndex];
       if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block: 'nearest' });
     }
 
     function renderSearchResults(results) {
-      searchState.results = results;
+      // Stable-group by category so the dropdown reads as clusters
+      // ("MBA", "MCA", ...) instead of one flat list. This only reorders
+      // for display — nothing is added, removed, or re-filtered.
+      const groupOf = r => (r.category || 'More results');
+      const groups = [];
+      const seen = new Map();
+      results.forEach(r => {
+        const key = groupOf(r);
+        if (!seen.has(key)) { seen.set(key, []); groups.push(key); }
+        seen.get(key).push(r);
+      });
+      const grouped = groups.flatMap(key => seen.get(key));
+
+      searchState.results = grouped;
       searchState.activeIndex = -1;
-      if (!results.length) {
+
+      if (!grouped.length) {
         suggestionsBox.innerHTML = `<div class="suggestion-item" aria-disabled="true"><span>No matching universities or programs found.</span></div>`;
         suggestionsBox.classList.add('open');
         return;
       }
-      suggestionsBox.innerHTML = results.map((r, i) => {
-        const location = [r.university, r.city].filter(Boolean).join(', ');
-        const meta = [location, r.duration, formatFee(r.fees)].filter(Boolean).join(' · ');
-        const tag = [r.category, r.specialization].filter(Boolean).join(' · ') || 'Program';
-        return `<div class="suggestion-item" data-sindex="${i}" role="option" tabindex="-1"><span>${r.program || r.university || ''}${meta ? ' — ' + meta : ''}</span><span class="suggestion-tag">${tag}</span></div>`;
+
+      const query = searchState.lastQuery || '';
+      let idx = 0;
+      suggestionsBox.innerHTML = groups.map(key => {
+        const rows = seen.get(key).map(r => {
+          const i = idx++;
+          const location = [r.university, r.city].filter(Boolean).join(', ');
+          const meta = [location, r.duration, formatFee(r.fees)].filter(Boolean).join(' · ');
+          const tag = [r.category, r.specialization].filter(Boolean).join(' · ') || 'Program';
+          const label = r.program || r.university || '';
+          return `<div class="suggestion-item" data-sindex="${i}" role="option" tabindex="-1" style="--stagger:${i}"><span>${highlightMatch(label, query)}${meta ? ' — ' + highlightMatch(meta, query) : ''}</span><span class="suggestion-tag">${tag}</span></div>`;
+        }).join('');
+        return `<div class="suggestion-group"><div class="suggestion-group-label">${key}</div>${rows}</div>`;
       }).join('');
       suggestionsBox.classList.add('open');
+    }
+
+    // Shown when the search box is focused but empty — surfaces the
+    // person's own recent queries plus a static list of popular ones.
+    // Purely a UI convenience; selecting a chip just re-runs the same
+    // /search flow used for typed queries.
+    function renderSearchIdle() {
+      const recent = state.recentSearches;
+      const recentBlock = recent.length ? `
+        <div class="search-idle-section">
+          <div class="search-idle-label">Recent searches</div>
+          <div class="search-chip-row">${recent.map(q => `<button type="button" class="search-chip" data-search-chip="${q}">${q}</button>`).join('')}</div>
+        </div>` : '';
+      const popularBlock = `
+        <div class="search-idle-section">
+          <div class="search-idle-label">Popular searches</div>
+          <div class="search-chip-row">${POPULAR_SEARCHES.map(q => `<button type="button" class="search-chip" data-search-chip="${q}">${q}</button>`).join('')}</div>
+        </div>`;
+      suggestionsBox.innerHTML = recentBlock + popularBlock;
+      suggestionsBox.classList.add('open');
+      searchState.results = [];
+      searchState.activeIndex = -1;
     }
 
     function selectSearchResult(result) {
@@ -493,6 +489,7 @@
       state.resultPage = 1;
       renderResults();
       heroSearchInput.value = result.program || result.university || heroSearchInput.value;
+      pushRecentSearch(heroSearchInput.value);
       closeSearchSuggestions();
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     }
@@ -536,7 +533,7 @@
       if (rawQuery.length < 2) {
         if (searchState.controller) searchState.controller.abort();
         searchState.lastQuery = null;
-        closeSearchSuggestions();
+        if (!rawQuery) renderSearchIdle(); else closeSearchSuggestions();
         return;
       }
 
@@ -546,6 +543,10 @@
 
       searchState.lastQuery = rawQuery;
       debouncedSearch(rawQuery);
+    });
+
+    heroSearchInput.addEventListener('focus', () => {
+      if (!heroSearchInput.value.trim()) renderSearchIdle();
     });
 
     heroSearchInput.addEventListener('keydown', (e) => {
@@ -566,6 +567,16 @@
     });
 
     suggestionsBox.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-search-chip]');
+      if (chip) {
+        const q = chip.dataset.searchChip;
+        heroSearchInput.value = q;
+        heroSearchInput.focus();
+        searchState.lastQuery = q;
+        pushRecentSearch(q);
+        debouncedSearch(q);
+        return;
+      }
       const item = e.target.closest('.suggestion-item');
       if (!item || item.hasAttribute('aria-disabled')) return;
       const idx = Number(item.dataset.sindex);
@@ -584,10 +595,13 @@
 
     heroSearch.addEventListener('submit', (e) => {
       e.preventDefault();
-      $('#fSearch').value = heroSearchInput.value.trim();
+      const q = heroSearchInput.value.trim();
+      $('#fSearch').value = q;
       if (heroSearchBudget.value) $('#fBudget').value = heroSearchBudget.value;
+      if (q) pushRecentSearch(q);
       state.resultPage = 1;
       renderResults();
+      closeSearchSuggestions();
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     });
 
@@ -726,21 +740,12 @@
         saveLS(); renderResults();
       }
 
-      const cmpBtn = e.target.closest('[data-compare]');
-      if (cmpBtn) {
-        const id = cmpBtn.dataset.compare;
-        if (state.compareSet.has(id)) state.compareSet.delete(id);
-        else {
-          if (state.compareSet.size >= 4) state.compareSet = new Set([...state.compareSet].slice(1));
-          state.compareSet.add(id);
-        }
-        renderCompareTable();
-      }
-
-      const detailsBtn = e.target.closest('[data-detail]');
+        const detailsBtn = e.target.closest('[data-detail]');
       if (detailsBtn) {
         const u = appData.universities.find(x => x.id === detailsBtn.dataset.detail);
-        alert(`View Details\n\n${u.name}\nNAAC ${u.naac} · NIRF #${u.nirf}\nPrograms: ${u.programs.join(', ')}`);
+        if (u && u.slug) {
+          window.location.href = '/university/' + u.slug;
+        }
       }
 
       const applyBtn = e.target.closest('[data-apply]');

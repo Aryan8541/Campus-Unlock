@@ -65,11 +65,65 @@
   }
   header.scrolled nav { background: rgba(255,255,255,0.97); box-shadow: 0 12px 34px rgba(15,23,42,0.12); }
 
-  .logo { font-size: 21px; font-weight: 900; color: var(--teal-deep); letter-spacing: -0.5px; text-decoration: none; margin-right: auto; display: inline-flex; align-items: center; gap: 9px; transition: opacity .2s; }
-  .logo:hover { opacity: .85; }
-  .logo span { color: var(--teal); }
-  .logo-mark { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); flex-shrink: 0; }
-  .logo-text { line-height: 1; }
+.logo{
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    margin-right:auto;
+    text-decoration:none;
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:-0.5px;
+    color:var(--teal-deep);
+    transition:all .25s var(--ease);
+}
+  .logo:hover{
+    opacity:1;
+}
+
+  .logo-mark{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    flex-shrink:0;
+
+    background:linear-gradient(
+        135deg,
+        #4f8dfd 0%,
+        #2563eb 100%
+    );
+       color:#ffffff;
+
+    box-shadow:
+        0 8px 18px rgba(37,99,235,.22);
+
+    transition:transform .25s var(--ease);
+}
+.logo:hover .logo-mark{
+    transform:translateY(-1px);
+}
+ .logo-mark svg{
+    width:22px;
+    height:22px;
+    display:block;
+}
+
+.logo-mark svg path{
+    fill:currentColor;
+    stroke:currentColor;
+}
+
+.logo-text{
+    line-height:1;
+    color:var(--teal-deep);
+}
+
+.logo-text span{
+    color:var(--teal);
+}
 
   .nav-links { display: flex; align-items: center; gap: 3px; }
   .nav-divider { width: 1px; height: 22px; background: var(--border-teal); margin: 0 8px; flex-shrink: 0; }
@@ -80,15 +134,15 @@
   }
   .nav-links a:not(.nav-cta):not(.nav-link-auth):not(.nav-link-auth-primary):hover { color: var(--teal-deep); background: var(--teal-xlight); }
   .nav-links a:not(.nav-cta):not(.nav-link-auth):not(.nav-link-auth-primary):hover::after { transform: scaleX(1); }
-  .nav-links a.active { color: #fff; background: var(--teal); font-weight: 700; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
-  .nav-links a.active::after { transform: scaleX(0) !important; }
+  .nav-links a.active{color:#ffffff; background:linear-gradient( 180deg, #3b82f6 0%, #2563eb 100%); font-weight:700; box-shadow: 0 8px 20px rgba(37,99,235,.22); }
+  .nav-links a.active::after { transform: scaleX(0); }
 
   .nav-link-auth { color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 8px 14px; border-radius: 24px; margin-left: 6px; transition: color .2s var(--ease), background .2s var(--ease); }
   .nav-link-auth:hover { color: var(--teal-deep); background: var(--teal-xlight); }
   .nav-link-auth-primary { color: var(--teal-deep); text-decoration: none; font-size: 13.5px; font-weight: 700; padding: 8px 16px; border-radius: 24px; margin-left: 4px; border: 1.5px solid var(--teal-mid); background: var(--teal-xlight); transition: border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease); }
   .nav-link-auth-primary:hover { border-color: var(--teal); background: var(--teal-light); transform: translateY(-1px); }
 
-  .nav-cta { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%) !important; color: #fff !important; font-weight: 700 !important; padding: 10px 22px !important; border-radius: 24px !important; margin-left: 10px; transition: transform .18s var(--ease), box-shadow .25s var(--ease) !important; box-shadow: 0 4px 14px rgba(37,99,235,0.3); }
+  .nav-cta { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff !important; font-weight: 700 !important; padding: 10px 22px !important; border-radius: 24px !important; margin-left: 10px; transition: transform .18s var(--ease), box-shadow .25s var(--ease) !important; box-shadow: 0 4px 14px rgba(37,99,235,0.3); }
   .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(37,99,235,0.4); }
   .nav-cta:active { transform: translateY(0); }
 
@@ -438,19 +492,6 @@
   .sticky-cta-bar .apply-btn { background: var(--teal); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.28); }
   .sticky-cta-bar .guidance-btn { background: var(--teal-xlight); color: var(--teal-deep); border: 1.5px solid var(--teal-mid) !important; }
 
-  .compare-bg { background: var(--white); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .compare-table-wrap { overflow-x: auto; border: 1px solid var(--border-teal); border-radius: 14px; box-shadow: 0 4px 18px rgba(15,23,42,0.04); -webkit-overflow-scrolling: touch; }
-  table.compare-table { width: 100%; border-collapse: collapse; min-width: 620px; }
-  table.compare-table th, table.compare-table td { padding: 16px 20px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border-teal); white-space: nowrap; }
-  table.compare-table thead th { position: sticky; top: 0; background: var(--teal-xlight); color: var(--teal-deep); font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; z-index: 1; }
-  table.compare-table tbody tr:last-child td { border-bottom: none; }
-  table.compare-table tbody tr { transition: background .15s var(--ease); }
-  table.compare-table tbody tr:hover { background: var(--teal-xlight); }
-  table.compare-table td.uni-cell { font-weight: 700; color: var(--text); }
-  table.compare-table td.fee-cell { color: var(--teal); font-weight: 700; }
-  .compare-scroll-hint { display: none; font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
-  @media (max-width: 700px) { .compare-scroll-hint { display: block; } }
-
   .schol-bg { background: var(--teal-xlight); border-top: 1px solid var(--border-teal); border-bottom: 1px solid var(--border-teal); }
   .schol-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
   .schol-card { background: var(--white); border: 1px solid var(--border-teal); border-radius: 16px; padding: 26px; box-shadow: 0 3px 12px rgba(15,23,42,0.04); transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
@@ -598,7 +639,6 @@
     .testi-grid, .schol-grid, .blog-grid, .tools-grid { grid-template-columns: repeat(2,1fr); }
   }
   @media (max-width: 900px) {
-    .compare-table-wrap { border-radius: 10px; }
     .schol-grid, .blog-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 600px) {
@@ -828,8 +868,8 @@
 /* ── Design-system token additions ──────────────────────────────────────── */
 :root {
   /* "Academic Clarity" palette from DESIGN.md */
-  --cu-primary:            #003da2;
-  --cu-primary-container:  #0052d4;
+  --cu-primary:            #2563eb;
+  --cu-primary-container:  #3b82f6;
   --cu-on-primary:         #ffffff;
   --cu-secondary:          #00677f;
   --cu-surface:            #f9f9ff;
@@ -932,14 +972,16 @@ header.scrolled nav {
 }
 
 /* Logo — Manrope for wordmark, sharper gradient icon */
-.logo {
+.logo-text {
   font-family: 'Manrope', 'Inter', sans-serif;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.6px;
   color: var(--cu-primary);
 }
-.logo span { color: var(--cu-primary-container); }
+.logo-text span {
+    color: var(--cu-primary-container);
+}
 .logo-mark {
   background: linear-gradient(135deg, var(--cu-primary-container) 0%, var(--cu-primary) 100%);
   box-shadow: 0 4px 14px rgba(0,61,162,0.32);
@@ -1425,7 +1467,7 @@ body.nav-menu-open {
   .hero-search-field { min-width: 0; }
   .section-title { font-size: clamp(24px, 7vw, 30px); }
   .section-sub { font-size: 15px; }
-  .compare-table-wrap, .result-card, .uni-card, .prog-card { min-width: 0; }
+  .compare-panel, .result-card, .uni-card, .prog-card { min-width: 0; }
 }
 
 /* ===========================================================================
@@ -1458,17 +1500,6 @@ body.nav-menu-open {
 .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--cu-primary-container); background: #fff; box-shadow: 0 0 0 3px rgba(0, 82, 212, .12); }
 .results-toolbar { border-color: var(--cu-outline-var); box-shadow: 0 6px 20px rgba(0, 61, 162, .05); }
 
-/* Comparison platform: clear sticky references, touch scrolling and rows. */
-.compare-table-wrap { position: relative; border-color: var(--cu-outline-var); box-shadow: 0 14px 34px rgba(0, 61, 162, .08); background: #fff; }
-table.compare-table { min-width: 900px; }
-table.compare-table th, table.compare-table td { padding: 18px 20px; border-color: var(--cu-outline-var); }
-table.compare-table thead th { top: var(--header-offset); background: var(--cu-surface-container); color: var(--cu-primary); box-shadow: 0 1px 0 var(--cu-outline-var); }
-table.compare-table th:first-child, table.compare-table td:first-child { position: sticky; left: 0; z-index: 2; background: inherit; box-shadow: 8px 0 16px rgba(0, 61, 162, .05); }
-table.compare-table thead th:first-child { z-index: 3; background: var(--cu-surface-container); }
-table.compare-table tbody tr:nth-child(even) { background: rgba(241, 243, 255, .55); }
-table.compare-table tbody tr:hover { background: var(--cu-surface-low); }
-table.compare-table td.fee-cell { color: var(--cu-primary); font-weight: 800; }
-
 /* Equal-height card layout and resilient touch sizing. */
 .prog-grid { align-items: stretch; }
 .prog-card { min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -1481,14 +1512,657 @@ table.compare-table td.fee-cell { color: var(--cu-primary); font-weight: 800; }
 @media (max-width: 600px) { #progGrid.prog-grid { margin-inline: calc(var(--cu-gutter) * -1); padding-inline: var(--cu-gutter); } #progGrid.prog-grid .prog-card { flex-basis: min(86vw, 360px); } .prog-footer { gap: 10px; } .prog-cta { min-height: 42px; } }
 
 /* Student dashboard stack: one opaque, interactive card at a time. */
-.dashboard-page { max-width: min(1160px, var(--cu-content-max)) !important; isolation: isolate; }
-.dashboard-page > .pdp-info-card { position: sticky; top: calc(var(--header-offset) + 12px); z-index: 1; margin-bottom: 28px !important; overflow: hidden; background: var(--white); box-shadow: 0 18px 42px rgba(0, 61, 162, .12); transform: translateY(0) scale(1); opacity: 1; clip-path: inset(0 round 16px); transition: opacity .32s var(--ease), transform .4s var(--ease), visibility 0s linear 0s, box-shadow .3s var(--ease); }
-.dashboard-page > .pdp-info-card.dashboard-card-active { z-index: 3; }
-.dashboard-page > .pdp-info-card.dashboard-card-past { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-18px) scale(.985); box-shadow: none; transition: opacity .2s var(--ease), transform .28s var(--ease), visibility 0s linear .28s; }
-.dashboard-page > .pdp-info-card:focus-within { z-index: 4; }
-@media (max-width: 960px) { .dashboard-page > .pdp-info-card { position: relative; top: auto; margin-bottom: 18px !important; clip-path: none; } .dashboard-page > .pdp-info-card.dashboard-card-past { opacity: 1; visibility: visible; pointer-events: auto; transform: none; } }
+.dashboard-page { max-width: min(1160px, var(--cu-content-max)) !important; }
+/* Phase 8F.6 — the single-active-card sticky/overlap effect is retired here:
+   it assumed short, near-equal-height cards and broke once the Profile Hero
+   and the taller Edit Profile card were introduced (cards overlapped and
+   "past" cards hid mid-content). Cards now sit in plain document flow. */
+.dashboard-page > .pdp-info-card { position: relative; top: auto; margin-bottom: 24px !important; overflow: visible; background: var(--white); box-shadow: 0 4px 20px rgba(37,99,235,0.08); opacity: 1; visibility: visible; pointer-events: auto; transform: none; clip-path: none; }
 
 /* Compact professional admin surface while retaining the existing data. */
 .admin-dashboard { max-width: min(1160px, var(--cu-content-max)); }
 .admin-dashboard .pdp-info-card { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-color: var(--cu-outline-var); box-shadow: 0 14px 32px rgba(0, 61, 162, .08); }
 @media (max-width: 720px) { .admin-dashboard .pdp-info-card { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ==========================================================================
+   Phase 8F.1 — Responsive Container Width System
+   Appended. Zero removals. Overrides only max-width and padding on containers.
+   Goal: Desktop ~1500–1560px, Laptop ~1360–1440px, Tablet/Mobile full-width.
+   ========================================================================== */
+
+/* ── Shared container token ─────────────────────────────────────────────── */
+/*
+   --cu-content-max was introduced in Phase 8F (line 1437).
+   We reassert the cascade here at a higher position so every consumer
+   below picks up the right value at each breakpoint.
+*/
+:root {
+  --cu-content-max:    1540px;   /* desktop default                 */
+  --cu-gutter:         clamp(20px, 2.5vw, 40px); /* 20–40px fluid   */
+  --cu-gutter-mobile:  16px;
+  --cu-gutter-tablet:  24px;
+}
+
+/* ── Nav container ──────────────────────────────────────────────────────── */
+/*
+   Original rule (line 57): max-width: 1240px
+   New: 1540px matching the content grid so nav pills align with content.
+*/
+nav {
+  max-width: var(--cu-content-max);
+}
+
+/* ── Hero inner ─────────────────────────────────────────────────────────── */
+/*
+   Original (line 111): max-width: 1200px
+   Phase 8B (line 1045): max-width: 1200px  ← both reset here
+*/
+.hero-inner {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Stats band ─────────────────────────────────────────────────────────── */
+/* Original (line 183): max-width: 1200px */
+.stats-inner {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Section — primary content container ────────────────────────────────── */
+/*
+   Original (line 192): max-width: 1200px; padding: 88px 32px
+   We keep vertical padding, only widen horizontal.
+*/
+.section {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Trust bar ──────────────────────────────────────────────────────────── */
+/* Original (line 359): max-width: 1200px */
+.trust-inner {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+/* Original (line 366): max-width: 1200px */
+.footer-inner {
+  max-width: var(--cu-content-max);
+}
+footer {
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── University detail page hero ────────────────────────────────────────── */
+/* Original (line 642): max-width: 1200px */
+.udp-hero-inner {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Program detail page hero ───────────────────────────────────────────── */
+/* Original (line 710): max-width: 1200px */
+.pdp-hero-inner {
+  max-width: var(--cu-content-max);
+  padding-left:  var(--cu-gutter);
+  padding-right: var(--cu-gutter);
+}
+
+/* ── Dashboard and admin containers ─────────────────────────────────────── */
+/*
+   Phase 8F set max-width: min(1160px, var(--cu-content-max)).
+   We widen to allow the dashboard to breathe on large screens too,
+   but keep it slightly narrower than the marketing pages for readability.
+*/
+.dashboard-page  { max-width: min(1360px, var(--cu-content-max)) !important; }
+.admin-dashboard { max-width: min(1360px, var(--cu-content-max));             }
+
+/* ── Results / search layout ────────────────────────────────────────────── */
+/*
+   The results-layout grid (filter panel + card grid) sits inside .section
+   which is already handled above. No separate max-width needed here.
+*/
+
+/* ── Vertical section rhythm ────────────────────────────────────────────── */
+/*
+   At wider widths the vertical whitespace between sections should scale up
+   slightly so sections don't feel compressed on a 1500px viewport.
+*/
+@media (min-width: 1400px) {
+  .section { padding-top: 96px; padding-bottom: 96px; }
+  .hero    { padding-top: 68px; padding-bottom: 108px; }
+}
+
+/* ── Laptop (1200–1460px) ───────────────────────────────────────────────── */
+@media (max-width: 1460px) {
+  :root { --cu-content-max: 1380px; }
+}
+
+@media (max-width: 1280px) {
+  :root { --cu-content-max: 1220px; }
+}
+
+/* ── Tablet (961–1199px) ────────────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  :root {
+    --cu-content-max: 100%;
+    --cu-gutter: var(--cu-gutter-tablet);   /* 24px */
+  }
+}
+
+/* ── Mobile (≤960px) — already handled by existing rules + Phase 8F ────── */
+@media (max-width: 960px) {
+  :root {
+    --cu-content-max: 100%;
+    --cu-gutter: var(--cu-gutter-tablet);  /* 24px */
+  }
+  /* Nav reverts to full-bleed pill on mobile */
+  nav { border-radius: 16px; }
+  header { padding: 12px var(--cu-gutter) 0; }
+}
+
+@media (max-width: 600px) {
+  :root { --cu-gutter: var(--cu-gutter-mobile); }  /* 16px */
+  header { padding: 10px var(--cu-gutter) 0; }
+  .section { padding-top: 64px; padding-bottom: 64px; }
+  footer   { padding-bottom: 24px; }
+}
+
+/* ── Programme cards: 4 columns on very wide screens ───────────────────── */
+/*
+   At 1400px+ the 3-column grid leaves each card very wide.
+   4 columns fit nicely and match how premium edu sites use space.
+*/
+@media (min-width: 1400px) {
+  .prog-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px; }
+  .uni-grid  { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+}
+
+/* Revert 4-col back to 3 at laptop widths */
+@media (max-width: 1399px) and (min-width: 1181px) {
+  .prog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .uni-grid  { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ── Steps grid: 4 columns benefits from wider container ─────────────────── */
+@media (min-width: 1200px) {
+  .steps-grid { grid-template-columns: repeat(4, 1fr); gap: 28px; }
+}
+
+/* ── Footer grid: wider screens can show all 4 columns with more breathing ── */
+@media (min-width: 1300px) {
+  .footer-top { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 56px; }
+  .footer-newsletter { padding: 36px 48px; }
+}
+
+/* ── Section sub-copy max-width scales with container ───────────────────── */
+@media (min-width: 1300px) {
+  .section-sub { max-width: 680px; }
+}
+
+
+/* ===========================================================================
+   Phase 8F.2 — Homepage premium visual pass
+   Appended only. Targets Hero, Statistics, Programs, Universities.
+   No selectors removed, no markup/Jinja contracts touched, colour theme
+   (--cu-* for hero/nav, --teal/--navy for stats/programs/universities)
+   preserved exactly as established in prior phases.
+   =========================================================================== */
+
+/* ── Hero: decorative motion + depth ────────────────────────────────────── */
+.hero-blob--tl { animation: hero-blob-drift-a 16s ease-in-out infinite; }
+.hero-blob--br { animation: hero-blob-drift-b 18s ease-in-out infinite; }
+@keyframes hero-blob-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(18px, 14px) scale(1.05); }
+}
+@keyframes hero-blob-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-16px, -12px) scale(1.04); }
+}
+
+.hero-pill {
+  position: relative;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.hero-pill svg {
+  animation: hero-pill-pulse 2.6s ease-in-out infinite;
+}
+@keyframes hero-pill-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(0,61,162,0)); }
+  50% { filter: drop-shadow(0 0 4px rgba(0,61,162,0.45)); }
+}
+
+/* Gradient underline accent beneath the highlighted headline word */
+.hero h1 span { position: relative; display: inline-block; }
+.hero h1 span::after {
+  content: "";
+  position: absolute; left: 2px; right: 2px; bottom: 2px; height: 8px; z-index: -1;
+  background: linear-gradient(90deg, var(--cu-surface-container) 0%, var(--cu-surface-high) 100%);
+  border-radius: 4px;
+  transform: scaleX(0); transform-origin: left;
+  animation: hero-underline-reveal .8s var(--ease) .5s forwards;
+}
+@keyframes hero-underline-reveal { to { transform: scaleX(1); } }
+
+/* Shine-sweep micro-interaction shared by primary CTAs (parents already
+   position:relative + overflow:hidden from earlier phases). */
+.btn-primary::after, .hero-search-btn::after {
+  content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.32) 50%, transparent 100%);
+  transform: skewX(-18deg); pointer-events: none; transition: left .55s var(--ease);
+}
+.btn-primary { overflow: hidden; }
+.hero-search-btn { position: relative; overflow: hidden; }
+.btn-primary:hover::after, .hero-search-btn:hover::after { left: 130%; }
+
+.btn-outline { position: relative; transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease); }
+.btn-outline:hover { box-shadow: 0 8px 20px rgba(0,61,162,0.12); }
+
+/* Trust badges — subtle lift + colour shift on hover */
+.hero-trust-badge { transition: transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease); }
+.hero-trust-badge:hover { transform: translateY(-2px); border-color: var(--cu-primary-container); box-shadow: 0 4px 12px rgba(0,61,162,0.14); }
+.hta { transition: transform .2s var(--ease); }
+.hero-trust-avatars:hover .hta { transform: translateY(-2px); }
+
+/* Floating stat cards — glow ring + lift on hover, refined depth */
+.hero-float-card { transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+.hero-float-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 14px 34px rgba(0,61,162,0.2), 0 0 0 4px rgba(0,82,212,0.08);
+}
+.hfc-icon { display: inline-flex; transition: transform .25s var(--ease); }
+.hero-float-card:hover .hfc-icon { transform: scale(1.15) rotate(-6deg); }
+
+/* Trending-programs card — top accent bar + refined item hover */
+.hero-right { position: relative; overflow: hidden; }
+.hero-right::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--cu-primary-container) 0%, var(--cu-secondary) 100%);
+}
+.course-item { border-radius: 10px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+.course-item:hover { background: var(--cu-surface-low); transform: translateX(4px); }
+.ci-icon { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.course-item:hover .ci-icon { transform: scale(1.08) rotate(-4deg); box-shadow: 0 6px 14px rgba(0,61,162,0.32); }
+
+/* Hero illustration gets a touch more life */
+.hero-illustration { transition: transform .4s var(--ease); }
+.hero-right-wrap:hover .hero-illustration { transform: translateY(-4px); }
+
+/* ── Statistics: refined rhythm + hover glow ────────────────────────────── */
+.stats-band { position: relative; overflow: hidden; }
+.stats-band::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.stat-num { font-family: 'Manrope', 'Inter', sans-serif; }
+.stat-icon { box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+.stat-item:hover .stat-icon { box-shadow: 0 0 0 6px rgba(96,165,250,0.12); }
+
+/* Steps: refined circle glow on hover (existing dashed connector line kept as-is) */
+.step-num { box-shadow: 0 6px 16px rgba(37,99,235,0.3), 0 0 0 0 rgba(37,99,235,0); transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.step-card:hover .step-num { box-shadow: 0 8px 20px rgba(37,99,235,0.34), 0 0 0 6px rgba(37,99,235,0.12); }
+
+/* ── Programs: hierarchy + hover polish ─────────────────────────────────── */
+.prog-card { position: relative; }
+.prog-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
+  background: linear-gradient(90deg, var(--teal) 0%, var(--teal-dark) 100%);
+  transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease);
+}
+.prog-card:hover::before { transform: scaleX(1); }
+.prog-media { position: relative; }
+.prog-media::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.22) 45%, transparent 60%);
+  transform: translateX(-120%); transition: transform .6s var(--ease); pointer-events: none;
+}
+.prog-card:hover .prog-media::before { transform: translateX(120%); }
+.prog-fee-amt { font-size: 19px; }
+.prog-card .prog-cta { position: relative; overflow: hidden; }
+.prog-card .prog-cta::after {
+  content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+  transform: skewX(-18deg); transition: left .5s var(--ease); pointer-events: none;
+}
+.prog-card:hover .prog-cta::after { left: 130%; }
+
+/* ── Universities: banner shine + badge/avatar polish ───────────────────── */
+.uni-banner { position: relative; overflow: hidden; }
+.uni-banner::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.16) 50%, transparent 65%);
+  transform: translateX(-120%); transition: transform .6s var(--ease); pointer-events: none;
+}
+.uni-card:hover .uni-banner::after { transform: translateX(120%); }
+.uni-badge { transition: transform .25s var(--ease); }
+.uni-card:hover .uni-badge { transform: translateY(-1px); }
+.uni-card:hover .uni-rating-badge { transform: scale(1.05); }
+.uni-actions .action-apply { position: relative; overflow: hidden; }
+.uni-actions .action-apply::after {
+  content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+  transform: skewX(-18deg); transition: left .5s var(--ease); pointer-events: none;
+}
+.uni-card:hover .uni-actions .action-apply::after { left: 130%; }
+
+/* ── Reduced motion respect ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-blob--tl, .hero-blob--br, .hero-pill svg, .hero-illustration,
+  .float-btn.call { animation: none !important; }
+  .hero h1 span::after { animation: none !important; transform: scaleX(1); }
+  .btn-primary::after, .hero-search-btn::after, .prog-card .prog-cta::after, .uni-actions .action-apply::after,
+  .prog-media::before, .uni-banner::after { transition: none !important; }
+}
+
+/* ===========================================================================
+   Phase 8F.3 — Search & Filters premium UI
+   Appended only. No selectors removed. Filtering/search logic untouched —
+   these rules style the exact same DOM the existing JS already builds
+   (.suggestion-item, .suggestion-tag, .filters-panel, .filter-group) plus
+   a small set of new, additive classes (.suggestion-group*, .suggestion-mark,
+   .search-idle*, .search-chip, .active-filter-badge) rendered by app.js.
+   =========================================================================== */
+
+/* ── Premium search box: refined focus depth (colours unchanged) ─────────── */
+.hero-search-field { transition: border-color .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease); }
+.hero-search-field:focus-within { box-shadow: 0 0 0 3px rgba(0,82,212,0.1); }
+
+/* ── Animated dropdown ─────────────────────────────────────────────────── */
+.search-suggestions {
+  transform: translateY(-6px) scale(.98);
+  transition: opacity .2s var(--ease), transform .2s var(--ease);
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+}
+.search-suggestions.open { transform: translateY(0) scale(1); }
+.suggestion-item, .search-idle-section { animation: suggestion-fade-in .25s var(--ease) both; animation-delay: calc(var(--stagger, 0) * 28ms); }
+@keyframes suggestion-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Grouped results ───────────────────────────────────────────────────── */
+.suggestion-group:first-child .suggestion-group-label { border-top: none; }
+.suggestion-group-label {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--cu-outline); background: var(--cu-surface-low);
+  padding: 8px 14px 6px; border-top: 1px solid var(--cu-outline-var);
+}
+
+/* ── Highlighted matched text ──────────────────────────────────────────── */
+.suggestion-mark {
+  background: rgba(0,82,212,0.14); color: var(--cu-primary-container);
+  font-weight: 800; border-radius: 3px; padding: 0 2px;
+}
+
+/* ── Active suggestion (keyboard nav) — class-based, replaces old inline style */
+.suggestion-item { transition: background .15s var(--ease); }
+.suggestion-item.is-active { background: var(--cu-surface-low); box-shadow: inset 3px 0 0 var(--cu-primary-container); }
+
+/* ── Idle panel: recent + popular search chips ─────────────────────────── */
+.search-idle-section { padding: 12px 14px 4px; }
+.search-idle-section:last-child { padding-bottom: 12px; }
+.search-idle-label {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--cu-outline); margin-bottom: 8px;
+}
+.search-chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.search-chip {
+  border: 1px solid var(--cu-outline-var); background: var(--cu-surface-low); color: var(--cu-on-surface-var);
+  font-family: 'Hanken Grotesk', 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 6px 13px; border-radius: 20px; cursor: pointer;
+  transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease);
+}
+.search-chip:hover { background: var(--cu-surface-container); border-color: var(--cu-primary-container); color: var(--cu-primary); transform: translateY(-1px); }
+
+/* ── Filters: spacing, sticky panel refinement, smooth transitions ──────── */
+.filters-panel { transition: box-shadow .25s var(--ease); }
+.filter-group { transition: opacity .2s var(--ease); }
+.filter-group h4 { display: flex; align-items: center; gap: 6px; }
+.filter-group input, .filter-group select {
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+}
+.filter-group input:hover, .filter-group select:hover { border-color: var(--cu-primary-container); }
+
+/* ── Premium checkboxes / radios (styled for forward-compat; no-op if unused) */
+.filter-group input[type="checkbox"], .filter-group input[type="radio"] {
+  appearance: none; -webkit-appearance: none; width: 18px; height: 18px; min-height: 18px;
+  border: 1.5px solid var(--cu-outline-var); background: #fff; cursor: pointer; position: relative;
+  flex-shrink: 0; margin-right: 8px; vertical-align: middle;
+  transition: background .18s var(--ease), border-color .18s var(--ease), transform .12s var(--ease);
+}
+.filter-group input[type="checkbox"] { border-radius: 5px; }
+.filter-group input[type="radio"] { border-radius: 50%; }
+.filter-group input[type="checkbox"]:checked, .filter-group input[type="radio"]:checked {
+  background: var(--cu-primary-container); border-color: var(--cu-primary-container);
+}
+.filter-group input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.filter-group input[type="radio"]:checked::after {
+  content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff;
+}
+.filter-group input[type="checkbox"]:active, .filter-group input[type="radio"]:active { transform: scale(.9); }
+.filter-group label:has(input[type="checkbox"]), .filter-group label:has(input[type="radio"]) {
+  display: flex; align-items: center; font-size: 13px; color: var(--cu-on-surface-var); cursor: pointer; padding: 4px 0;
+}
+
+/* ── Active filter badges (new container, injected by app.js) ───────────── */
+.active-filters { display: none; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+.active-filters.has-badges { display: flex; }
+.active-filter-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--cu-surface-container); color: var(--cu-primary);
+  border: 1px solid var(--cu-outline-var); border-radius: 20px; padding: 6px 8px 6px 13px;
+  font-family: 'Hanken Grotesk', 'Inter', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: background .18s var(--ease), border-color .18s var(--ease), transform .15s var(--ease);
+}
+.active-filter-badge span { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(0,61,162,0.12); font-size: 11px; line-height: 1; }
+.active-filter-badge:hover { background: #fff; border-color: var(--cu-primary-container); transform: translateY(-1px); }
+.active-filter-badge:hover span { background: var(--cu-error); color: #fff; }
+.active-filter-clear-all {
+  background: none; border: none; color: var(--cu-outline); font-size: 12px; font-weight: 700;
+  text-decoration: underline; cursor: pointer; padding: 6px 4px; transition: color .18s var(--ease);
+}
+.active-filter-clear-all:hover { color: var(--cu-error); }
+
+@media (max-width: 600px) {
+  .search-suggestions { max-height: min(360px, 55vh); }
+  .active-filters { gap: 6px; }
+  .active-filter-badge { font-size: 11px; padding: 5px 7px 5px 11px; }
+}
+
+
+
+
+/* ════════════════════════════════════════════════════════════════════
+   Phase 8F.6 — Student Dashboard visual upgrade
+   New rules only. Extends the existing design system above
+   (.pdp-info-card, .btn-outline, .form-group, .form-submit, .tool-result,
+   design tokens from :root). Colour palette is unchanged.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Profile hero (not a .pdp-info-card — sits above the sticky card stack) */
+.cu-profile-hero {
+  background: var(--white);
+  border: 1.5px solid var(--border-teal);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.08);
+}
+.cu-profile-hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+.cu-profile-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.cu-profile-hero-info { flex: 1; min-width: 0; }
+.cu-profile-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.cu-profile-name {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.4px;
+}
+.cu-profile-meta {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.cu-profile-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--teal-xlight);
+  color: var(--teal-deep);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--teal-mid);
+}
+.cu-profile-hero-actions { flex-shrink: 0; }
+.cu-edit-profile-btn { padding: 10px 18px !important; font-size: 13.5px !important; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+
+.cu-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.cu-badge-success { background: rgba(22,163,74,0.12); color: var(--success); }
+.cu-badge-soon { background: var(--teal-xlight); color: var(--teal-dark); text-transform: uppercase; font-size: 10px; }
+
+.cu-profile-completion { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-teal); }
+.cu-profile-completion-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cu-profile-completion-pct { color: var(--teal-dark); font-weight: 800; }
+.cu-progress-track { height: 8px; background: var(--teal-xlight); border-radius: 999px; overflow: hidden; }
+.cu-progress-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal-dark)); border-radius: 999px; transition: width .5s var(--ease); }
+.cu-profile-completion-hint { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+/* Edit Profile — form sections */
+.cu-form-section { margin-bottom: 24px; }
+.cu-form-section:last-of-type { margin-bottom: 0; }
+.cu-form-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-teal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cu-form-section-note { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: -6px 0 14px; }
+.cu-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 16px; }
+.cu-form-grid .form-group { min-width: 0; }
+.cu-form-section-academic .form-group select:disabled {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.cu-form-submit-inline { max-width: 260px; }
+@media (max-width: 600px) {
+  .cu-form-grid { grid-template-columns: 1fr; }
+}
+
+/* Sticky save bar */
+.cu-savebar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 500;
+  display: flex;
+  justify-content: center;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border-teal);
+  box-shadow: 0 -8px 24px rgba(0,61,162,0.10);
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .3s var(--ease), opacity .3s var(--ease);
+}
+.cu-savebar.cu-savebar-visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.cu-savebar-inner {
+  width: 100%;
+  max-width: 1160px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cu-savebar-text { font-size: 13.5px; font-weight: 700; color: var(--text2); }
+.cu-savebar-actions { display: flex; gap: 10px; }
+.cu-savebar-cancel { padding: 10px 18px !important; font-size: 13.5px !important; }
+.cu-savebar-save { width: auto !important; padding: 10px 22px !important; font-size: 13.5px !important; margin-top: 0 !important; }
+
+/* Card content presented as a responsive grid instead of a single column */
+.cu-grid-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cu-grid-list > li {
+  background: var(--bg);
+  border: 1px solid var(--border-teal);
+  border-radius: 12px;
+  padding: 14px !important;
+  border-bottom: 1px solid var(--border-teal) !important;
+}
+@media (max-width: 720px) {
+  .cu-grid-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .cu-profile-hero-top { flex-wrap: wrap; }
+  .cu-profile-hero-actions { width: 100%; }
+  .cu-edit-profile-btn { width: 100%; justify-content: center; }
+}

@@ -18,21 +18,55 @@
   {% endwith %}
 
   {# ── Profile Summary ──────────────────────────────────────────────── #}
-  <div class="pdp-info-card" style="margin-bottom:24px;">
-    <h3 class="pdp-info-card-title">Profile</h3>
-    <ul class="pdp-info-list">
-      <li><span class="pdp-info-key">Full Name</span><span class="pdp-info-val">{{ current_user.full_name }}</span></li>
-      <li><span class="pdp-info-key">Email</span><span class="pdp-info-val">{{ current_user.email }}</span></li>
-      <li><span class="pdp-info-key">Mobile</span><span class="pdp-info-val">{{ current_user.mobile }}</span></li>
-      <li><span class="pdp-info-key">Registered On</span><span class="pdp-info-val">{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</span></li>
-    </ul>
+  {% set ns = namespace(filled=0, missing=[]) %}
+  {% if current_user.full_name %}{% set ns.filled = ns.filled + 1 %}{% else %}{% set ns.missing = ns.missing + ['full name'] %}{% endif %}
+  {% if current_user.email %}{% set ns.filled = ns.filled + 1 %}{% else %}{% set ns.missing = ns.missing + ['email'] %}{% endif %}
+  {% if current_user.mobile %}{% set ns.filled = ns.filled + 1 %}{% else %}{% set ns.missing = ns.missing + ['mobile number'] %}{% endif %}
+  {% set completion_total = 3 %}
+  {% set completion_pct = ((ns.filled / completion_total) * 100) | round | int %}
+  {% set name_parts = current_user.full_name.split() if current_user.full_name else [] %}
+  {% set initials = ((name_parts[0][0] if name_parts|length > 0 else '') ~ (name_parts[1][0] if name_parts|length > 1 else '')) | upper %}
+
+  <div class="cu-profile-hero">
+    <div class="cu-profile-hero-top">
+      <div class="cu-profile-avatar" aria-hidden="true">{{ initials if initials else '?' }}</div>
+      <div class="cu-profile-hero-info">
+        <div class="cu-profile-name-row">
+          <h2 class="cu-profile-name">{{ current_user.full_name }}</h2>
+          {% if completion_pct == 100 %}
+            <span class="cu-badge cu-badge-success">Profile Complete</span>
+          {% endif %}
+        </div>
+        <p class="cu-profile-meta">{{ current_user.email }} · Joined {{ current_user.created_at.strftime('%b %Y') if current_user.created_at else '—' }}</p>
+        <div class="cu-profile-chips">
+          <span class="cu-chip">📋 {{ leads|length }} {{ 'Enquiry' if leads|length == 1 else 'Enquiries' }}</span>
+          <span class="cu-chip">🏫 {{ saved_universities|length }} Saved Universities</span>
+          <span class="cu-chip">📚 {{ saved_programs|length }} Saved Programs</span>
+        </div>
+      </div>
+      <div class="cu-profile-hero-actions">
+        <a href="#edit-profile-card" class="btn-outline cu-edit-profile-btn">✏️ Edit Profile</a>
+      </div>
+    </div>
+    <div class="cu-profile-completion">
+      <div class="cu-profile-completion-head">
+        <span>Profile Completion</span>
+        <span class="cu-profile-completion-pct" id="cu-completion-pct">{{ completion_pct }}%</span>
+      </div>
+      <div class="cu-progress-track">
+        <div class="cu-progress-fill" id="cu-completion-fill" style="width:{{ completion_pct }}%;"></div>
+      </div>
+      {% if ns.missing %}
+        <p class="cu-profile-completion-hint">Add your {{ ns.missing | join(' and ') }} to reach 100%.</p>
+      {% endif %}
+    </div>
   </div>
 
   {# ── My Enquiries ─────────────────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;">
-    <h3 class="pdp-info-card-title">My Enquiries</h3>
+    <h3 class="pdp-info-card-title">📋 My Enquiries</h3>
     {% if leads %}
-      <ul class="pdp-info-list" style="gap:16px;">
+      <ul class="pdp-info-list cu-grid-list" style="gap:16px;">
         {% for lead in leads %}
         <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
           <span class="pdp-info-val" style="text-align:left;">{{ lead.interested_university or 'University not specified' }}</span>
@@ -47,30 +81,83 @@
   </div>
 
   {# ── Edit Profile ─────────────────────────────────────────────────── #}
-  <div class="pdp-info-card" style="margin-bottom:24px;">
+  <div class="pdp-info-card" style="margin-bottom:24px;" id="edit-profile-card">
     <h3 class="pdp-info-card-title">Edit Profile</h3>
-    <form method="POST" action="{{ url_for('main.update_profile') }}" novalidate>
-      <div class="form-group">
-        <label for="full_name">Full Name</label>
-        <input type="text" id="full_name" name="full_name" value="{{ current_user.full_name }}" required minlength="2" autocomplete="name">
+    <form method="POST" action="{{ url_for('main.update_profile') }}" novalidate id="profile-edit-form">
+      <div class="cu-form-section">
+        <h4 class="cu-form-section-title">Personal Information</h4>
+        <div class="form-group">
+          <label for="full_name">Full Name</label>
+          <input type="text" id="full_name" name="full_name" value="{{ current_user.full_name }}" required minlength="2" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="mobile">Mobile Number</label>
+          <input type="tel" id="mobile" name="mobile" value="{{ current_user.mobile }}" required pattern="[0-9]{10}" maxlength="10" autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label for="email_readonly">Email</label>
+          <input type="email" id="email_readonly" value="{{ current_user.email }}" disabled style="background:var(--bg);color:var(--muted);">
+        </div>
       </div>
-      <div class="form-group">
-        <label for="mobile">Mobile Number</label>
-        <input type="tel" id="mobile" name="mobile" value="{{ current_user.mobile }}" required pattern="[0-9]{10}" maxlength="10" autocomplete="tel">
+
+      <div class="cu-form-section cu-form-section-academic">
+        <h4 class="cu-form-section-title">
+          Academic Preferences
+          <span class="cu-badge cu-badge-soon">Coming Soon</span>
+        </h4>
+        <p class="cu-form-section-note">These help us match you to the right online degree. Saving these preferences will be enabled shortly.</p>
+        <div class="cu-form-grid">
+          <div class="form-group">
+            <label for="highest_qualification">Highest Qualification</label>
+            <select id="highest_qualification" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="current_qualification">Current Qualification</label>
+            <select id="current_qualification" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="preferred_course">Preferred Course</label>
+            <select id="preferred_course" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="preferred_specialization">Preferred Specialization</label>
+            <select id="preferred_specialization" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="study_mode">Study Mode</label>
+            <select id="study_mode" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="budget">Budget</label>
+            <select id="budget" disabled><option>Not set</option></select>
+          </div>
+          <div class="form-group">
+            <label for="working_professional">Working Professional</label>
+            <select id="working_professional" disabled><option>Not set</option></select>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="email_readonly">Email</label>
-        <input type="email" id="email_readonly" value="{{ current_user.email }}" disabled style="background:var(--bg);color:var(--muted);">
-      </div>
-      <button type="submit" class="form-submit">Save Changes</button>
+
+      <button type="submit" class="form-submit cu-form-submit-inline">Save Changes</button>
     </form>
+  </div>
+
+  {# ── Sticky Save Bar (mirrors #profile-edit-form; submits the same form) ── #}
+  <div class="cu-savebar" id="cu-savebar" aria-hidden="true">
+    <div class="cu-savebar-inner">
+      <span class="cu-savebar-text">You have unsaved changes</span>
+      <div class="cu-savebar-actions">
+        <button type="button" class="btn-outline cu-savebar-cancel" id="cu-savebar-cancel">Discard</button>
+        <button type="submit" form="profile-edit-form" class="form-submit cu-savebar-save">Save Changes</button>
+      </div>
+    </div>
   </div>
 
   {# ── Saved Universities ───────────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;">
-    <h3 class="pdp-info-card-title">Saved Universities</h3>
+    <h3 class="pdp-info-card-title">🏫 Saved Universities</h3>
     {% if saved_universities %}
-      <ul class="pdp-info-list" style="gap:16px;">
+      <ul class="pdp-info-list cu-grid-list" style="gap:16px;">
         {% for su in saved_universities %}
         <li style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
           <a href="{{ url_for('main.university_detail', slug=su.university.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
@@ -97,9 +184,9 @@
 
   {# ── Saved Programs ────────────────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;">
-    <h3 class="pdp-info-card-title">Saved Programs</h3>
+    <h3 class="pdp-info-card-title">📚 Saved Programs</h3>
     {% if saved_programs %}
-      <ul class="pdp-info-list" style="gap:16px;">
+      <ul class="pdp-info-list cu-grid-list" style="gap:16px;">
         {% for sp in saved_programs %}
         <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
           <a href="{{ url_for('main.program_detail', slug=sp.program.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
@@ -130,13 +217,13 @@
   {# ── Recently Viewed Universities ────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;" id="card-viewed-universities">
     <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Recently Viewed Universities</span>
+      <span>🕒 Recently Viewed Universities</span>
       {% if recent_universities %}
         <button class="btn-outline cu-clear-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="viewed" data-clear-filter="universities">Clear</button>
       {% endif %}
     </h3>
     {% if recent_universities %}
-      <ul class="pdp-info-list" style="gap:12px;" id="list-viewed-universities">
+      <ul class="pdp-info-list cu-grid-list" style="gap:12px;" id="list-viewed-universities">
         {% for rv in recent_universities %}
         <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
           <a href="{{ url_for('main.university_detail', slug=rv.university.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
@@ -157,13 +244,13 @@
   {# ── Recently Viewed Programs ──────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;" id="card-viewed-programs">
     <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Recently Viewed Programs</span>
+      <span>🕒 Recently Viewed Programs</span>
       {% if recent_programs %}
         <button class="btn-outline cu-clear-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="viewed" data-clear-filter="programs">Clear</button>
       {% endif %}
     </h3>
     {% if recent_programs %}
-      <ul class="pdp-info-list" style="gap:12px;" id="list-viewed-programs">
+      <ul class="pdp-info-list cu-grid-list" style="gap:12px;" id="list-viewed-programs">
         {% for rv in recent_programs %}
         <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
           <a href="{{ url_for('main.program_detail', slug=rv.program.slug) }}" class="pdp-info-val" style="text-align:left;text-decoration:none;color:var(--teal-dark);">
@@ -187,13 +274,13 @@
   {# ── Compare History ──────────────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;" id="card-compare">
     <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Recent Comparisons</span>
+      <span>🔄 Recent Comparisons</span>
       {% if compare_history %}
         <button class="btn-outline cu-clear-history-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="compare" data-card="card-compare" data-empty-msg="No recent comparisons.">Clear</button>
       {% endif %}
     </h3>
     {% if compare_history %}
-      <ul class="pdp-info-list" style="gap:16px;" id="list-compare">
+      <ul class="pdp-info-list cu-grid-list" style="gap:16px;" id="list-compare">
         {% for ch in compare_history %}
         <li style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border-teal);padding-bottom:12px;">
           <span class="pdp-info-val" style="text-align:left;">{{ ch.university_names or ch.university_ids }}</span>
@@ -216,13 +303,13 @@
   {# ── Brochure Download History ─────────────────────────────────────── #}
   <div class="pdp-info-card" style="margin-bottom:24px;" id="card-brochure">
     <h3 class="pdp-info-card-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Downloaded Brochures</span>
+      <span>📄 Downloaded Brochures</span>
       {% if brochure_history %}
         <button class="btn-outline cu-clear-history-btn" style="font-size:11px;padding:4px 10px;color:var(--muted);border-color:var(--border-teal);" data-clear-target="brochure" data-card="card-brochure" data-empty-msg="No brochure downloads yet.">Clear</button>
       {% endif %}
     </h3>
     {% if brochure_history %}
-      <ul class="pdp-info-list" style="gap:12px;" id="list-brochure">
+      <ul class="pdp-info-list cu-grid-list" style="gap:12px;" id="list-brochure">
         {% for bd in brochure_history %}
         <li style="flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--border-teal);padding-bottom:10px;">
           {% if bd.program %}
@@ -246,7 +333,7 @@
 
   {# ── Change Password ──────────────────────────────────────────────── #}
   <div class="pdp-info-card">
-    <h3 class="pdp-info-card-title">Change Password</h3>
+    <h3 class="pdp-info-card-title">🔒 Change Password</h3>
     <form method="POST" action="{{ url_for('main.change_password') }}" novalidate>
       <div class="form-group">
         <label for="current_password">Current Password</label>
@@ -272,34 +359,69 @@
   // After a successful remove the list item fades out; if the list is then
   // empty the section updates to the empty-state message automatically.
   document.addEventListener('DOMContentLoaded', function () {
-    // Phase 8F — a single active dashboard card. Previous sticky cards are
-    // removed from the paint/accessibility tree as the following card reaches
-    // the stack line, eliminating the old visible overlap artefacts.
-    var dashboard = document.querySelector('.dashboard-page');
-    if (dashboard && window.matchMedia('(min-width: 961px)').matches) {
-      var cards = Array.prototype.slice.call(dashboard.querySelectorAll(':scope > .pdp-info-card'));
-      var frame = null;
-      var syncStack = function () {
-        frame = null;
-        var stackTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-offset')) || 112;
-        var activeIndex = 0;
-        cards.forEach(function (card, index) {
-          if (card.getBoundingClientRect().top <= stackTop + 8) activeIndex = index;
+    // Phase 8F.6 — sticky save bar: shows once the edit form differs from its
+    // loaded values, submits via the existing #profile-edit-form (no change
+    // to the POST action/behaviour), and can discard edits back to original.
+    (function () {
+      var form = document.getElementById('profile-edit-form');
+      var savebar = document.getElementById('cu-savebar');
+      var cancelBtn = document.getElementById('cu-savebar-cancel');
+      if (!form || !savebar) return;
+
+      var initialValues = {};
+      Array.prototype.forEach.call(form.elements, function (el) {
+        if (el.name) initialValues[el.name] = el.value;
+      });
+
+      function isDirty() {
+        return Array.prototype.some.call(form.elements, function (el) {
+          return el.name && initialValues[el.name] !== el.value;
         });
-        cards.forEach(function (card, index) {
-          var past = index < activeIndex;
-          card.classList.toggle('dashboard-card-past', past);
-          card.classList.toggle('dashboard-card-active', index === activeIndex);
-          card.setAttribute('aria-hidden', past ? 'true' : 'false');
+      }
+      function syncSavebar() {
+        var dirty = isDirty();
+        savebar.classList.toggle('cu-savebar-visible', dirty);
+        savebar.setAttribute('aria-hidden', dirty ? 'false' : 'true');
+      }
+      form.addEventListener('input', syncSavebar);
+      form.addEventListener('change', syncSavebar);
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+          Array.prototype.forEach.call(form.elements, function (el) {
+            if (el.name && Object.prototype.hasOwnProperty.call(initialValues, el.name)) {
+              el.value = initialValues[el.name];
+            }
+          });
+          syncSavebar();
         });
-      };
-      var requestStackSync = function () {
-        if (!frame) frame = requestAnimationFrame(syncStack);
-      };
-      window.addEventListener('scroll', requestStackSync, { passive: true });
-      window.addEventListener('resize', requestStackSync, { passive: true });
-      syncStack();
-    }
+      }
+
+      // Live profile completion preview — visual only; the server value
+      // (rendered on load/next page render) remains the source of truth.
+      var completionFill = document.getElementById('cu-completion-fill');
+      var completionPct = document.getElementById('cu-completion-pct');
+      var fullNameInput = document.getElementById('full_name');
+      var mobileInput = document.getElementById('mobile');
+      if (completionFill && completionPct && fullNameInput && mobileInput) {
+        var updateCompletionPreview = function () {
+          var filled = 1; // email is always present/disabled
+          if (fullNameInput.value.trim().length >= 2) filled++;
+          if (/^[0-9]{10}$/.test(mobileInput.value.trim())) filled++;
+          var pct = Math.round((filled / 3) * 100);
+          completionFill.style.width = pct + '%';
+          completionPct.textContent = pct + '%';
+        };
+        fullNameInput.addEventListener('input', updateCompletionPreview);
+        mobileInput.addEventListener('input', updateCompletionPreview);
+      }
+    })();
+
+    // Phase 8F.6 — the previous "single active card" sticky-overlap effect
+    // (Phase 8F) assumed short, roughly equal-height cards. It is disabled
+    // here because the Profile Hero and the expanded Edit Profile card break
+    // that assumption and caused cards to overlap / hide mid-content. Cards
+    // now render as plain stacked blocks (see the matching CSS reset).
     document.querySelectorAll('.saved-toggle-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var type = btn.dataset.saveType;   // "university" | "program"
