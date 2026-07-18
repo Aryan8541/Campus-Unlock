@@ -1,3 +1,26 @@
+{# NOTE: the <style> block below only ADDS new rules (.uni-banner-img,
+   .uni-banner::after) and enlarges .uni-banner's height so a photo has
+   room to show. It doesn't remove or override any existing theme colors
+   — it's scoped to this one feature so style.css itself stays untouched. #}
+<style>
+  /* Bigger grid, matching programs.html sizing */
+  .uni-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+
+  .uni-banner { height: 190px; position: relative; overflow: hidden; }
+  .uni-banner-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+  .uni-banner::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(15,23,42,0.05) 0%, rgba(15,23,42,0.6) 100%); pointer-events: none; }
+  .uni-banner-badges, .uni-banner .uni-rating-badge { position: relative; z-index: 2; }
+
+  /* Fix: the old -24px pull-up on .uni-top was designed for the thin
+     64px gradient strip and dragged the name text up into the photo now
+     that the banner is taller. Instead: .uni-top stays in normal flow
+     below the photo (name always fully readable in white space), and
+     only the avatar circle is nudged up via relative positioning (which
+     doesn't affect its siblings) so it still "peeks" over the photo edge. */
+  .uni-top { margin-top: 16px; }
+  .uni-avatar { position: relative; top: -34px; margin-bottom: -34px; z-index: 3; }
+</style>
+
 <section id="universities">
   <div class="section">
     <div class="section-eyebrow reveal">Top-rated on our platform</div>
@@ -7,7 +30,17 @@
       {% if top_universities %}
         {% for university in top_universities %}
         <div class="uni-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms" data-id="{{ university.id }}" data-slug="{{ university.slug }}">
-          <div class="uni-banner" aria-hidden="true">
+          <div class="uni-banner">
+            {# TEMP placeholder via picsum.photos when university.banner isn't
+               set in the DB yet — seeded per university.id for a stable,
+               distinct photo per card. Swap for a real campus photo later
+               (recommended 800×280, ~2.85:1) and this will prefer
+               university.banner automatically. #}
+            <img
+              class="uni-banner-img"
+              src="{{ university.banner or ('https://picsum.photos/seed/uni' ~ university.id ~ '/800/280') }}"
+              alt="{{ university.name }}"
+              loading="lazy">
             <div class="uni-banner-badges">
               <span class="uni-badge uni-badge-ugc">UGC-DEB</span>
               {% if university.naac %}<span class="uni-badge uni-badge-naac">NAAC {{ university.naac }}</span>{% endif %}

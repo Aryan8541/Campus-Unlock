@@ -1,3 +1,9 @@
+<style>
+  /* Bigger grid, matching universities.html sizing so both sections
+     share the same card width/gap. */
+  .prog-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+</style>
+
 <div class="prog-bg" id="programs">
   <div class="section">
     <div class="section-eyebrow reveal">What would you like to study?</div>
@@ -8,10 +14,14 @@
         {% for program in featured_programs %}
         <div class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 40 }}ms" data-name="{{ program.name }}" data-program-id="{{ program.id }}">
           <div class="prog-media">
+            {# TEMP placeholder via picsum.photos when program.image isn't set in
+               the DB yet — seeded per program.id so each card gets a stable,
+               distinct photo. Swap for real photos later (recommended 800×500,
+               16:10) and this block will automatically prefer program.image. #}
             {% if program.image %}
               <img src="{{ program.image }}" alt="{{ program.name }}" class="prog-img" loading="lazy">
             {% else %}
-              <div class="prog-img-fallback" aria-hidden="true"><span>{{ program.emoji }}</span></div>
+              <img src="https://picsum.photos/seed/program{{ program.id }}/800/500" alt="{{ program.name }}" class="prog-img" loading="lazy">
             {% endif %}
             {% if program.university %}<span class="prog-badge prog-badge-uni">🏛️ {{ program.university }}</span>{% endif %}
             {% if program.rating %}<span class="prog-rating"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>{{ '%.1f'|format(program.rating) }}</span>{% endif %}

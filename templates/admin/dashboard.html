@@ -4,27 +4,276 @@
 {% block meta_description %}Campus Unlock admin dashboard.{% endblock %}
 
 {% block content %}
-<section class="section" style="max-width:720px;padding-top:64px;padding-bottom:64px;">
-  <div class="section-eyebrow">Admin</div>
-  <h1 class="section-title" style="font-size:26px;">Admin Dashboard</h1>
 
-  <div class="pdp-info-card" style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;">
-    <div>
-      <div class="section-sub" style="margin:0;">Users</div>
-      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.users }}</div>
+{# ── Scoped styles for the admin dashboard only ────────────────────────
+   Reuses existing theme CSS variables (--teal, --teal-deep, --white,
+   --text, --muted, --border, --bg, etc.) already defined in style.css —
+   nothing here overrides or duplicates them, so the global stylesheet
+   stays untouched. ──────────────────────────────────────────────────── #}
+<style>
+  .adm-wrap {
+    max-width: 1280px; margin: 0 auto; padding: 40px 24px 64px;
+    display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: start;
+  }
+  @media (max-width: 900px) { .adm-wrap { grid-template-columns: 1fr; } }
+
+  /* Sidebar */
+  .adm-sidebar {
+    background: var(--white); border: 1px solid var(--border-teal); border-radius: 16px;
+    padding: 18px 14px; position: sticky; top: 90px;
+    box-shadow: 0 4px 16px rgba(15,23,42,0.06);
+  }
+  .adm-sidebar-title {
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); padding: 6px 10px 12px;
+  }
+  .adm-nav-link {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 700; color: var(--text); text-decoration: none;
+    margin-bottom: 4px; transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  .adm-nav-link:hover { background: var(--bg); }
+  .adm-nav-link.is-active { background: var(--teal-light); color: var(--teal-deep); }
+  .adm-nav-icon { width: 18px; text-align: center; flex-shrink: 0; }
+
+  /* Header */
+  .adm-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+  .adm-header h1 { font-size: 24px; font-weight: 900; color: var(--text); letter-spacing: -0.4px; margin: 0; }
+  .adm-header p { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; }
+
+  /* Stat cards */
+  .adm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .adm-stat-card {
+    background: var(--white); border: 1px solid var(--border-teal); border-radius: 14px; padding: 16px 18px;
+    box-shadow: 0 4px 14px rgba(15,23,42,0.05);
+  }
+  .adm-stat-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .adm-stat-value { font-size: 26px; font-weight: 900; color: var(--teal-deep); letter-spacing: -0.6px; margin-top: 6px; }
+
+  /* Panel grid */
+  .adm-panels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .adm-panels { grid-template-columns: 1fr; } }
+
+  .adm-panel {
+    background: var(--white); border: 1px solid var(--border-teal); border-radius: 16px;
+    padding: 20px 20px 8px; box-shadow: 0 4px 16px rgba(15,23,42,0.05);
+  }
+  .adm-panel-title { font-size: 15px; font-weight: 800; color: var(--text); margin: 0 0 4px; }
+  .adm-panel-sub { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+
+  .adm-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-top: 1px dashed var(--border-teal);
+  }
+  .adm-row:first-of-type { border-top: none; }
+  .adm-row-avatar {
+    width: 36px; height: 36px; border-radius: 10px; background: var(--teal-light); color: var(--teal-deep);
+    display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .adm-row-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .adm-row-main { flex: 1; min-width: 0; }
+  .adm-row-title { font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .adm-row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .adm-row-meta { font-size: 11.5px; color: var(--muted); flex-shrink: 0; text-align: right; }
+
+  .adm-badge {
+    display: inline-block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px;
+    padding: 3px 9px; border-radius: 20px; background: var(--teal-light); color: var(--teal-deep); flex-shrink: 0;
+  }
+  .adm-badge-new { background: #e7f6ec; color: #1a7a3e; }
+  .adm-badge-contacted { background: var(--teal-light); color: var(--teal-deep); }
+  .adm-badge-other { background: var(--bg); color: var(--muted); }
+
+  .adm-empty { font-size: 13px; color: var(--muted); padding: 16px 0; }
+
+  /* Activity feed */
+  .adm-activity-panel { grid-column: 1 / -1; }
+  .adm-feed-item { display: flex; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--border-teal); }
+  .adm-feed-item:first-of-type { border-top: none; }
+  .adm-feed-dot {
+    width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0;
+    background: var(--teal);
+  }
+  .adm-feed-dot.is-download { background: #f59e0b; }
+  .adm-feed-dot.is-signup { background: #1a7a3e; }
+  .adm-feed-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+  .adm-feed-detail { font-size: 12px; color: var(--muted); }
+  .adm-feed-time { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+</style>
+
+<div class="adm-wrap">
+
+  {# ── Sidebar ──────────────────────────────────────────────────────── #}
+  <aside class="adm-sidebar" aria-label="Admin navigation">
+    <div class="adm-sidebar-title">Admin</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="adm-nav-link is-active">
+      <span class="adm-nav-icon" aria-hidden="true">📊</span> Dashboard
+    </a>
+    {# The links below don't have routes yet (Phase 8A scope is
+       dashboard-only) — left as inert placeholders so nothing 404s or
+       raises a BuildError. Wire these up once those pages exist. #}
+    <a href="#" class="adm-nav-link" aria-disabled="true">
+      <span class="adm-nav-icon" aria-hidden="true">🎓</span> Universities
+    </a>
+    <a href="#" class="adm-nav-link" aria-disabled="true">
+      <span class="adm-nav-icon" aria-hidden="true">📚</span> Programs
+    </a>
+    <a href="#" class="adm-nav-link" aria-disabled="true">
+      <span class="adm-nav-icon" aria-hidden="true">📨</span> Leads
+    </a>
+    <a href="#" class="adm-nav-link" aria-disabled="true">
+      <span class="adm-nav-icon" aria-hidden="true">👥</span> Users
+    </a>
+    <a href="#" class="adm-nav-link" aria-disabled="true">
+      <span class="adm-nav-icon" aria-hidden="true">📄</span> Brochure Downloads
+    </a>
+  </aside>
+
+  {# ── Main content ─────────────────────────────────────────────────── #}
+  <div>
+    <div class="adm-header">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p>Welcome back, {{ current_user.full_name.split(' ')[0] if current_user else 'Admin' }}.</p>
+      </div>
     </div>
-    <div>
-      <div class="section-sub" style="margin:0;">Universities</div>
-      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.universities }}</div>
+
+    {# ── Stat cards ──────────────────────────────────────────────────── #}
+    <div class="adm-stats">
+      <div class="adm-stat-card">
+        <div class="adm-stat-label">Users</div>
+        <div class="adm-stat-value">{{ counts.users }}</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-label">Universities</div>
+        <div class="adm-stat-value">{{ counts.universities }}</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-label">Programs</div>
+        <div class="adm-stat-value">{{ counts.programs }}</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-label">Leads</div>
+        <div class="adm-stat-value">{{ counts.leads }}</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-label">Brochure Downloads</div>
+        <div class="adm-stat-value">{{ counts.brochure_downloads }}</div>
+      </div>
     </div>
-    <div>
-      <div class="section-sub" style="margin:0;">Programs</div>
-      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.programs }}</div>
-    </div>
-    <div>
-      <div class="section-sub" style="margin:0;">Leads</div>
-      <div class="section-title" style="font-size:22px;margin:0;">{{ counts.leads }}</div>
+
+    {# ── Panels ──────────────────────────────────────────────────────── #}
+    <div class="adm-panels">
+
+      {# Recent Leads #}
+      <div class="adm-panel">
+        <div class="adm-panel-title">Recent Leads</div>
+        <div class="adm-panel-sub">Latest inquiries submitted on the site</div>
+        {% if recent_leads %}
+          {% for lead in recent_leads %}
+          <div class="adm-row">
+            <div class="adm-row-avatar" aria-hidden="true">{{ (lead.full_name or '?')[:2] | upper }}</div>
+            <div class="adm-row-main">
+              <div class="adm-row-title">{{ lead.full_name }}</div>
+              <div class="adm-row-sub">{{ lead.interested_program or lead.interested_university or lead.email or '—' }}</div>
+            </div>
+            <span class="adm-badge {% if lead.status == 'New' %}adm-badge-new{% elif lead.status == 'Contacted' %}adm-badge-contacted{% else %}adm-badge-other{% endif %}">{{ lead.status }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="adm-empty">No leads yet.</div>
+        {% endif %}
+      </div>
+
+      {# Top Universities #}
+      <div class="adm-panel">
+        <div class="adm-panel-title">Top Universities</div>
+        <div class="adm-panel-sub">By number of programs offered</div>
+        {% if top_universities %}
+          {% for uni, program_count in top_universities %}
+          <div class="adm-row">
+            <div class="adm-row-avatar" aria-hidden="true">
+              {% if uni.logo_url or uni.logo %}
+                <img src="{{ uni.logo_url or uni.logo }}" alt="{{ uni.name }} logo">
+              {% else %}
+                {{ uni.name[:2] | upper }}
+              {% endif %}
+            </div>
+            <div class="adm-row-main">
+              <div class="adm-row-title">{{ uni.name }}</div>
+              <div class="adm-row-sub">{{ [uni.city, uni.state] | select | join(', ') or 'Location not set' }}</div>
+            </div>
+            <div class="adm-row-meta">{{ program_count }} program{{ 's' if program_count != 1 else '' }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="adm-empty">No universities yet.</div>
+        {% endif %}
+      </div>
+
+      {# Recent Programs Added #}
+      <div class="adm-panel">
+        <div class="adm-panel-title">Recent Programs Added</div>
+        <div class="adm-panel-sub">Newest programs on the platform</div>
+        {% if recent_programs %}
+          {% for program in recent_programs %}
+          <div class="adm-row">
+            <div class="adm-row-avatar" aria-hidden="true">📚</div>
+            <div class="adm-row-main">
+              <div class="adm-row-title">{{ program.title }}</div>
+              <div class="adm-row-sub">{{ program.university.name if program.university else 'Unassigned' }}</div>
+            </div>
+            <div class="adm-row-meta">{{ program.created_at.strftime('%d %b') if program.created_at else '—' }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="adm-empty">No programs yet.</div>
+        {% endif %}
+      </div>
+
+      {# Recent Brochure Downloads #}
+      <div class="adm-panel">
+        <div class="adm-panel-title">Recent Brochure Downloads</div>
+        <div class="adm-panel-sub">Latest brochure link clicks</div>
+        {% if recent_downloads %}
+          {% for dl in recent_downloads %}
+          <div class="adm-row">
+            <div class="adm-row-avatar" aria-hidden="true">📄</div>
+            <div class="adm-row-main">
+              <div class="adm-row-title">{{ dl.university.name if dl.university else (dl.program.title if dl.program else 'Brochure') }}</div>
+              <div class="adm-row-sub">{{ dl.program.title if dl.program and dl.university else '' }}</div>
+            </div>
+            <div class="adm-row-meta">{{ dl.downloaded_at.strftime('%d %b') if dl.downloaded_at else '—' }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="adm-empty">No downloads yet.</div>
+        {% endif %}
+      </div>
+
+      {# Recent Activity — merged feed, spans full width #}
+      <div class="adm-panel adm-activity-panel">
+        <div class="adm-panel-title">Recent Activity</div>
+        <div class="adm-panel-sub">Leads, brochure downloads, and new signups, most recent first</div>
+        {% if activity %}
+          {% for item in activity %}
+          <div class="adm-feed-item">
+            <span class="adm-feed-dot {% if item.type == 'download' %}is-download{% elif item.type == 'signup' %}is-signup{% endif %}" aria-hidden="true"></span>
+            <div>
+              <div class="adm-feed-title">{{ item.title }}</div>
+              {% if item.detail %}<div class="adm-feed-detail">{{ item.detail }}</div>{% endif %}
+            </div>
+            <span class="adm-feed-time">{{ item.at.strftime('%d %b, %I:%M %p') if item.at else '' }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="adm-empty">No recent activity.</div>
+        {% endif %}
+      </div>
+
     </div>
   </div>
-</section>
+</div>
+
 {% endblock %}

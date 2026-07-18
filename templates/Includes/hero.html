@@ -1,4 +1,4 @@
-<section class="hero" aria-labelledby="hero-heading">
+<section class="hero" aria-labelledby="hero-heading" style="background-image: linear-gradient(100deg, var(--white) 0%, var(--white) 40%, rgba(255,255,255,0.85) 52%, rgba(255,255,255,0.35) 66%, rgba(255,255,255,0) 80%), url('https://picsum.photos/seed/campusunlock-hero/1600/900'); background-size: cover; background-position: center right; background-repeat: no-repeat;">
 
   {# ── Background decorations (pure CSS blobs via aria-hidden spans) ── #}
   <span class="hero-blob hero-blob--tl" aria-hidden="true"></span>
@@ -131,49 +131,12 @@
     {# ═══════════════════════════════════════════════════════════════ #}
     <div class="hero-right-wrap">
 
-      {# Floating illustration — class required by existing CSS #}
-      <div class="hero-illustration" aria-hidden="true">
-        <svg viewBox="0 0 420 380" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="hiGrad1" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#3b82f6"/>
-              <stop offset="100%" stop-color="#1e3a8a"/>
-            </linearGradient>
-            <linearGradient id="hiGrad2" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#dbeafe"/>
-              <stop offset="100%" stop-color="#bfdbfe"/>
-            </linearGradient>
-          </defs>
-          <ellipse cx="210" cy="330" rx="150" ry="18" fill="#1e3a8a" opacity="0.08"/>
-          <g transform="translate(60,150)">
-            <rect x="0" y="30" width="150" height="110" rx="14" fill="url(#hiGrad2)"/>
-            <rect x="0" y="30" width="150" height="26" rx="14" fill="#3b82f6"/>
-            <rect x="14" y="70" width="122" height="10" rx="5" fill="#93c5fd"/>
-            <rect x="14" y="90" width="90"  height="10" rx="5" fill="#93c5fd"/>
-            <rect x="14" y="110" width="106" height="10" rx="5" fill="#93c5fd"/>
-          </g>
-          <g transform="translate(190,40)">
-            <path d="M75 0 150 34 75 68 0 34 75 0Z" fill="url(#hiGrad1)"/>
-            <path d="M32 46v34c0 12 19 22 43 22s43-10 43-22V46"
-                  stroke="#1e3a8a" stroke-width="5" fill="none" stroke-linecap="round"/>
-            <line x1="146" y1="34" x2="146" y2="76"
-                  stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="146" cy="82" r="5" fill="#1e3a8a"/>
-          </g>
-          <g transform="translate(255,165)">
-            <rect x="0" y="0" width="95" height="95" rx="18"
-                  fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
-            <circle cx="47" cy="38" r="16" fill="#3b82f6"/>
-            <path d="M22 78c4-16 19-24 25-24s21 8 25 24"
-                  stroke="#1e3a8a" stroke-width="4" fill="none" stroke-linecap="round"/>
-          </g>
-          <circle cx="82"  cy="72"  r="10" fill="#93c5fd"/>
-          <circle cx="360" cy="120" r="7"  fill="#3b82f6"/>
-          <circle cx="340" cy="290" r="9"  fill="#bfdbfe"/>
-          <path d="M35 210 Q20 230 40 250"
-                stroke="#93c5fd" stroke-width="4" fill="none" stroke-linecap="round"/>
-        </svg>
-      </div>
+      {# NOTE: the photo now lives on the <section class="hero"> background
+         (see style= attribute at the top of this file) so it sits BEHIND
+         the whole hero and fades to white on the left where the headline
+         is — this fixes it overlapping the floating cards below. Swap the
+         picsum URL up top for a real campus photo later (~1600×900). #}
+      <div class="hero-illustration" aria-hidden="true" style="display:none;"></div>
 
       {# Floating stat card — top #}
       {# .hero-float-card .hero-float-card--top / .stat-num / .hfc-* all required #}
