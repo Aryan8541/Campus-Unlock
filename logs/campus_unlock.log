@@ -262,3 +262,10 @@ werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'main.r
 [2026-07-18 14:01:00,484] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 [2026-07-18 14:01:59,123] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 [2026-07-18 15:41:39,901] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 20:54:22,703] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-18 21:06:02,126] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 21:20:19,605] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 21:20:38,507] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 21:20:42,172] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 21:22:32,344] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-18 21:22:33,425] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
