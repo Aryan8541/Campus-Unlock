@@ -20,6 +20,9 @@
     bookmarks: new Set(JSON.parse(localStorage.getItem('bookmarks') || '[]')),
     recentlyViewed: JSON.parse(localStorage.getItem('recentlyViewed') || '[]'),
     recentSearches: JSON.parse(localStorage.getItem('recentSearches') || '[]'),
+    // compareSet: persisted in localStorage so selections survive page reloads.
+    // IDs are stored as strings to match dataset.compare (always a string).
+    compareSet: new Set(JSON.parse(localStorage.getItem('compareSet') || '[]').map(String)),
     resultPage: 1,
     pageSize: 4,
     blogCategory: 'all',
@@ -90,6 +93,180 @@
       return t;
     }
   }
+
+  // ── Compare V2 ──────────────────────────────────────────────────────────
+  // Self-contained. Uses state.compareSet (declared above) and saveLS().
+  // Two entry points used externally:
+  //   renderCompareTable()  — called on page load + after every selection change
+  //   (data-compare / data-remove-compare handlers wired in boot())
+
+  const compareState = { controller: null };
+
+  // Build the card HTML for one university using either API or local fields.
+  function _compareCardHtml(u) {
+    const id    = String(u.id);
+    const logo  = u.logo
+      ? `<img src="${u.logo}" alt="${u.name}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`
+      : `<span class="cmp-avatar-initials">${u.avatar || u.name.slice(0, 2).toUpperCase()}</span>`;
+    const loc   = [u.city, u.state].filter(Boolean).join(', ');
+    const naac  = u.naac  ? `<span class="cmp-badge cmp-badge-naac">NAAC ${u.naac}</span>`  : '';
+    const nirf  = u.nirf  != null ? `<span class="cmp-badge cmp-badge-nirf">NIRF #${u.nirf}</span>` : '';
+    const fee   = u.min_fee != null ? inr(u.min_fee) + '/yr'
+                : u.fee    != null ? inr(u.fee)    + '/yr'
+                : 'On request';
+    const prog1 = (u.programs && u.programs[0]) ? (u.programs[0].title || u.programs[0]) : null;
+    const isSelected = state.compareSet.has(id);
+
+    return `<div class="cmp-card" data-cmp-id="${id}">
+      <div class="cmp-card-banner">
+        <div class="cmp-card-logo">${logo}</div>
+        <span class="cmp-card-rating">★ ${u.rating ? Number(u.rating).toFixed(1) : '—'}</span>
+      </div>
+      <div class="cmp-card-body">
+        <div class="cmp-card-name" title="${u.name}">${u.name}</div>
+        ${loc ? `<div class="cmp-card-loc">📍 ${loc}</div>` : ''}
+        <div class="cmp-card-badges">${naac}${nirf}<span class="cmp-badge cmp-badge-ugc">UGC-DEB</span></div>
+        ${prog1 ? `<div class="cmp-card-prog">🎓 ${prog1}</div>` : ''}
+        <div class="cmp-card-fee">${fee}</div>
+        <div class="cmp-card-actions">
+          <button class="cmp-btn cmp-btn-detail" data-detail="${id}">View Details</button>
+          ${isSelected
+            ? `<button class="cmp-btn cmp-btn-remove" data-remove-compare="${id}">Remove</button>`
+            : `<button class="cmp-btn cmp-btn-add" data-compare="${id}">+ Compare</button>`}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Build the attribute rows table for selected universities.
+  function _renderCompareTable(universities) {
+    const wrap = document.getElementById('cmpTableWrap');
+    if (!wrap) return;
+    if (!universities || !universities.length) { wrap.innerHTML = ''; return; }
+
+    const attrs = [
+      { label: 'NAAC Grade',      fn: u => u.naac || '—' },
+      { label: 'NIRF Rank',       fn: u => u.nirf != null ? '#' + u.nirf : '—' },
+      { label: 'Location',        fn: u => [u.city, u.state].filter(Boolean).join(', ') || '—' },
+      { label: 'Popular Program', fn: u => (u.programs && u.programs[0]) ? (u.programs[0].title || u.programs[0]) : '—' },
+      { label: 'Duration',        fn: u => (u.programs && u.programs[0] && u.programs[0].duration) ? u.programs[0].duration : '—' },
+      { label: 'Starting Fee',    fn: u => u.min_fee != null ? inr(u.min_fee) + '/yr' : u.fee != null ? inr(u.fee) + '/yr' : 'On request' },
+      { label: 'Modes',           fn: u => (u.modes || []).join(', ') || '—' },
+      { label: 'Specializations', fn: u => (u.specializations || []).slice(0, 3).join(', ') || '—' },
+      { label: 'EMI',             fn: () => '—' },
+      { label: 'Placement',       fn: () => '—' },
+    ];
+
+    const thead = `<tr><th class="cmp-attr-col">Attribute</th>${universities.map(u => `<th>${u.name}</th>`).join('')}</tr>`;
+    const tbody = attrs.map(a =>
+      `<tr><td class="cmp-attr-label">${a.label}</td>${universities.map(u => `<td>${a.fn(u)}</td>`).join('')}</tr>`
+    ).join('');
+
+    wrap.innerHTML = `<table class="cmp-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    wrap.style.display = 'block';
+  }
+
+  // Render cards into #cmpSelectedCards. Used for the 2-4 selected (API) path.
+  function _renderSelectedCards(universities) {
+    const grid = document.getElementById('cmpSelectedCards');
+    if (!grid) return;
+    grid.innerHTML = universities.map(_compareCardHtml).join('');
+  }
+
+  // Render all-universities sidebar list.
+  function _renderSidebar() {
+    const list = document.getElementById('cmpSidebarList');
+    if (!list) return;
+    const unis = appData.universities;
+    if (!unis || !unis.length) {
+      list.innerHTML = '<li class="cmp-sidebar-empty">No universities found.</li>';
+      return;
+    }
+    list.innerHTML = unis.map(u => {
+      const id = String(u.id);
+      const isSelected = state.compareSet.has(id);
+      const logo = u.logo
+        ? `<img src="${u.logo}" alt="" class="cmp-sidebar-logo">`
+        : `<span class="cmp-sidebar-initials">${(u.avatar || u.name.slice(0,2)).toUpperCase()}</span>`;
+      return `<li class="cmp-sidebar-item ${isSelected ? 'is-selected' : ''}" data-cmp-sid="${id}">
+        ${logo}
+        <span class="cmp-sidebar-name">${u.name}</span>
+        <button class="cmp-sidebar-toggle" data-${isSelected ? 'remove-compare' : 'compare'}="${id}" aria-label="${isSelected ? 'Remove' : 'Add'} ${u.name}">
+          ${isSelected ? '✕' : '+'}
+        </button>
+      </li>`;
+    }).join('');
+  }
+
+  // Update the selection counter badge.
+  function _updateCmpCounter() {
+    const badge = document.getElementById('cmpCounter');
+    if (badge) badge.textContent = state.compareSet.size + ' / 4 selected';
+    const compareBtn = document.getElementById('cmpCompareBtn');
+    if (compareBtn) compareBtn.disabled = state.compareSet.size < 2;
+  }
+
+  // Main entry point — renders everything on the compare page.
+  function renderCompareTable() {
+    const page = document.getElementById('cmpPage');
+    if (!page) return; // not on compare page
+
+    _renderSidebar();
+    _updateCmpCounter();
+
+    const count = state.compareSet.size;
+    const status = document.getElementById('cmpStatus');
+    const tableWrap = document.getElementById('cmpTableWrap');
+
+    if (count === 0) {
+      // Show all universities as browseable cards (no selection yet).
+      const grid = document.getElementById('cmpSelectedCards');
+      if (grid) grid.innerHTML = appData.universities.map(_compareCardHtml).join('');
+      if (status) status.textContent = 'Select 2–4 universities to compare side by side.';
+      if (tableWrap) tableWrap.innerHTML = '';
+      return;
+    }
+
+    if (count === 1) {
+      const grid = document.getElementById('cmpSelectedCards');
+      if (grid) {
+        const id = [...state.compareSet][0];
+        const u  = appData.universities.find(x => String(x.id) === id);
+        if (u) grid.innerHTML = _compareCardHtml(u);
+      }
+      if (status) status.textContent = 'Select one more university to start comparing.';
+      if (tableWrap) tableWrap.innerHTML = '';
+      return;
+    }
+
+    // 2–4 selected — fetch from API.
+    if (compareState.controller) compareState.controller.abort();
+    const controller = new AbortController();
+    compareState.controller = controller;
+
+    const grid = document.getElementById('cmpSelectedCards');
+    if (grid) grid.innerHTML = '<div class="cmp-loading">Loading comparison…</div>';
+    if (status) status.textContent = 'Loading…';
+    if (tableWrap) tableWrap.innerHTML = '';
+
+    const ids = [...state.compareSet].join(',');
+    fetch('/compare?ids=' + encodeURIComponent(ids), { signal: controller.signal })
+      .then(res => { if (!res.ok) return res.json().then(e => Promise.reject(e)); return res.json(); })
+      .then(data => {
+        compareState.controller = null;
+        const unis = Array.isArray(data.universities) ? data.universities : [];
+        _renderSelectedCards(unis);
+        _renderCompareTable(unis);
+        if (status) status.textContent = unis.length + ' universities compared.';
+      })
+      .catch(err => {
+        if (err && err.name === 'AbortError') return;
+        compareState.controller = null;
+        if (grid) grid.innerHTML = `<div class="cmp-error">${(err && err.error) ? err.error : 'Failed to load. Please try again.'}</div>`;
+        if (status) status.textContent = '';
+      });
+  }
+  // ── End Compare V2 ──────────────────────────────────────────────────────
 
   function renderPrograms() {
     // #progGrid is now rendered server-side by Flask/Jinja from real
@@ -325,6 +502,7 @@
     renderResults();
     updateRecentlyViewedView();
     renderWizardSteps();
+    renderCompareTable(); // Compare V2 — no-op on pages without #cmpPage
 
     const hamburger = $('#hamburger');
     const navLinks = $('#navLinks');
@@ -726,6 +904,27 @@
         }
       }
 
+      // ── data-remove-compare ────────────────────────────────────────────
+      const removeBtn = e.target.closest('[data-remove-compare]');
+      if (removeBtn) {
+        const id = String(removeBtn.dataset.removeCompare);
+        state.compareSet.delete(id);
+        saveLS(); renderCompareTable(); return;
+      }
+
+      // ── data-compare (add / toggle) ─────────────────────────────────────
+      const cmpBtn = e.target.closest('[data-compare]');
+      if (cmpBtn) {
+        const id = String(cmpBtn.dataset.compare);
+        if (state.compareSet.has(id)) {
+          state.compareSet.delete(id);
+        } else {
+          if (state.compareSet.size >= 4) state.compareSet.delete([...state.compareSet][0]);
+          state.compareSet.add(id);
+        }
+        saveLS(); renderCompareTable(); return;
+      }
+
       const favBtn = e.target.closest('[data-fav]');
       if (favBtn) {
         const id = favBtn.dataset.fav;
@@ -740,11 +939,16 @@
         saveLS(); renderResults();
       }
 
-        const detailsBtn = e.target.closest('[data-detail]');
+      const detailsBtn = e.target.closest('[data-detail]');
       if (detailsBtn) {
-        const u = appData.universities.find(x => x.id === detailsBtn.dataset.detail);
+        // data-detail carries the university id as a string; u.id may be a number.
+        // Try appData first (fast), fall back to slug embedded in dataset.
+        const detailId = String(detailsBtn.dataset.detail);
+        const u = appData.universities.find(x => String(x.id) === detailId);
         if (u && u.slug) {
           window.location.href = '/university/' + u.slug;
+        } else if (detailsBtn.dataset.slug) {
+          window.location.href = '/university/' + detailsBtn.dataset.slug;
         }
       }
 

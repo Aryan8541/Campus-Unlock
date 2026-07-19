@@ -971,15 +971,16 @@ def compare():
     Phase 7C-2: when a logged-in user sends at least 2 IDs, a CompareHistory
     row is written so the dashboard can show "Recent Comparisons".
 
-    The endpoint is intentionally separate from the coming-soon Compare page
-    so the existing app.js renderCompareTable() call path is not broken.
+    compare.html now lives as a homepage include (templates/includes/compare.html),
+    not a standalone page, so it relies on index.html's own #campus-data tag and
+    page chrome. It can't be rendered on its own anymore.
     """
     ids_param = request.args.get("ids", "").strip()
 
-    # No IDs supplied — this is the Compare page navigation, not the API.
-    # Keep the page as coming-soon so existing nav still works.
+    # No IDs supplied — there's no standalone Compare page anymore; send the
+    # user to the homepage's #compare section instead.
     if not ids_param:
-        return _coming_soon("Compare")
+        return redirect(url_for("main.index") + "#compare")
 
     # Parse and validate IDs
     raw_ids = [x.strip() for x in ids_param.split(",") if x.strip()]

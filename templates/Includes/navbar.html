@@ -1,10 +1,10 @@
 <header id="siteHeader">
   <nav aria-label="Primary">
 
-    {# ── Logo ──────────────────────────────────────────────────────────── #}
+    {# ── Logo — extreme left ──────────────────────────────────────────── #}
     <a href="/" class="logo" aria-label="Campus Unlock home">
       <span class="logo-mark" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M12 3 2 8l10 5 10-5-10-5Z" fill="currentColor"/>
           <path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M21 9v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -13,7 +13,7 @@
       <span class="logo-text">Campus<span>Unlock</span></span>
     </a>
 
-    {# ── Primary links + auth ─────────────────────────────────────────── #}
+    {# ── Primary links — absolutely centered in the nav bar ──────────── #}
     <div class="nav-links" id="navLinks" role="menubar" aria-label="Primary navigation links">
       <a href="/#programs"      data-section="programs"      role="menuitem">Programs</a>
       <a href="/#universities"  data-section="universities"  role="menuitem">Universities</a>
@@ -35,11 +35,12 @@
         <a href="{{ url_for('main.login') }}"    class="nav-link-auth"         role="menuitem">Login</a>
         <a href="{{ url_for('main.register') }}" class="nav-link-auth-primary" role="menuitem">Register</a>
       {% endif %}
-
-      <a href="#" class="nav-cta" id="navCtaBtn" role="menuitem" aria-haspopup="dialog">
-        Get Free Guidance
-      </a>
     </div>
+
+    {# ── CTA — extreme right ──────────────────────────────────────────── #}
+    <a href="#" class="nav-cta" id="navCtaBtn" role="menuitem" aria-haspopup="dialog">
+      Get Free Guidance
+    </a>
 
     {# ── Hamburger ────────────────────────────────────────────────────── #}
     <button class="hamburger" id="hamburger"

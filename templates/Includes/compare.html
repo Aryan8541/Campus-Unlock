@@ -1,0 +1,153 @@
+{# Compare section — homepage include, positioned between Universities and
+   Scholarships. Reuses the #campus-data JSON already hydrated by index.html's
+   <script id="campus-data"> tag — do NOT add another one here, a duplicate
+   id would break app.js (it only reads the first match). #}
+<div class="prog-bg" id="compare" style="border-bottom:1px solid var(--border);">
+  <div class="section" style="padding-top:56px; padding-bottom:48px;">
+    <div class="section-eyebrow">Side-by-side</div>
+    <h2 class="section-title">Compare Universities</h2>
+    <p class="section-sub">
+      Select 2–4 universities from the list on the left to compare NAAC grades,
+      NIRF rankings, fees, programs, and placement — all in one view.
+    </p>
+  </div>
+</div>
+
+<div class="cmp-page" id="cmpPage">
+
+  {# ── Left: sidebar selector ──────────────────────────────────────────── #}
+  <aside class="cmp-sidebar" aria-label="University selector">
+    <div class="cmp-sidebar-title">All Universities</div>
+
+    <input
+      type="text"
+      class="cmp-sidebar-search"
+      id="cmpSidebarSearch"
+      placeholder="Search universities…"
+      autocomplete="off"
+      aria-label="Search universities">
+
+    <ul class="cmp-sidebar-list" id="cmpSidebarList" role="list">
+      {# Populated by renderCompareTable() → _renderSidebar() on DOM-ready #}
+    </ul>
+
+    <div class="cmp-sidebar-actions">
+      <div class="cmp-counter" id="cmpCounter" aria-live="polite">0 / 4 selected</div>
+      <button class="cmp-compare-btn" id="cmpCompareBtn" disabled>
+        Compare Selected →
+      </button>
+      <button class="cmp-clear-btn" id="cmpClearBtn">
+        Clear All
+      </button>
+    </div>
+  </aside>
+
+  {# ── Right: cards + comparison table ────────────────────────────────── #}
+  <div class="cmp-main">
+
+    <div class="cmp-main-head">
+      <span class="cmp-status" id="cmpStatus" aria-live="polite">
+        Select 2–4 universities to compare side by side.
+      </span>
+    </div>
+
+    <div class="cmp-section-label" id="cmpCardsLabel">All Universities</div>
+    <div class="cmp-grid" id="cmpSelectedCards">
+      {# Populated by renderCompareTable() on DOM-ready.
+         Shown as "all universities" when nothing selected;
+         shows only selected cards when 1+ selected. #}
+    </div>
+
+    {# Comparison attribute table — only shown when 2-4 selected #}
+    <div class="cmp-table-wrap" id="cmpTableWrap" style="display:none;"></div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Sidebar live search filter ──────────────────────────────────────────
+  var searchInput = document.getElementById('cmpSidebarSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      var q = searchInput.value.toLowerCase().trim();
+      var items = document.querySelectorAll('#cmpSidebarList .cmp-sidebar-item');
+      items.forEach(function (item) {
+        var name = (item.querySelector('.cmp-sidebar-name') || {}).textContent || '';
+        item.style.display = (!q || name.toLowerCase().includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  // ── "Compare Selected" scrolls to the table ──────────────────────────────
+  var compareBtn = document.getElementById('cmpCompareBtn');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', function () {
+      var tableWrap = document.getElementById('cmpTableWrap');
+      if (tableWrap && tableWrap.style.display !== 'none') {
+        tableWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
+  // ── "Clear All" resets compareSet ────────────────────────────────────────
+  var clearBtn = document.getElementById('cmpClearBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      // Access the IIFE-private state via a custom event; app.js listens.
+      document.dispatchEvent(new CustomEvent('cu:compare:clear'));
+    });
+  }
+})();
+</script>
+
+<script>
+// Extend app.js: wire the clear event and show/hide the table reactively.
+// This runs after app.js has already executed and exposed nothing globally,
+// so we patch by observing DOM changes rather than calling internal functions.
+(function () {
+  'use strict';
+
+  // When the table wrap gets content, make it visible; hide it when empty.
+  var tableWrap = document.getElementById('cmpTableWrap');
+  if (tableWrap && window.MutationObserver) {
+    new MutationObserver(function () {
+      tableWrap.style.display = tableWrap.innerHTML.trim() ? 'block' : 'none';
+    }).observe(tableWrap, { childList: true });
+  }
+
+  // Update the cards section label based on selection count.
+  var cardsLabel = document.getElementById('cmpCardsLabel');
+  var selectedCards = document.getElementById('cmpSelectedCards');
+  if (cardsLabel && selectedCards && window.MutationObserver) {
+    new MutationObserver(function () {
+      var count = selectedCards.querySelectorAll('.cmp-card').length;
+      var counter = document.getElementById('cmpCounter');
+      var selectedCount = counter ? parseInt(counter.textContent) : 0;
+      cardsLabel.textContent = selectedCount > 0 ? 'Selected Universities' : 'All Universities';
+    }).observe(selectedCards, { childList: true });
+  }
+
+  // The clear button dispatches cu:compare:clear — intercept it here and
+  // simulate remove-compare clicks for every selected item.
+  document.addEventListener('cu:compare:clear', function () {
+    var selected = document.querySelectorAll('#cmpSidebarList .cmp-sidebar-item.is-selected');
+    selected.forEach(function (item) {
+      var id = item.dataset.cmpSid;
+      if (id) {
+        // Synthesise a remove-compare click on the toggle button.
+        var btn = item.querySelector('[data-remove-compare]');
+        if (btn) btn.click();
+      }
+    });
+    // If nothing was found via sidebar (e.g. first load), force via card buttons.
+    if (!selected.length) {
+      document.querySelectorAll('[data-remove-compare]').forEach(function (btn) {
+        btn.click();
+      });
+    }
+  });
+})();
+</script>
