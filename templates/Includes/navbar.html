@@ -16,7 +16,10 @@
     {# ── Primary links — absolutely centered in the nav bar ──────────── #}
     <div class="nav-links" id="navLinks" role="menubar" aria-label="Primary navigation links">
       <a href="/#programs"      data-section="programs"      role="menuitem">Programs</a>
-      <a href="/#universities"  data-section="universities"  role="menuitem">Universities</a>
+      <a href="{{ url_for('main.universities') }}"
+         data-section="universities"
+         {% if request.path.startswith('/universities') %}class="active"{% endif %}
+         role="menuitem">Universities</a>
       <a href="/#compare"       data-section="compare"       role="menuitem">Compare</a>
       <a href="/#scholarships"  data-section="scholarships"  role="menuitem">Scholarships</a>
       <a href="/#blog"          data-section="blog"          role="menuitem">Blog</a>

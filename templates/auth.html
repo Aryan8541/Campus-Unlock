@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% if mode == 'register' %}Apply for access to Campus Unlock — create your account to compare UGC-DEB approved online universities, save shortlists and track applications.{% else %}Log in to your Campus Unlock account to view saved universities and manage your applications.{% endif %}">
+  <meta name="theme-color" content="#003da2" />
+  <title>{% if mode == 'register' %}Apply for Access | Campus Unlock{% else %}Log In | Campus Unlock{% endif %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    /* ── Layout-level rules only — everything else (auth-tabs, auth-input-*,
+       auth-role-btn, the login/register card animation) lives in style.css
+       alongside the rest of the auth styling. Kept here because these are
+       specific to this page's shell, same convention as the old login.html. ── */
+
+    /* Fixed background — position:fixed is immune to style.css resets, and
+       because this is now the ONE auth page (no second page underneath a
+       modal), the page simply never has anything to scroll behind it. */
+    .auth-bg {
+      position: fixed;
+      inset: 0;
+      background: var(--bg, #f4f6fb);
+      background-image:
+        radial-gradient(circle at 18% 20%, rgba(0,61,162,.07) 0%, transparent 48%),
+        radial-gradient(circle at 82% 80%, rgba(0,180,160,.07) 0%, transparent 48%);
+      z-index: 0;
+    }
+
+    /* ── Scrollable foreground — sits above fixed bg ─────────────────── */
+    .auth-wrap {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px 48px;
+      box-sizing: border-box;
+    }
+
+    .auth-inner {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Logo ──────────────────────────────────────────────────────────── */
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-bottom: 28px;
+    }
+    .auth-logo-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--teal, #009688);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .auth-logo-name {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text, #1a1a2e);
+    }
+
+    /* ── Heading ───────────────────────────────────────────────────────── */
+    .auth-heading {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .auth-heading h1 {
+      font-size: 24px;
+      margin: 6px 0 6px;
+    }
+    .auth-heading p {
+      margin: 0;
+      color: var(--muted, #6b7280);
+      font-size: 14px;
+    }
+
+    /* ── Card ──────────────────────────────────────────────────────────── */
+    .auth-card {
+      width: 100%;
+    }
+
+    /* ── Footer link ───────────────────────────────────────────────────── */
+    .auth-foot {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted, #6b7280);
+      padding-bottom: 8px;
+    }
+    .auth-foot a {
+      color: var(--teal, #009688);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .auth-foot a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body data-auth-mode="{{ mode|default('login') }}">
+
+{# Fixed background — never scrolls, never has a second page under it #}
+<div class="auth-bg" aria-hidden="true"></div>
+
+{# Scrollable content on top #}
+<div class="auth-wrap">
+  <div class="auth-inner">
+
+    {# Logo #}
+    <a href="{{ url_for('main.index') }}" class="auth-logo" aria-label="Campus Unlock home">
+      <div class="auth-logo-icon">🎓</div>
+      <span class="auth-logo-name">CampusUnlock</span>
+    </a>
+
+    {# Heading — swapped by JS on animated switch, server-rendered correctly
+       on direct navigation to /login or /register so there's no flash of
+       the wrong copy for no-JS clients or the first paint. #}
+    <div class="auth-heading" id="authHeading">
+      <div class="section-eyebrow" id="authEyebrow">{% if mode == 'register' %}Get started{% else %}Welcome back{% endif %}</div>
+      <h1 class="section-title" id="authTitle" style="font-size:26px;">{% if mode == 'register' %}Create your account{% else %}Log in to your account{% endif %}</h1>
+      <p id="authSubtitle">{% if mode == 'register' %}Compare, shortlist and apply — all in one place.{% else %}Pick up right where you left off.{% endif %}</p>
+    </div>
+
+    {# Flashed messages — rendered once, above the card stage, so they show
+       next to whichever panel the server actually returned (a form error
+       always comes back with the matching mode + a fresh render). #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div style="width:100%;">
+          {% for category, message in messages %}
+            <div class="form-error show" style="{% if category == 'success' %}color:var(--success);{% endif %}position:static;display:flex;margin-bottom:12px;">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {# ── Card stage — holds both panels; only one is ever visible, and
+       #authStage animates the height/opacity/slide between them so the
+       login card visibly transforms into the register card in place. ── #}
+    <div class="auth-card-stage" id="authStage">
+
+      {# ---------------- LOGIN PANEL ---------------- #}
+      <div class="pdp-info-card auth-card auth-panel" id="authPanelLogin" data-panel="login"{% if mode == 'register' %} hidden{% endif %}>
+
+        <div class="auth-tabs" role="tablist" aria-label="Login mode">
+          <button type="button" class="auth-tab is-active" data-auth-tab="universal" role="tab" aria-selected="true">Universal</button>
+          <button type="button" class="auth-tab" data-auth-tab="institutional" role="tab" aria-selected="false">Institutional</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('main.login') }}" novalidate id="authForm">
+          <input type="hidden" name="login_mode" id="authLoginMode" value="universal">
+          <input type="hidden" name="role_hint" id="authRoleHint" value="">
+
+          <div class="form-group">
+            <label for="email" id="authEmailLabel">Email or Username</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <input type="text" id="email" name="email" value="{% if mode != 'register' %}{{ email or '' }}{% endif %}" required autocomplete="username" placeholder="name@campus.edu">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="auth-field-head">
+              <label for="password">Password</label>
+              <a href="{{ url_for('main.forgot_password') }}" class="auth-forgot">Forgot Password?</a>
+            </div>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+              <button type="button" class="auth-eye-toggle" id="authEyeToggle" aria-label="Show password" aria-pressed="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+
+          <label class="auth-remember">
+            <input type="checkbox" name="remember" value="1">
+            Keep me logged in
+          </label>
+
+          <button type="submit" class="form-submit">Sign In</button>
+
+          <div class="auth-divider"><span>Alternative Access</span></div>
+
+          {# Convenience shortcuts only — they set a placeholder/hint, they do
+             not select what role you log in as. The actual post-login
+             destination is always decided server-side from the account's
+             real role (see login() / ROLE_DASHBOARD_ENDPOINTS). #}
+          <div class="auth-roles">
+            <button type="button" class="auth-role-btn" data-role="student">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 18c0-2.5 2.2-4 5-4s5 1.5 5 4"></path></svg>
+              Student
+            </button>
+            <button type="button" class="auth-role-btn" data-role="teacher">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path></svg>
+              Teacher
+            </button>
+            <button type="button" class="auth-role-btn" data-role="admin">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z"></path><path d="M9.5 12.5 11 14l3.5-3.5"></path></svg>
+              Admin
+            </button>
+          </div>
+        </form>
+      </div>{# /#authPanelLogin #}
+
+      {# ---------------- REGISTER PANEL ---------------- #}
+      <div class="pdp-info-card auth-card auth-panel" id="authPanelRegister" data-panel="register"{% if mode != 'register' %} hidden{% endif %}>
+
+        <form method="POST" action="{{ url_for('main.register') }}" novalidate id="registerForm">
+
+          <div class="form-group">
+            <label for="full_name">Full Name</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <input type="text" id="full_name" name="full_name" value="{% if mode == 'register' %}{{ full_name or '' }}{% endif %}" required autocomplete="name" placeholder="Your full name">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg_email">Email</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 6-10 7L2 6"></path></svg>
+              </span>
+              <input type="email" id="reg_email" name="email" value="{% if mode == 'register' %}{{ email or '' }}{% endif %}" required autocomplete="email" placeholder="name@campus.edu">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mobile">Mobile Number</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              </span>
+              <input type="tel" id="mobile" name="mobile" value="{% if mode == 'register' %}{{ mobile or '' }}{% endif %}" required inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10-digit mobile number">
+            </div>
+          </div>
+
+          {# Self-serve signup only ever offers Student / Teacher — Admin is
+             never selectable here and can only be granted from the backend
+             (see register() / KNOWN_ROLES in models/user.py). Plain
+             .form-group select (no icon-wrap) — that padding rule is
+             input-only, this reuses the generic select styling already
+             used elsewhere in the app instead of needing a style.css change. #}
+          <div class="form-group">
+            <label for="reg_role">I am a</label>
+            <select id="reg_role" name="role" required>
+              <option value="student"{% if mode != 'register' or (role or 'student') == 'student' %} selected{% endif %}>Student</option>
+              <option value="teacher"{% if mode == 'register' and role == 'teacher' %} selected{% endif %}>Teacher</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="reg_password">Password</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <input type="password" id="reg_password" name="password" required autocomplete="new-password" placeholder="At least 8 characters">
+              <button type="button" class="auth-eye-toggle" data-eye-target="reg_password" aria-label="Show password" aria-pressed="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <div class="auth-input-wrap">
+              <span class="auth-input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password" placeholder="Re-enter your password">
+              <button type="button" class="auth-eye-toggle" data-eye-target="confirm_password" aria-label="Show password" aria-pressed="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="form-submit">Create Account</button>
+        </form>
+      </div>{# /#authPanelRegister #}
+
+    </div>{# /#authStage #}
+
+    <p class="auth-foot" id="authFoot">
+      {% if mode == 'register' %}
+        Already have an account? <a href="{{ url_for('main.login') }}" id="authToLogin">Log In</a>
+      {% else %}
+        Don't have an account? <a href="{{ url_for('main.register') }}" id="authToRegister">Apply for Access</a>
+      {% endif %}
+    </p>
+
+  </div>{# /.auth-inner #}
+</div>{# /.auth-wrap #}
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

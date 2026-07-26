@@ -10,6 +10,13 @@
   {% elif view == 'users' %}Users
   {% elif view == 'user_detail' %}User Detail
   {% elif view == 'brochure_downloads' %}Brochure Downloads
+  {% elif view == 'faqs' %}FAQs
+  {% elif view == 'faq_form' %}{{ 'Add FAQ' if action == 'new' else 'Edit FAQ' }}
+  {% elif view == 'scholarships' %}Scholarships
+  {% elif view == 'scholarship_form' %}{{ 'Add Scholarship' if action == 'new' else 'Edit Scholarship' }}
+  {% elif view == 'placement_partners' %}Placement Partners
+  {% elif view == 'placement_partner_form' %}{{ 'Add Placement Partner' if action == 'new' else 'Edit Placement Partner' }}
+  {% elif view == 'site_content' %}Homepage Content &amp; SEO
   {% else %}Admin Dashboard
   {% endif %} | Campus Unlock
 {% endblock %}
@@ -249,6 +256,22 @@
   <a href="{{ url_for('admin.brochure_downloads') }}"
      class="adm-nav-link {% if view == 'brochure_downloads' %}is-active{% endif %}">
     <span class="adm-nav-icon">📄</span> Brochure Downloads
+  </a>
+  <a href="{{ url_for('admin.faqs') }}"
+     class="adm-nav-link {% if view in ['faqs','faq_form'] %}is-active{% endif %}">
+    <span class="adm-nav-icon">❓</span> FAQs
+  </a>
+  <a href="{{ url_for('admin.scholarships') }}"
+     class="adm-nav-link {% if view in ['scholarships','scholarship_form'] %}is-active{% endif %}">
+    <span class="adm-nav-icon">🎗️</span> Scholarships
+  </a>
+  <a href="{{ url_for('admin.placement_partners') }}"
+     class="adm-nav-link {% if view in ['placement_partners','placement_partner_form'] %}is-active{% endif %}">
+    <span class="adm-nav-icon">🤝</span> Placement Partners
+  </a>
+  <a href="{{ url_for('admin.site_content') }}"
+     class="adm-nav-link {% if view == 'site_content' %}is-active{% endif %}">
+    <span class="adm-nav-icon">🏠</span> Homepage &amp; SEO
   </a>
 </aside>
 {% endmacro %}
@@ -525,7 +548,7 @@
     {% macro fv(field, fallback='') %}{{ f.get(field, (university|attr(field) if university and university|attr(field) is not none else fallback)|string) if f else (university|attr(field) if university and university|attr(field) is not none else fallback)|string }}{% endmacro %}
     {% macro fcb(field) %}{% if f.get(field) or (university and university|attr(field)) %}checked{% endif %}{% endmacro %}
 
-    <form method="POST"
+    <form method="POST" enctype="multipart/form-data"
           action="{{ url_for('admin.university_new') if action=='new' else url_for('admin.university_edit', uid=university.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="adm-form-card">
@@ -582,10 +605,28 @@
         </div>
 
         <div class="adm-form-section">Branding &amp; Media</div>
+        <p style="font-size:13px;color:var(--muted);margin:-4px 0 12px">
+          Upload a file to replace the current one, or paste a URL instead — uploading takes priority if you do both.
+        </p>
         <div class="adm-fg2">
-          <div class="adm-fg"><label class="adm-label">Logo URL</label><input class="adm-input" type="url" name="logo_url" placeholder="https://" value="{{ fv('logo_url') }}"></div>
-          <div class="adm-fg"><label class="adm-label">Banner URL</label><input class="adm-input" type="url" name="banner_url" placeholder="https://" value="{{ fv('banner_url') }}"></div>
-          <div class="adm-fg"><label class="adm-label">Brochure URL</label><input class="adm-input" type="url" name="brochure_url" placeholder="https://" value="{{ fv('brochure_url') }}"></div>
+          <div class="adm-fg">
+            <label class="adm-label">Logo</label>
+            {% if university and university.logo_url %}<div style="margin-bottom:6px"><img src="{{ university.logo_url }}" alt="" style="height:40px;border-radius:6px"></div>{% endif %}
+            <input class="adm-input" type="file" name="logo_file" accept=".png,.jpg,.jpeg,.webp,.svg,.gif">
+            <input class="adm-input" style="margin-top:6px" type="url" name="logo_url" placeholder="…or paste a URL" value="{{ fv('logo_url') }}">
+          </div>
+          <div class="adm-fg">
+            <label class="adm-label">Banner</label>
+            {% if university and university.banner_url %}<div style="margin-bottom:6px"><img src="{{ university.banner_url }}" alt="" style="height:40px;border-radius:6px"></div>{% endif %}
+            <input class="adm-input" type="file" name="banner_file" accept=".png,.jpg,.jpeg,.webp,.svg,.gif">
+            <input class="adm-input" style="margin-top:6px" type="url" name="banner_url" placeholder="…or paste a URL" value="{{ fv('banner_url') }}">
+          </div>
+          <div class="adm-fg">
+            <label class="adm-label">Brochure</label>
+            {% if university and university.brochure_url %}<div style="margin-bottom:6px"><a href="{{ university.brochure_url }}" target="_blank" rel="noopener">Current brochure ↗</a></div>{% endif %}
+            <input class="adm-input" type="file" name="brochure_file" accept=".pdf,.doc,.docx">
+            <input class="adm-input" style="margin-top:6px" type="url" name="brochure_url" placeholder="…or paste a URL" value="{{ fv('brochure_url') }}">
+          </div>
           <div class="adm-fg"><label class="adm-label">Logo (legacy path)</label><input class="adm-input" type="text" name="logo" value="{{ fv('logo') }}"></div>
         </div>
 
@@ -704,7 +745,7 @@
     {% macro pfv(field, fallback='') %}{{ f.get(field, (program|attr(field) if program and program|attr(field) is not none else fallback)|string) if f else (program|attr(field) if program and program|attr(field) is not none else fallback)|string }}{% endmacro %}
     {% macro pcb(field) %}{% if f.get(field) or (program and program|attr(field)) %}checked{% endif %}{% endmacro %}
 
-    <form method="POST"
+    <form method="POST" enctype="multipart/form-data"
           action="{{ url_for('admin.program_new') if action=='new' else url_for('admin.program_edit', pid=program.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="adm-form-card">
@@ -724,7 +765,12 @@
           <div class="adm-fg"><label class="adm-label">Mode</label><input class="adm-input" type="text" name="mode" placeholder="e.g. Online, Distance" value="{{ pfv('mode') }}"></div>
           <div class="adm-fg"><label class="adm-label">Duration</label><input class="adm-input" type="text" name="duration" placeholder="e.g. 2 Years" value="{{ pfv('duration') }}"></div>
           <div class="adm-fg"><label class="adm-label">Fees (₹)</label><input class="adm-input" type="number" name="fees" step="0.01" min="0" value="{{ pfv('fees') }}"></div>
-          <div class="adm-fg"><label class="adm-label">Brochure URL</label><input class="adm-input" type="url" name="brochure" placeholder="https://" value="{{ pfv('brochure') }}"></div>
+          <div class="adm-fg">
+            <label class="adm-label">Brochure</label>
+            {% if program and program.brochure %}<div style="margin-bottom:6px"><a href="{{ program.brochure }}" target="_blank" rel="noopener">Current brochure ↗</a></div>{% endif %}
+            <input class="adm-input" type="file" name="brochure_file" accept=".pdf,.doc,.docx">
+            <input class="adm-input" style="margin-top:6px" type="url" name="brochure" placeholder="…or paste a URL" value="{{ pfv('brochure') }}">
+          </div>
           <div class="adm-fg full"><label class="adm-label">Eligibility</label><textarea class="adm-textarea" name="eligibility">{{ pfv('eligibility') }}</textarea></div>
           <div class="adm-fg full"><label class="adm-label">Description</label><textarea class="adm-textarea" name="description" rows="4">{{ pfv('description') }}</textarea></div>
         </div>
@@ -960,6 +1006,356 @@
       </div>
       {{ paginate(pagination, 'admin.brochure_downloads') }}
     </div>
+
+
+    {# ================================================================
+       FAQS LIST                                            (Phase 9)
+       ================================================================ #}
+    {% elif view == 'faqs' %}
+    <div class="adm-section-head">
+      <h2>FAQs</h2>
+      <a href="{{ url_for('admin.faq_new') }}" class="btn btn-primary">+ Add FAQ</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin.faqs') }}" class="adm-filters">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search question or answer…">
+      <select name="university_id" onchange="this.form.submit()">
+        <option value="">All Universities</option>
+        {% for u in all_universities %}
+          <option value="{{ u.id }}" {% if uni_id==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="all"      {% if status=='all'      %}selected{% endif %}>All status</option>
+        <option value="active"   {% if status=='active'   %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status=='inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      {% if q or uni_id or status != 'all' %}<a href="{{ url_for('admin.faqs') }}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+
+    <div class="adm-table-card">
+      <div class="adm-table-wrap">
+        <table>
+          <thead><tr><th>Question</th><th>University</th><th>Order</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for f in pagination.items %}
+            <tr>
+              <td style="font-weight:700;max-width:320px">{{ f.question }}</td>
+              <td style="color:var(--muted)">{{ f.university.name if f.university else '—' }}</td>
+              <td style="color:var(--muted)">{{ f.sort_order if f.sort_order is not none else '—' }}</td>
+              <td>{% if f.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-red">Inactive</span>{% endif %}</td>
+              <td style="white-space:nowrap;display:flex;gap:6px">
+                <a href="{{ url_for('admin.faq_edit', fid=f.id) }}" class="btn btn-outline btn-sm">Edit</a>
+                <button class="btn btn-danger btn-sm"
+                  onclick="admOpenDelete('{{ url_for('admin.faq_delete', fid=f.id) }}','{{ f.question|replace("'","\\'") }}')">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr class="adm-no-results"><td colspan="5">No FAQs found{% if q %} for "{{ q }}"{% endif %}.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ paginate(pagination, 'admin.faqs', q=q, university_id=uni_id, status=status) }}
+    </div>
+
+
+    {# ================================================================
+       FAQ FORM                                              (Phase 9)
+       ================================================================ #}
+    {% elif view == 'faq_form' %}
+    <div class="adm-section-head">
+      <h2>{{ 'Add FAQ' if action=='new' else 'Edit FAQ' }}</h2>
+      <a href="{{ url_for('admin.faqs') }}" class="btn btn-ghost btn-sm">← Back</a>
+    </div>
+
+    {% set f = form %}
+    {% macro ffv(field, fallback='') %}{{ f.get(field, (faq|attr(field) if faq and faq|attr(field) is not none else fallback)|string) if f else (faq|attr(field) if faq and faq|attr(field) is not none else fallback)|string }}{% endmacro %}
+
+    <form method="POST"
+          action="{{ url_for('admin.faq_new') if action=='new' else url_for('admin.faq_edit', fid=faq.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="adm-form-card">
+
+        <div class="adm-form-section">FAQ Details</div>
+        <div class="adm-fg2">
+          <div class="adm-fg full">
+            <label class="adm-label">University *</label>
+            <select class="adm-select" name="university_id" required>
+              <option value="">— Select University —</option>
+              {% for u in all_universities %}
+                <option value="{{ u.id }}" {% if ffv('university_id')==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="adm-fg full"><label class="adm-label">Question *</label><input class="adm-input" type="text" name="question" required value="{{ ffv('question') }}"></div>
+          <div class="adm-fg full"><label class="adm-label">Answer *</label><textarea class="adm-textarea" name="answer" rows="4" required>{{ ffv('answer') }}</textarea></div>
+          <div class="adm-fg"><label class="adm-label">Sort Order</label><input class="adm-input" type="number" name="sort_order" value="{{ ffv('sort_order') }}"></div>
+        </div>
+
+        <div class="adm-form-section">Status</div>
+        <label class="adm-cb-row">
+          <input type="checkbox" name="is_active" value="1"
+            {% if f.get('is_active') or (faq and faq.is_active) or action=='new' %}checked{% endif %}>
+          Active (visible on site)
+        </label>
+
+        <div class="adm-form-actions">
+          <button type="submit" class="btn btn-primary">{{ 'Create FAQ' if action=='new' else 'Save Changes' }}</button>
+          <a href="{{ url_for('admin.faqs') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </div>
+    </form>
+
+
+    {# ================================================================
+       SCHOLARSHIPS LIST                                    (Phase 9)
+       ================================================================ #}
+    {% elif view == 'scholarships' %}
+    <div class="adm-section-head">
+      <h2>Scholarships</h2>
+      <a href="{{ url_for('admin.scholarship_new') }}" class="btn btn-primary">+ Add Scholarship</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin.scholarships') }}" class="adm-filters">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search title or description…">
+      <select name="university_id" onchange="this.form.submit()">
+        <option value="">All Universities</option>
+        {% for u in all_universities %}
+          <option value="{{ u.id }}" {% if uni_id==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="all"      {% if status=='all'      %}selected{% endif %}>All status</option>
+        <option value="active"   {% if status=='active'   %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status=='inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      {% if q or uni_id or status != 'all' %}<a href="{{ url_for('admin.scholarships') }}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+
+    <div class="adm-table-card">
+      <div class="adm-table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>University</th><th>Amount</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for s in pagination.items %}
+            <tr>
+              <td style="font-weight:700;max-width:220px">{{ s.title }}</td>
+              <td style="color:var(--muted)">{{ s.university.name if s.university else '—' }}</td>
+              <td>{% if s.amount %}₹{{ '{:,.0f}'.format(s.amount) }}{% else %}—{% endif %}</td>
+              <td style="color:var(--muted)">{{ s.deadline or '—' }}</td>
+              <td>{% if s.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-red">Inactive</span>{% endif %}</td>
+              <td style="white-space:nowrap;display:flex;gap:6px">
+                <a href="{{ url_for('admin.scholarship_edit', sid=s.id) }}" class="btn btn-outline btn-sm">Edit</a>
+                <button class="btn btn-danger btn-sm"
+                  onclick="admOpenDelete('{{ url_for('admin.scholarship_delete', sid=s.id) }}','{{ s.title|replace("'","\\'") }}')">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr class="adm-no-results"><td colspan="6">No scholarships found{% if q %} for "{{ q }}"{% endif %}.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ paginate(pagination, 'admin.scholarships', q=q, university_id=uni_id, status=status) }}
+    </div>
+
+
+    {# ================================================================
+       SCHOLARSHIP FORM                                     (Phase 9)
+       ================================================================ #}
+    {% elif view == 'scholarship_form' %}
+    <div class="adm-section-head">
+      <h2>{{ 'Add Scholarship' if action=='new' else 'Edit — ' + scholarship.title }}</h2>
+      <a href="{{ url_for('admin.scholarships') }}" class="btn btn-ghost btn-sm">← Back</a>
+    </div>
+
+    {% set f = form %}
+    {% macro sfv(field, fallback='') %}{{ f.get(field, (scholarship|attr(field) if scholarship and scholarship|attr(field) is not none else fallback)|string) if f else (scholarship|attr(field) if scholarship and scholarship|attr(field) is not none else fallback)|string }}{% endmacro %}
+
+    <form method="POST"
+          action="{{ url_for('admin.scholarship_new') if action=='new' else url_for('admin.scholarship_edit', sid=scholarship.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="adm-form-card">
+
+        <div class="adm-form-section">Scholarship Details</div>
+        <div class="adm-fg2">
+          <div class="adm-fg full">
+            <label class="adm-label">University *</label>
+            <select class="adm-select" name="university_id" required>
+              <option value="">— Select University —</option>
+              {% for u in all_universities %}
+                <option value="{{ u.id }}" {% if sfv('university_id')==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="adm-fg full"><label class="adm-label">Title *</label><input class="adm-input" type="text" name="title" required value="{{ sfv('title') }}"></div>
+          <div class="adm-fg"><label class="adm-label">Amount (₹)</label><input class="adm-input" type="number" name="amount" step="0.01" min="0" value="{{ sfv('amount') }}"></div>
+          <div class="adm-fg"><label class="adm-label">Deadline</label><input class="adm-input" type="text" name="deadline" placeholder="YYYY-MM-DD" value="{{ sfv('deadline') }}"></div>
+          <div class="adm-fg full"><label class="adm-label">Description</label><textarea class="adm-textarea" name="description" rows="3">{{ sfv('description') }}</textarea></div>
+        </div>
+
+        <div class="adm-form-section">Status</div>
+        <label class="adm-cb-row">
+          <input type="checkbox" name="is_active" value="1"
+            {% if f.get('is_active') or (scholarship and scholarship.is_active) or action=='new' %}checked{% endif %}>
+          Active (visible on site)
+        </label>
+
+        <div class="adm-form-actions">
+          <button type="submit" class="btn btn-primary">{{ 'Create Scholarship' if action=='new' else 'Save Changes' }}</button>
+          <a href="{{ url_for('admin.scholarships') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </div>
+    </form>
+
+
+    {# ================================================================
+       PLACEMENT PARTNERS LIST                              (Phase 9)
+       ================================================================ #}
+    {% elif view == 'placement_partners' %}
+    <div class="adm-section-head">
+      <h2>Placement Partners</h2>
+      <a href="{{ url_for('admin.placement_partner_new') }}" class="btn btn-primary">+ Add Partner</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin.placement_partners') }}" class="adm-filters">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search company name…">
+      <select name="university_id" onchange="this.form.submit()">
+        <option value="">All Universities</option>
+        {% for u in all_universities %}
+          <option value="{{ u.id }}" {% if uni_id==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="all"      {% if status=='all'      %}selected{% endif %}>All status</option>
+        <option value="active"   {% if status=='active'   %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status=='inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      {% if q or uni_id or status != 'all' %}<a href="{{ url_for('admin.placement_partners') }}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+
+    <div class="adm-table-card">
+      <div class="adm-table-wrap">
+        <table>
+          <thead><tr><th>Logo</th><th>Company</th><th>University</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for p in pagination.items %}
+            <tr>
+              <td>{% if p.logo_url %}<img src="{{ p.logo_url }}" alt="" style="height:28px;border-radius:4px">{% else %}—{% endif %}</td>
+              <td style="font-weight:700">{{ p.company_name }}</td>
+              <td style="color:var(--muted)">{{ p.university.name if p.university else '—' }}</td>
+              <td>{% if p.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-red">Inactive</span>{% endif %}</td>
+              <td style="white-space:nowrap;display:flex;gap:6px">
+                <a href="{{ url_for('admin.placement_partner_edit', pid=p.id) }}" class="btn btn-outline btn-sm">Edit</a>
+                <button class="btn btn-danger btn-sm"
+                  onclick="admOpenDelete('{{ url_for('admin.placement_partner_delete', pid=p.id) }}','{{ p.company_name|replace("'","\\'") }}')">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr class="adm-no-results"><td colspan="5">No placement partners found{% if q %} for "{{ q }}"{% endif %}.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ paginate(pagination, 'admin.placement_partners', q=q, university_id=uni_id, status=status) }}
+    </div>
+
+
+    {# ================================================================
+       PLACEMENT PARTNER FORM                               (Phase 9)
+       ================================================================ #}
+    {% elif view == 'placement_partner_form' %}
+    <div class="adm-section-head">
+      <h2>{{ 'Add Placement Partner' if action=='new' else 'Edit — ' + partner.company_name }}</h2>
+      <a href="{{ url_for('admin.placement_partners') }}" class="btn btn-ghost btn-sm">← Back</a>
+    </div>
+
+    {% set f = form %}
+    {% macro ppfv(field, fallback='') %}{{ f.get(field, (partner|attr(field) if partner and partner|attr(field) is not none else fallback)|string) if f else (partner|attr(field) if partner and partner|attr(field) is not none else fallback)|string }}{% endmacro %}
+
+    <form method="POST" enctype="multipart/form-data"
+          action="{{ url_for('admin.placement_partner_new') if action=='new' else url_for('admin.placement_partner_edit', pid=partner.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="adm-form-card">
+
+        <div class="adm-form-section">Partner Details</div>
+        <div class="adm-fg2">
+          <div class="adm-fg full">
+            <label class="adm-label">University *</label>
+            <select class="adm-select" name="university_id" required>
+              <option value="">— Select University —</option>
+              {% for u in all_universities %}
+                <option value="{{ u.id }}" {% if ppfv('university_id')==u.id|string %}selected{% endif %}>{{ u.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="adm-fg full"><label class="adm-label">Company Name *</label><input class="adm-input" type="text" name="company_name" required value="{{ ppfv('company_name') }}"></div>
+          <div class="adm-fg full">
+            <label class="adm-label">Logo</label>
+            {% if partner and partner.logo_url %}<div style="margin-bottom:6px"><img src="{{ partner.logo_url }}" alt="" style="height:32px;border-radius:4px"></div>{% endif %}
+            <input class="adm-input" type="file" name="logo_file" accept=".png,.jpg,.jpeg,.webp,.svg,.gif">
+            <input class="adm-input" style="margin-top:6px" type="url" name="logo_url" placeholder="…or paste a URL" value="{{ ppfv('logo_url') }}">
+          </div>
+        </div>
+
+        <div class="adm-form-section">Status</div>
+        <label class="adm-cb-row">
+          <input type="checkbox" name="is_active" value="1"
+            {% if f.get('is_active') or (partner and partner.is_active) or action=='new' %}checked{% endif %}>
+          Active (visible on site)
+        </label>
+
+        <div class="adm-form-actions">
+          <button type="submit" class="btn btn-primary">{{ 'Create Partner' if action=='new' else 'Save Changes' }}</button>
+          <a href="{{ url_for('admin.placement_partners') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </div>
+    </form>
+
+
+    {# ================================================================
+       SITE CONTENT — homepage stats + site-wide SEO         (Phase 9)
+       ================================================================ #}
+    {% elif view == 'site_content' %}
+    <div class="adm-section-head">
+      <h2>Homepage Content &amp; SEO</h2>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:-8px">
+      These override the hardcoded defaults on the homepage. Leave a field blank to fall back to the default.
+    </p>
+
+    <form method="POST" action="{{ url_for('admin.site_content') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="adm-form-card">
+
+        <div class="adm-form-section">Homepage Stats</div>
+        <div class="adm-fg2">
+          <div class="adm-fg"><label class="adm-label">Students guided</label><input class="adm-input" type="number" name="stat_students" value="{{ values.get('stat_students','') }}"></div>
+          <div class="adm-fg"><label class="adm-label">Verified universities</label><input class="adm-input" type="number" name="stat_universities" value="{{ values.get('stat_universities','') }}"></div>
+          <div class="adm-fg"><label class="adm-label">Admission support (%)</label><input class="adm-input" type="number" name="stat_admission_pct" value="{{ values.get('stat_admission_pct','') }}"></div>
+        </div>
+
+        <div class="adm-form-section">Homepage SEO</div>
+        <div class="adm-fg2">
+          <div class="adm-fg full"><label class="adm-label">Meta Title</label><input class="adm-input" type="text" name="homepage_seo_title" maxlength="160" value="{{ values.get('homepage_seo_title','') }}"></div>
+          <div class="adm-fg full"><label class="adm-label">Meta Description</label><textarea class="adm-textarea" name="homepage_seo_description" maxlength="320" rows="2">{{ values.get('homepage_seo_description','') }}</textarea></div>
+        </div>
+
+        <div class="adm-form-actions">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </form>
 
     {% endif %}{# end view switch #}
   </div>{# /main col #}

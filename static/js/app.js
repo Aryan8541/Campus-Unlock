@@ -60,6 +60,26 @@
     localStorage.setItem('compareSet', JSON.stringify([...state.compareSet]));
   }
 
+  // FIX: the university-card compare/save buttons are server-rendered HTML
+  // (Flask/Jinja), not JS-generated like the search-results cards, so they
+  // never got the usual re-render that shows selection state. Without this,
+  // clicking Compare/Save on a university card silently updated state but
+  // gave zero visual feedback — looked completely broken. This directly
+  // toggles .is-active on every button for a given id (there may be more
+  // than one instance of the same university's buttons on a page) and is
+  // called both on every click and once on boot to restore state saved in
+  // localStorage from a previous visit.
+  function syncAllQuickActionButtons() {
+    document.querySelectorAll('[data-compare]').forEach(btn => {
+      const id = String(btn.dataset.compare);
+      btn.classList.toggle('is-active', state.compareSet.has(id));
+    });
+    document.querySelectorAll('[data-fav]').forEach(btn => {
+      const id = String(btn.dataset.fav);
+      btn.classList.toggle('is-active', state.favorites.has(id));
+    });
+  }
+
   // Curated static list — no backend call, purely a UI convenience shown
   // in the idle/empty search dropdown alongside the person's own recent terms.
   const POPULAR_SEARCHES = ['Online MBA', 'Online MCA', 'NAAC A+ Universities', 'Under ₹50,000/yr', 'Executive MBA'];
@@ -109,24 +129,19 @@
       ? `<img src="${u.logo}" alt="${u.name}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`
       : `<span class="cmp-avatar-initials">${u.avatar || u.name.slice(0, 2).toUpperCase()}</span>`;
     const loc   = [u.city, u.state].filter(Boolean).join(', ');
-    const naac  = u.naac  ? `<span class="cmp-badge cmp-badge-naac">NAAC ${u.naac}</span>`  : '';
-    const nirf  = u.nirf  != null ? `<span class="cmp-badge cmp-badge-nirf">NIRF #${u.nirf}</span>` : '';
     const fee   = u.min_fee != null ? inr(u.min_fee) + '/yr'
                 : u.fee    != null ? inr(u.fee)    + '/yr'
                 : 'On request';
-    const prog1 = (u.programs && u.programs[0]) ? (u.programs[0].title || u.programs[0]) : null;
     const isSelected = state.compareSet.has(id);
 
     return `<div class="cmp-card" data-cmp-id="${id}">
-      <div class="cmp-card-banner">
+      <div class="cmp-card-top">
         <div class="cmp-card-logo">${logo}</div>
-        <span class="cmp-card-rating">★ ${u.rating ? Number(u.rating).toFixed(1) : '—'}</span>
+        ${u.rating ? `<span class="cmp-card-rating">★ ${Number(u.rating).toFixed(1)}</span>` : ''}
       </div>
       <div class="cmp-card-body">
         <div class="cmp-card-name" title="${u.name}">${u.name}</div>
         ${loc ? `<div class="cmp-card-loc">📍 ${loc}</div>` : ''}
-        <div class="cmp-card-badges">${naac}${nirf}<span class="cmp-badge cmp-badge-ugc">UGC-DEB</span></div>
-        ${prog1 ? `<div class="cmp-card-prog">🎓 ${prog1}</div>` : ''}
         <div class="cmp-card-fee">${fee}</div>
         <div class="cmp-card-actions">
           <button class="cmp-btn cmp-btn-detail" data-detail="${id}">View Details</button>
@@ -503,6 +518,7 @@
     updateRecentlyViewedView();
     renderWizardSteps();
     renderCompareTable(); // Compare V2 — no-op on pages without #cmpPage
+    syncAllQuickActionButtons(); // restore compare/save state on server-rendered cards (e.g. #uniGrid)
 
     const hamburger = $('#hamburger');
     const navLinks = $('#navLinks');
@@ -922,14 +938,14 @@
           if (state.compareSet.size >= 4) state.compareSet.delete([...state.compareSet][0]);
           state.compareSet.add(id);
         }
-        saveLS(); renderCompareTable(); return;
+        saveLS(); renderCompareTable(); syncAllQuickActionButtons(); return;
       }
 
       const favBtn = e.target.closest('[data-fav]');
       if (favBtn) {
         const id = favBtn.dataset.fav;
         if (state.favorites.has(id)) state.favorites.delete(id); else state.favorites.add(id);
-        saveLS(); renderResults();
+        saveLS(); renderResults(); syncAllQuickActionButtons();
       }
 
       const bmBtn = e.target.closest('[data-bookmark]');
@@ -1148,5 +1164,241 @@
     });
   }
 
-  boot();
+  // boot() wires up homepage-only widgets (#backToTop, #modalOverlay, the
+  // search grid, etc.). On pages that don't have those elements — like
+  // auth.html — several of those calls hit null and throw. Left unguarded,
+  // that exception used to kill the REST of this script file (a single
+  // uncaught error in one top-level IIFE stops every statement after it,
+  // including the auth page's password show/hide toggle further down),
+  // which is why "Show password" silently did nothing on the login/register
+  // page even though its own code was correct. try/catch here contains
+  // boot() to its own page instead of taking the whole file down with it.
+  try {
+    boot();
+  } catch (err) {
+    console.error('boot() failed (likely a non-homepage page missing some elements):', err);
+  }
+})();
+
+// ---------------------------------------------------------------------------
+// Auth page (login.html) — tab switch, password visibility, role shortcuts.
+// Guarded so this is a no-op on every other page.
+// ---------------------------------------------------------------------------
+(function () {
+  const form = document.getElementById('authForm');
+  if (!form) return;
+
+  const tabs = document.querySelectorAll('.auth-tab');
+  const loginModeInput = document.getElementById('authLoginMode');
+  const emailInput = document.getElementById('email');
+  const emailLabel = document.getElementById('authEmailLabel');
+
+  const TAB_COPY = {
+    universal: { label: 'Email or Username', placeholder: 'name@campus.edu' },
+    institutional: { label: 'Institutional Email or ID', placeholder: 'name@institution.edu' },
+  };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => { t.classList.remove('is-active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('is-active');
+      tab.setAttribute('aria-selected', 'true');
+
+      const mode = tab.dataset.authTab;
+      if (loginModeInput) loginModeInput.value = mode;
+      const copy = TAB_COPY[mode];
+      if (copy) {
+        if (emailLabel) emailLabel.textContent = copy.label;
+        if (emailInput) emailInput.placeholder = copy.placeholder;
+      }
+    });
+  });
+
+  // Password show/hide toggle.
+  const eyeToggle = document.getElementById('authEyeToggle');
+  const passwordInput = document.getElementById('password');
+  if (eyeToggle && passwordInput) {
+    eyeToggle.addEventListener('click', () => {
+      const showing = passwordInput.type === 'text';
+      passwordInput.type = showing ? 'password' : 'text';
+      eyeToggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+      eyeToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    });
+  }
+
+  // Same toggle, generalized for the register panel's two password fields
+  // (Password / Confirm Password), each pointing at its own input via
+  // data-eye-target so one handler covers both.
+  document.querySelectorAll('.auth-eye-toggle[data-eye-target]').forEach(btn => {
+    const target = document.getElementById(btn.dataset.eyeTarget);
+    if (!target) return;
+    btn.addEventListener('click', () => {
+      const showing = target.type === 'text';
+      target.type = showing ? 'password' : 'text';
+      btn.setAttribute('aria-pressed', showing ? 'false' : 'true');
+      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    });
+  });
+
+  // Role shortcuts — sets a hint field and focuses the email input with a
+  // role-appropriate placeholder. The actual post-login destination is
+  // still decided server-side from the authenticated user's real role;
+  // this is a convenience shortcut, not a way to select what you log in as.
+  const roleButtons = document.querySelectorAll('.auth-role-btn');
+  const roleHintInput = document.getElementById('authRoleHint');
+  const ROLE_PLACEHOLDER = {
+    student: 'name@campus.edu',
+    teacher: 'name@faculty.campus.edu',
+    admin: 'name@admin.campus.edu',
+  };
+
+  roleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      roleButtons.forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+
+      const role = btn.dataset.role;
+      if (roleHintInput) roleHintInput.value = role;
+      if (emailInput) {
+        emailInput.placeholder = ROLE_PLACEHOLDER[role] || emailInput.placeholder;
+        emailInput.focus();
+      }
+    });
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// Unified auth page (auth.html) — Task 1: Login and Register live in one
+// page/container. Clicking "Apply for Access" / "Already have an account?"
+// cross-fades + slides the login card into the register card (and back)
+// in place, instead of navigating to a second page/modal. Real form
+// submissions still POST and reload normally — this only animates the
+// toggle between the two idle forms. Guarded so it's a no-op elsewhere.
+// ---------------------------------------------------------------------------
+(function () {
+  const stage = document.getElementById('authStage');
+  if (!stage) return;
+
+  const body = document.body;
+  const panels = {
+    login: document.getElementById('authPanelLogin'),
+    register: document.getElementById('authPanelRegister'),
+  };
+  const eyebrowEl = document.getElementById('authEyebrow');
+  const titleEl = document.getElementById('authTitle');
+  const subtitleEl = document.getElementById('authSubtitle');
+  const footEl = document.getElementById('authFoot');
+
+  const COPY = {
+    login: {
+      title: 'Log In | Campus Unlock',
+      eyebrow: 'Welcome back',
+      heading: 'Log in to your account',
+      subtitle: 'Pick up right where you left off.',
+      foot: 'Don\u2019t have an account? <a href="/register" id="authToRegister">Apply for Access</a>',
+      url: '/login',
+    },
+    register: {
+      title: 'Apply for Access | Campus Unlock',
+      eyebrow: 'Get started',
+      heading: 'Create your account',
+      subtitle: 'Compare, shortlist and apply \u2014 all in one place.',
+      foot: 'Already have an account? <a href="/login" id="authToLogin">Log In</a>',
+      url: '/register',
+    },
+  };
+
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ANIM_MS = prefersReduced ? 0 : 340;
+  let animating = false;
+
+  function focusFirstField(panel) {
+    const field = panel.querySelector('input:not([type="hidden"])');
+    if (field) field.focus({ preventScroll: true });
+  }
+
+  function bindFootLink() {
+    const link = document.getElementById('authToRegister') || document.getElementById('authToLogin');
+    if (link) link.addEventListener('click', onToggleClick);
+  }
+
+  function applyCopy(mode) {
+    const c = COPY[mode];
+    if (!c) return;
+    document.title = c.title;
+    if (eyebrowEl) eyebrowEl.textContent = c.eyebrow;
+    if (titleEl) titleEl.textContent = c.heading;
+    if (subtitleEl) subtitleEl.textContent = c.subtitle;
+    if (footEl) footEl.innerHTML = c.foot;
+    bindFootLink();
+  }
+
+  function switchTo(mode, pushState) {
+    if (animating || body.dataset.authMode === mode || !panels[mode]) return;
+    const from = panels[body.dataset.authMode];
+    const to = panels[mode];
+    if (!from || !to) return;
+
+    animating = true;
+    const goingForward = mode === 'register';
+
+    if (prefersReduced) {
+      from.hidden = true;
+      to.hidden = false;
+      body.dataset.authMode = mode;
+      applyCopy(mode);
+      focusFirstField(to);
+      if (pushState !== false) history.pushState({ authMode: mode }, '', COPY[mode].url);
+      animating = false;
+      return;
+    }
+
+    const fromH = from.offsetHeight;
+    stage.style.height = fromH + 'px';
+
+    from.classList.add('auth-panel--stacked', goingForward ? 'auth-panel--out-to-left' : 'auth-panel--out-to-right');
+
+    to.hidden = false;
+    to.classList.add('auth-panel--stacked', goingForward ? 'auth-panel--in-from-right' : 'auth-panel--in-from-left');
+
+    // Force a layout flush so the "incoming" start position is painted
+    // before we flip it to settled below — otherwise both writes get
+    // coalesced into one frame and it never visibly animates.
+    void to.offsetHeight;
+
+    requestAnimationFrame(() => {
+      stage.style.height = to.scrollHeight + 'px';
+      from.classList.remove('auth-panel--out-to-left', 'auth-panel--out-to-right');
+      to.classList.remove('auth-panel--in-from-right', 'auth-panel--in-from-left');
+      to.classList.add('auth-panel--settled');
+    });
+
+    setTimeout(() => {
+      from.hidden = true;
+      from.classList.remove('auth-panel--stacked', 'auth-panel--settled', 'auth-panel--out-to-left', 'auth-panel--out-to-right');
+      to.classList.remove('auth-panel--stacked', 'auth-panel--settled');
+      stage.style.height = '';
+      animating = false;
+    }, ANIM_MS + 20);
+
+    body.dataset.authMode = mode;
+    applyCopy(mode);
+    focusFirstField(to);
+
+    if (pushState !== false) {
+      history.pushState({ authMode: mode }, '', COPY[mode].url);
+    }
+  }
+
+  function onToggleClick(e) {
+    e.preventDefault();
+    switchTo(this.id === 'authToRegister' ? 'register' : 'login');
+  }
+
+  bindFootLink();
+
+  window.addEventListener('popstate', (e) => {
+    const fallback = location.pathname.indexOf('register') !== -1 ? 'register' : 'login';
+    switchTo((e.state && e.state.authMode) || fallback, false);
+  });
 })();

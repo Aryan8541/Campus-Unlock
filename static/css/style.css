@@ -551,11 +551,14 @@
   .form-success p { font-size: 13px; color: var(--muted); }
   @keyframes pop-in { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
 
-  .tools-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:20px; }
-  .tool-card { background:#fff; border:1px solid var(--border-teal); border-radius:16px; padding:22px; box-shadow: 0 3px 12px rgba(15,23,42,0.04); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease); }
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+    align-items: stretch;
+}
+  .tool-card { background:#fff; border:1px solid var(--border-teal); border-radius:16px; padding:20px; box-shadow: 0 3px 12px rgba(15,23,42,0.04); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease); }
   .tool-card:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(37,99,235,0.1); border-color: var(--teal-mid); }
-  .tool-card h3 { font-size:16px; margin-bottom:14px; color:var(--text); display: flex; align-items: center; gap: 10px; font-weight: 800; }
-  .tool-icon { width: 30px; height: 30px; border-radius: 9px; background: var(--teal-light); color: var(--teal-deep); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .tool-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   .tiny-btn { border:1px solid var(--teal-mid); background:var(--teal-xlight); color:var(--teal-deep); font-size:12px; font-weight:700; padding:9px 13px; border-radius:9px; cursor:pointer; transition: transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
   .tiny-btn:hover { transform: translateY(-2px); background: var(--teal-light); box-shadow: 0 4px 10px rgba(37,99,235,0.15); }
@@ -563,9 +566,55 @@
   .tiny-btn-primary { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(37,99,235,0.28); }
   .tiny-btn-primary:hover { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); box-shadow: 0 8px 18px rgba(37,99,235,0.38); filter: brightness(1.04); }
   .tool-result { margin-top:12px; font-size:13px; color:var(--muted); line-height: 1.55; }
-  .wizard-steps { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
-  .wizard-step { padding:6px 12px; border-radius:20px; font-size:11px; background:var(--bg); color:var(--muted); border:1px solid var(--border); font-weight: 600; transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
-  .wizard-step.active { background:var(--teal-light); color:var(--teal-deep); border-color:var(--teal-mid); font-weight:700; }
+
+  /* ============================================================
+     Shared design system for the Student Success Toolkit.
+     All four cards (Course Finder, Eligibility Checker, EMI
+     Calculator, Scholarship Checker) already share identical
+     markup (.tool-card-header / .tool-form / .form-group /
+     .tool-actions / .tool-result-box), so this single rule set
+     styles every card identically — no per-card duplication.
+     ============================================================ */
+
+  /* -- header: icon badge + title/subtitle -- */
+  .tool-card-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+  .tool-icon { width:42px; height:42px; border-radius:12px; background:var(--teal-light); color:var(--teal-deep); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .tool-icon svg { width:20px; height:20px; }
+  .tool-card .tool-header-content h3 { font-size:17px; font-weight:700; color:var(--text); margin:0 0 3px; }
+  .tool-header-content p { font-size:13.5px; color:var(--muted); margin:0; line-height:1.4; }
+
+  /* -- form fields (scoped to .tool-card so the modal's .form-group is untouched) -- */
+  .tool-card .form-group { margin-bottom:14px; }
+  .tool-card .form-group:last-child { margin-bottom:0; }
+  .tool-card .form-group label { font-size:13.5px; font-weight:600; margin-bottom:6px; }
+  .tool-card .form-group input,
+  .tool-card .form-group select { height:44px; padding:0 14px; border-radius:10px; font-size:14px; border:1.5px solid var(--border); }
+  .tool-card .form-group input:focus,
+  .tool-card .form-group select:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+  .tool-card .tool-form.two-column { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+
+  /* -- buttons -- */
+  .tool-card .tool-actions { gap:10px; margin-top:16px; }
+  .tool-primary-btn, .tool-secondary-btn { flex:1 1 110px; min-width:0; height:44px; padding:0 16px; border-radius:10px; font-size:14px; font-weight:700; font-family:'Inter', sans-serif; cursor:pointer; white-space:nowrap; }
+  .tool-primary-btn { background:linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color:#fff; border:none; box-shadow:0 4px 12px rgba(37,99,235,.22); transition: transform .15s var(--ease), box-shadow .2s var(--ease); }
+  .tool-primary-btn:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(37,99,235,.3); }
+  .tool-primary-btn:active { transform:translateY(0); }
+  .tool-secondary-btn { background:#fff; color:var(--teal-deep); border:1.5px solid var(--teal-mid); transition: background .2s var(--ease), border-color .2s var(--ease), transform .15s var(--ease); }
+  .tool-secondary-btn:hover { background:var(--teal-xlight); border-color:var(--teal); transform:translateY(-1px); }
+  .tool-secondary-btn:active { transform:translateY(0); }
+
+  /* -- result box -- */
+  .tool-result-box { margin-top:16px; padding:14px; border:1px solid var(--border-teal); border-radius:10px; background:var(--bg); min-height:56px; }
+  .tool-result-title { font-size:12px; font-weight:800; color:var(--teal-deep); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; }
+  .tool-result-box .tool-result { margin-top:0; }
+
+  /* -- Course Finder wizard pills (unique to this card only) -- */
+  .wizard-progress { margin-bottom:16px; }
+  .wizard-progress-title { display:none; }
+  .wizard-steps { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:0; }
+  .wizard-step { padding:4px 10px; border-radius:14px; font-size:10.5px; background:var(--bg); color:var(--muted); border:1px solid var(--border); font-weight:700; white-space:nowrap; transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+  .wizard-step.active { background:var(--teal-deep); color:#fff; border-color:var(--teal-deep); }
+  .wizard-hint { display:block; font-size:12px; color:var(--muted); font-style:italic; margin-top:10px; line-height:1.4; }
 
   .results-layout { display:grid; grid-template-columns: 300px 1fr; gap:18px; }
   .filters-panel { background:#fff; border:1px solid var(--border-teal); border-radius:14px; padding:14px; position: sticky; top: calc(var(--header-offset) + 14px); align-self:start; max-height: calc(100vh - 95px); overflow:auto; }
@@ -613,7 +662,8 @@
     .hero-float-card--top { top: -12px; left: -8px; }
     .hero-float-card--bottom { bottom: -14px; right: -8px; }
     .hero-search { max-width: 100%; }
-    .uni-grid, .feat-grid, .testi-grid, .tools-grid { grid-template-columns: 1fr; }
+    .uni-grid, .feat-grid, .testi-grid { grid-template-columns: 1fr; }
+    .tools-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #progGrid.prog-grid {
       display: flex; grid-template-columns: none; overflow-x: auto; overflow-y: visible;
       scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
@@ -635,13 +685,21 @@
     .filters-panel { position:relative; top:auto; max-height:none; }
     .result-cards { grid-template-columns: 1fr; }
   }
-  @media (max-width: 1180px) and (min-width: 961px) {
-    .testi-grid, .schol-grid, .blog-grid, .tools-grid { grid-template-columns: repeat(2,1fr); }
-  }
-  @media (max-width: 900px) {
-    .schol-grid, .blog-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 1024px) {
+    .tools-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+  @media (max-width: 768px) {
+    .schol-grid,
+    .blog-grid,
+    .tools-grid {
+        grid-template-columns: 1fr;
+    }
+}
   @media (max-width: 600px) {
+    .tools-grid { grid-template-columns: 1fr; }
     .footer-top { grid-template-columns: 1fr; }
     .footer-newsletter-btn { width: 100%; justify-content: center; }
     .stats-inner { grid-template-columns: repeat(2,1fr); }
@@ -2379,8 +2437,8 @@ footer {
 /* ── University cards grid ───────────────────────────────────────────────── */
 .cmp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
   margin-bottom: 32px;
 }
 .cmp-card {
@@ -2396,26 +2454,19 @@ footer {
   box-shadow: 0 16px 32px rgba(37,99,235,0.12);
   border-color: var(--teal-mid);
 }
-.cmp-card-banner {
-  height: 72px;
-  background: linear-gradient(135deg, var(--cu-primary-container, var(--teal-light)) 0%, var(--teal) 100%);
-  position: relative;
+.cmp-card-top {
   display: flex;
-  align-items: flex-end;
-  padding: 0 14px 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
 }
 .cmp-card-logo {
   width: 52px; height: 52px;
   border-radius: 14px;
-  background: var(--white);
-  border: 3px solid var(--white);
-  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  background: var(--teal-light);
+  border: 1px solid var(--teal-mid);
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
-  position: absolute;
-  bottom: -20px;
-  left: 14px;
-  z-index: 2;
 }
 .cmp-avatar-initials {
   font-size: 18px;
@@ -2423,32 +2474,30 @@ footer {
   color: var(--teal-deep);
 }
 .cmp-card-rating {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: rgba(255,255,255,.9);
-  color: var(--text);
+  background: var(--teal-xlight);
+  color: var(--teal-deep);
   font-size: 11.5px;
   font-weight: 700;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  border: 1px solid var(--teal-mid);
 }
 .cmp-card-body {
-  padding: 32px 16px 16px;
+  padding: 20px 20px 20px;
 }
 .cmp-card-name {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .cmp-card-loc {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .cmp-card-badges {
   display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;
@@ -2473,19 +2522,19 @@ footer {
   text-overflow: ellipsis;
 }
 .cmp-card-fee {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
   color: var(--teal-deep);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   letter-spacing: -.2px;
 }
 .cmp-card-actions {
-  display: flex; gap: 8px;
+  display: flex; gap: 10px;
 }
 .cmp-btn {
   flex: 1;
-  height: 36px;
-  border-radius: 9px;
+  height: 42px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   font-size: 12.5px;
@@ -2633,4 +2682,389 @@ footer {
   .cmp-grid { grid-template-columns: 1fr; }
   .cmp-sidebar { position: static; max-height: none; }
   .cmp-main-head { flex-direction: column; align-items: flex-start; }
+}
+
+/* ============================================================================
+   University card (uc-*) button-row alignment fix — additive only.
+   Duplicated here (in addition to the scoped <style> block in
+   universities.html) so the fix applies even if that inline block is cached,
+   stripped, or not rendered for any reason. Safe to keep both copies since
+   these are new selectors, not overrides of anything pre-existing in this file.
+   ============================================================================ */
+.uni-grid .uni-card.uc-fix-anchor,
+.uni-card {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+.uni-card .uc-name {
+  min-height: 2.6em !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+.uni-card .uc-meta {
+  flex-wrap: nowrap !important;
+  min-height: 18px !important;
+  overflow: hidden !important;
+}
+.uni-card .uc-loc {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  min-width: 0 !important;
+}
+.uni-card .uc-stats { margin-top: 0 !important; }
+.uni-card .uc-actions { margin-top: auto !important; }
+
+.mentors-section {
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.mentors-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.mentor-card {
+  background: var(--white);
+  border: 1px solid var(--border-teal);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(15,23,42,0.04);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mentor-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--teal-mid);
+  box-shadow: 0 16px 34px rgba(37,99,235,0.12);
+}
+
+.mentor-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--teal-xlight);
+  overflow: hidden;
+}
+
+.mentor-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mentor-badge{
+display:inline-flex;
+align-items:center;
+position:static;
+margin-bottom:12px;
+padding:6px 12px;
+background:var(--teal-light);
+color:var(--teal-deep);
+border:1px solid var(--border-teal);
+border-radius:999px;
+font-size:11px;
+font-weight:700;
+letter-spacing:.3px;
+text-transform:uppercase;
+width:fit-content;
+}
+
+.mentor-body {
+  padding: 22px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.mentor-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.mentor-designation {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+}
+
+.mentor-meta {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.mentor-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-teal);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.mentor-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.mentor-meta-value {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--teal-deep);
+  white-space: nowrap;
+}
+
+.mentor-btn {
+  margin-top: auto;
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  background: var(--teal);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color .2s var(--ease);
+}
+
+.mentor-btn:hover {
+  background: var(--teal-dark);
+}
+
+.mentor-btn:focus-visible {
+  outline: 2.5px solid var(--teal-dark);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1199px) {
+  .mentors-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 992px) {
+  .mentors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .mentors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==========================================================================
+   Login page additions (login.html) — new pieces only; the page still
+   reuses .pdp-info-card / .form-group / .form-submit / .form-error as
+   before. Scoped under .auth- so nothing here touches existing rules.
+   ========================================================================== */
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 18px;
+}
+
+.auth-tab {
+  border: none;
+  background: none;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .15s var(--ease), color .15s var(--ease), box-shadow .15s var(--ease);
+}
+
+.auth-tab.is-active {
+  background: #fff;
+  color: var(--teal-deep);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+}
+
+.auth-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.auth-field-head label { margin-bottom: 0; }
+
+.auth-forgot {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.auth-forgot:hover { text-decoration: underline; }
+
+.auth-input-wrap { position: relative; display: flex; align-items: center; }
+
+.auth-input-wrap .auth-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.auth-input-wrap input { padding-left: 36px !important; }
+
+.auth-eye-toggle {
+  position: absolute;
+  right: 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 4px;
+}
+
+.auth-eye-toggle[aria-pressed="true"] { color: var(--teal-dark); }
+
+.auth-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 500;
+  margin-bottom: 18px;
+  cursor: pointer;
+}
+
+.auth-remember input { accent-color: var(--teal); width: 15px; height: 15px; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.auth-divider::before, .auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-roles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text2);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s var(--ease), background .15s var(--ease), color .15s var(--ease);
+}
+
+.auth-role-btn:hover { border-color: var(--teal-mid); background: var(--teal-xlight); }
+
+.auth-role-btn.is-active {
+  border-color: var(--teal);
+  background: var(--teal-xlight);
+  color: var(--teal-deep);
+}
+
+@media (max-width: 480px) {
+  .auth-role-btn { font-size: 11px; padding: 10px 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-tab, .auth-role-btn { transition: none; }
+}
+
+/* ==========================================================================
+   Unified auth page (auth.html) — Login <-> Register live in one page and
+   one container now, so there's never a second card/page underneath.
+   #authStage animates its own height while the two .auth-panel cards
+   cross-fade/slide in place; JS in app.js drives which classes are set,
+   this file only defines what each state looks like.
+   ========================================================================== */
+
+.auth-card-stage {
+  position: relative;
+  width: 100%;
+  transition: height .38s cubic-bezier(.4, 0, .2, 1);
+}
+
+.auth-panel {
+  width: 100%;
+  transition: opacity .32s ease, transform .32s ease;
+}
+
+.auth-panel[hidden] {
+  display: none;
+}
+
+/* While a switch is in progress, both panels sit stacked on top of each
+   other so the outgoing one can slide out while the incoming one slides
+   in, instead of the layout jumping straight from one to the other. */
+.auth-panel--stacked {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.auth-panel--out-to-left   { opacity: 0; transform: translateX(-28px); }
+.auth-panel--out-to-right  { opacity: 0; transform: translateX(28px); }
+.auth-panel--in-from-left  { opacity: 0; transform: translateX(-28px); }
+.auth-panel--in-from-right { opacity: 0; transform: translateX(28px); }
+.auth-panel--settled       { opacity: 1; transform: translateX(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card-stage,
+  .auth-panel { transition: none !important; }
 }

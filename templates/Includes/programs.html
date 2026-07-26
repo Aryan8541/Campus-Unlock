@@ -1,7 +1,39 @@
+{# ============================================================================
+   Program Card — redesigned (card-component pass).
+   Reuses base classes already defined in style.css (.prog-card, .prog-body,
+   .prog-name, .prog-footer, .prog-fee-amt, .prog-cta) so the existing mobile
+   carousel-snap behaviour and hover/shimmer animations tied to those class
+   names keep working untouched. Only new classes (prog-mode-badge, prog-uni,
+   prog-stats, prog-stat*, prog-btn-outline) are added here, scoped to this
+   file the same way universities.html/compare.html already do it.
+   ============================================================================ #}
 <style>
-  /* Bigger grid, matching universities.html sizing so both sections
-     share the same card width/gap. */
-  .prog-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+  .prog-grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; }
+  .prog-card { cursor: default; }
+  .prog-card .prog-body { padding: 26px 24px 24px; }
+  .prog-card .prog-name { font-size: 20px; margin-bottom: 12px; }
+
+  .prog-mode-badge {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+    background: var(--teal-light); color: var(--teal-deep); padding: 5px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 13px;
+  }
+  .prog-uni { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); font-weight: 600; margin-bottom: 18px; }
+  .prog-uni svg { flex-shrink: 0; opacity: .7; }
+
+  .prog-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+  .prog-stat { background: var(--bg); border: 1px solid var(--border-teal); border-radius: 12px; padding: 14px 16px; }
+  .prog-stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 5px; }
+  .prog-stat-value { font-size: 17px; font-weight: 800; color: var(--teal-deep); letter-spacing: -.2px; }
+
+  .prog-card .prog-cta { flex: 1; justify-content: center; text-decoration: none; padding: 14px 16px; font-size: 14px; }
+  .prog-btn-outline {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    background: var(--white); color: var(--teal-deep); border: 1.5px solid var(--teal-mid); border-radius: 11px;
+    padding: 14px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif;
+    transition: background .18s var(--ease), transform .18s var(--ease);
+  }
+  .prog-btn-outline:hover { background: var(--teal-xlight); transform: translateY(-2px); }
 </style>
 
 <div class="prog-bg" id="programs">
@@ -13,47 +45,33 @@
       {% if featured_programs %}
         {% for program in featured_programs %}
         <div class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 40 }}ms" data-name="{{ program.name }}" data-program-id="{{ program.id }}">
-          <div class="prog-media">
-            {# TEMP placeholder via picsum.photos when program.image isn't set in
-               the DB yet — seeded per program.id so each card gets a stable,
-               distinct photo. Swap for real photos later (recommended 800×500,
-               16:10) and this block will automatically prefer program.image. #}
-            {% if program.image %}
-              <img src="{{ program.image }}" alt="{{ program.name }}" class="prog-img" loading="lazy">
-            {% else %}
-              <img src="https://picsum.photos/seed/program{{ program.id }}/800/500" alt="{{ program.name }}" class="prog-img" loading="lazy">
-            {% endif %}
-            {% if program.university %}<span class="prog-badge prog-badge-uni">🏛️ {{ program.university }}</span>{% endif %}
-            {% if program.rating %}<span class="prog-rating"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>{{ '%.1f'|format(program.rating) }}</span>{% endif %}
-            <span class="prog-badge-approved" aria-hidden="true">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              UGC Approved
-            </span>
-          </div>
           <div class="prog-body">
-            <span class="prog-badge prog-badge-cat">{{ program.category or program.specialization or 'Program' }}</span>
+            {% if program.mode %}<span class="prog-mode-badge">🌐 {{ program.mode }}</span>{% endif %}
             <div class="prog-name">{{ program.name }}</div>
-            <div class="prog-meta">
-              <span class="prog-meta-item">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
-                {{ program.duration or 'Duration on request' }}
-              </span>
-              {% if program.specialization %}<span class="prog-meta-item">{{ program.specialization }}</span>{% endif %}
+            {% if program.university %}
+            <div class="prog-uni">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 9h1"></path><path d="M14 9h1"></path><path d="M9 13h1"></path><path d="M14 13h1"></path></svg>
+              {{ program.university }}
             </div>
-            <div class="prog-footer">
-              <div class="prog-fee">
-                {% if program.fee %}
-                  <span class="prog-fee-amt">₹{{ '{:,.0f}'.format(program.fee) }}</span><span class="prog-fee-suffix">/yr</span>
-                {% else %}
-                  <span class="prog-fee-onrequest">Fees on request</span>
-                {% endif %}
+            {% endif %}
+
+            <div class="prog-stats">
+              <div class="prog-stat">
+                <div class="prog-stat-label">Duration</div>
+                <div class="prog-stat-value">{{ program.duration or '—' }}</div>
               </div>
-              <button class="action-btn action-apply prog-cta"
-                data-apply-program="{{ program.name }}"
-                data-apply-uni="{{ program.university or '' }}">
-                Apply Now
+              <div class="prog-stat">
+                <div class="prog-stat-label">Total Fee</div>
+                <div class="prog-stat-value">{% if program.fee %}₹{{ '{:,.0f}'.format(program.fee) }}{% else %}On request{% endif %}</div>
+              </div>
+            </div>
+
+            <div class="prog-footer">
+              <button class="prog-btn-outline" data-brochure="{{ program.id }}">Brochure</button>
+              <a class="prog-cta" href="{{ url_for('main.program_detail', slug=program.slug) }}">
+                View Program
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-              </button>
+              </a>
             </div>
           </div>
         </div>

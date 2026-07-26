@@ -16,21 +16,30 @@ view values
   "users"               — list
   "user_detail"         — single user read-only
   "brochure_downloads"  — list
+  "faqs"                — list                        (Phase 9)
+  "faq_form"             — create / edit form           (Phase 9)
+  "scholarships"        — list                        (Phase 9)
+  "scholarship_form"     — create / edit form           (Phase 9)
+  "placement_partners"  — list                        (Phase 9)
+  "placement_partner_form" — create / edit form         (Phase 9)
+  "site_content"         — homepage stats + SEO editor  (Phase 9)
 
 All writes use POST only. A lightweight session-based CSRF token is
 validated on every mutating request.
 """
 
+import os
 import re
 import secrets
 import unicodedata
 from datetime import datetime
 
 from flask import (
-    Blueprint, abort, flash, redirect, render_template,
+    Blueprint, abort, current_app, flash, redirect, render_template,
     request, session, url_for,
 )
 from sqlalchemy import func, or_
+from werkzeug.utils import secure_filename
 
 
 def slugify(text):
@@ -44,7 +53,7 @@ def slugify(text):
     return text or "item"
 
 from routes.main import admin_required
-from models import db, University, Program
+from models import db, University, Program, FAQ, Scholarship, PlacementPartner, SiteContent
 from models.user import User
 from models.lead import Lead
 from models.history import BrochureDownload
@@ -120,6 +129,38 @@ def _float(v):
         return float(v) if v and str(v).strip() else None
     except (ValueError, TypeError):
         return None
+
+
+# ---------------------------------------------------------------------------
+# File upload helper (Phase 9 — CMS & Content)
+# ---------------------------------------------------------------------------
+
+ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg", "webp", "svg", "gif"}
+ALLOWED_DOC_EXT = {"pdf", "doc", "docx"}
+
+
+def _save_upload(file_storage, subfolder, allowed_ext):
+    """
+    Save an uploaded werkzeug FileStorage into static/uploads/<subfolder>/
+    and return its public URL (via url_for('static', ...)).
+
+    Returns None if no file was actually submitted (empty file input —
+    normal on every edit-form save where the admin didn't touch that
+    field), so callers can fall back to whatever URL/value was already
+    there. Raises ValueError on a disallowed extension so the caller can
+    flash a clean error instead of silently accepting anything.
+    """
+    if not file_storage or not file_storage.filename:
+        return None
+    filename = secure_filename(file_storage.filename)
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in allowed_ext:
+        raise ValueError(f'File type ".{ext}" is not allowed for this field.')
+    unique_name = f"{secrets.token_hex(8)}_{filename}"
+    upload_dir = os.path.join(current_app.root_path, "static", "uploads", subfolder)
+    os.makedirs(upload_dir, exist_ok=True)
+    file_storage.save(os.path.join(upload_dir, unique_name))
+    return url_for("static", filename=f"uploads/{subfolder}/{unique_name}")
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +260,23 @@ def university_new():
             return _render("university_form", university=None, form=request.form,
                            ownership_choices=OWNERSHIP_CHOICES, type_choices=UNIV_TYPE_CHOICES, action="new")
 
+        # Phase 9 — file uploads take priority over a typed URL if both are
+        # submitted; otherwise fall back to whatever was typed (or None).
+        logo_url = request.form.get("logo_url","").strip() or None
+        banner_url = request.form.get("banner_url","").strip() or None
+        brochure_url = request.form.get("brochure_url","").strip() or None
+        try:
+            uploaded_logo = _save_upload(request.files.get("logo_file"), "logos", ALLOWED_IMAGE_EXT)
+            uploaded_banner = _save_upload(request.files.get("banner_file"), "banners", ALLOWED_IMAGE_EXT)
+            uploaded_brochure = _save_upload(request.files.get("brochure_file"), "brochures", ALLOWED_DOC_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("university_form", university=None, form=request.form,
+                           ownership_choices=OWNERSHIP_CHOICES, type_choices=UNIV_TYPE_CHOICES, action="new")
+        logo_url = uploaded_logo or logo_url
+        banner_url = uploaded_banner or banner_url
+        brochure_url = uploaded_brochure or brochure_url
+
         u = University(
             name=name,
             slug=_unique_slug(name, University),
@@ -238,9 +296,9 @@ def university_new():
             full_description=request.form.get("full_description","").strip() or None,
             why_choose=request.form.get("why_choose","").strip() or None,
             logo=request.form.get("logo","").strip() or None,
-            logo_url=request.form.get("logo_url","").strip() or None,
-            banner_url=request.form.get("banner_url","").strip() or None,
-            brochure_url=request.form.get("brochure_url","").strip() or None,
+            logo_url=logo_url,
+            banner_url=banner_url,
+            brochure_url=brochure_url,
             ugc_approved=bool(request.form.get("ugc_approved")),
             aicte_approved=bool(request.form.get("aicte_approved")),
             aiu_member=bool(request.form.get("aiu_member")),
@@ -282,6 +340,24 @@ def university_edit(uid):
             return _render("university_form", university=u, form=request.form,
                            ownership_choices=OWNERSHIP_CHOICES, type_choices=UNIV_TYPE_CHOICES, action="edit")
 
+        # Phase 9 — an uploaded file replaces the current value; leaving the
+        # file input empty keeps whatever URL is already saved (or the
+        # newly typed URL, if the admin edited that field by hand instead).
+        logo_url = request.form.get("logo_url","").strip() or u.logo_url
+        banner_url = request.form.get("banner_url","").strip() or u.banner_url
+        brochure_url = request.form.get("brochure_url","").strip() or u.brochure_url
+        try:
+            uploaded_logo = _save_upload(request.files.get("logo_file"), "logos", ALLOWED_IMAGE_EXT)
+            uploaded_banner = _save_upload(request.files.get("banner_file"), "banners", ALLOWED_IMAGE_EXT)
+            uploaded_brochure = _save_upload(request.files.get("brochure_file"), "brochures", ALLOWED_DOC_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("university_form", university=u, form=request.form,
+                           ownership_choices=OWNERSHIP_CHOICES, type_choices=UNIV_TYPE_CHOICES, action="edit")
+        logo_url = uploaded_logo or logo_url
+        banner_url = uploaded_banner or banner_url
+        brochure_url = uploaded_brochure or brochure_url
+
         u.name=name; u.city=request.form.get("city","").strip() or None
         u.state=request.form.get("state","").strip() or None
         u.country=request.form.get("country","").strip() or None
@@ -298,9 +374,9 @@ def university_edit(uid):
         u.full_description=request.form.get("full_description","").strip() or None
         u.why_choose=request.form.get("why_choose","").strip() or None
         u.logo=request.form.get("logo","").strip() or None
-        u.logo_url=request.form.get("logo_url","").strip() or None
-        u.banner_url=request.form.get("banner_url","").strip() or None
-        u.brochure_url=request.form.get("brochure_url","").strip() or None
+        u.logo_url=logo_url
+        u.banner_url=banner_url
+        u.brochure_url=brochure_url
         u.ugc_approved=bool(request.form.get("ugc_approved"))
         u.aicte_approved=bool(request.form.get("aicte_approved"))
         u.aiu_member=bool(request.form.get("aiu_member"))
@@ -389,6 +465,15 @@ def program_new():
             return _render("program_form", program=None, form=request.form,
                            all_universities=all_universities, action="new")
 
+        brochure = request.form.get("brochure","").strip() or None
+        try:
+            uploaded_brochure = _save_upload(request.files.get("brochure_file"), "brochures", ALLOWED_DOC_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("program_form", program=None, form=request.form,
+                           all_universities=all_universities, action="new")
+        brochure = uploaded_brochure or brochure
+
         p = Program(
             university_id=int(uni_id),
             category_id=_int(request.form.get("category_id")) or 1,
@@ -398,7 +483,7 @@ def program_new():
             fees=_float(request.form.get("fees")),
             eligibility=request.form.get("eligibility","").strip() or None,
             mode=request.form.get("mode","").strip() or None,
-            brochure=request.form.get("brochure","").strip() or None,
+            brochure=brochure,
             description=request.form.get("description","").strip() or None,
             is_featured=bool(request.form.get("is_featured")),
             is_active=bool(request.form.get("is_active")),
@@ -431,12 +516,21 @@ def program_edit(pid):
             return _render("program_form", program=p, form=request.form,
                            all_universities=all_universities, action="edit")
 
+        brochure = request.form.get("brochure","").strip() or p.brochure
+        try:
+            uploaded_brochure = _save_upload(request.files.get("brochure_file"), "brochures", ALLOWED_DOC_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("program_form", program=p, form=request.form,
+                           all_universities=all_universities, action="edit")
+        brochure = uploaded_brochure or brochure
+
         p.university_id=int(uni_id); p.title=title
         p.duration=request.form.get("duration","").strip() or None
         p.fees=_float(request.form.get("fees"))
         p.eligibility=request.form.get("eligibility","").strip() or None
         p.mode=request.form.get("mode","").strip() or None
-        p.brochure=request.form.get("brochure","").strip() or None
+        p.brochure=brochure
         p.description=request.form.get("description","").strip() or None
         p.is_featured=bool(request.form.get("is_featured"))
         p.is_active=bool(request.form.get("is_active"))
@@ -575,3 +669,382 @@ def brochure_downloads():
         .paginate(page=page, per_page=PAGE_SIZE, error_out=False)
     )
     return _render("brochure_downloads", pagination=pagination)
+
+
+# ===========================================================================
+# FAQS — list                                                    (Phase 9)
+# ===========================================================================
+
+@admin_bp.route("/faqs")
+@admin_required
+def faqs():
+    q      = request.args.get("q", "").strip()
+    uni_id = request.args.get("university_id", "").strip()
+    status = request.args.get("status", "all")
+    page   = max(1, request.args.get("page", 1, type=int))
+
+    query = FAQ.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(FAQ.question.ilike(like), FAQ.answer.ilike(like)))
+    if uni_id:
+        query = query.filter(FAQ.university_id == int(uni_id))
+    if status == "active":
+        query = query.filter(FAQ.is_active == True)
+    elif status == "inactive":
+        query = query.filter(FAQ.is_active == False)
+
+    pagination = query.order_by(FAQ.university_id.asc(), FAQ.sort_order.asc(), FAQ.id.asc()) \
+        .paginate(page=page, per_page=PAGE_SIZE, error_out=False)
+    all_universities = University.query.order_by(University.name).all()
+    return _render("faqs", pagination=pagination, q=q, uni_id=uni_id,
+                   status=status, all_universities=all_universities)
+
+
+# ===========================================================================
+# FAQS — new
+# ===========================================================================
+
+@admin_bp.route("/faqs/new", methods=["GET", "POST"])
+@admin_required
+def faq_new():
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id   = request.form.get("university_id", "").strip()
+        question = request.form.get("question", "").strip()
+        answer   = request.form.get("answer", "").strip()
+        if not uni_id or not question or not answer:
+            flash("University, question, and answer are required.", "error")
+            return _render("faq_form", faq=None, form=request.form,
+                           all_universities=all_universities, action="new")
+
+        f = FAQ(
+            university_id=int(uni_id),
+            question=question,
+            answer=answer,
+            sort_order=_int(request.form.get("sort_order")),
+            is_active=bool(request.form.get("is_active")),
+        )
+        db.session.add(f)
+        db.session.commit()
+        flash("FAQ created.", "success")
+        return redirect(url_for("admin.faqs"))
+
+    return _render("faq_form", faq=None, form={}, all_universities=all_universities, action="new")
+
+
+# ===========================================================================
+# FAQS — edit
+# ===========================================================================
+
+@admin_bp.route("/faqs/<int:fid>/edit", methods=["GET", "POST"])
+@admin_required
+def faq_edit(fid):
+    faq = FAQ.query.get_or_404(fid)
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id   = request.form.get("university_id", "").strip()
+        question = request.form.get("question", "").strip()
+        answer   = request.form.get("answer", "").strip()
+        if not uni_id or not question or not answer:
+            flash("University, question, and answer are required.", "error")
+            return _render("faq_form", faq=faq, form=request.form,
+                           all_universities=all_universities, action="edit")
+
+        faq.university_id = int(uni_id)
+        faq.question = question
+        faq.answer = answer
+        faq.sort_order = _int(request.form.get("sort_order"))
+        faq.is_active = bool(request.form.get("is_active"))
+        faq.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("FAQ updated.", "success")
+        return redirect(url_for("admin.faqs"))
+
+    return _render("faq_form", faq=faq, form={}, all_universities=all_universities, action="edit")
+
+
+# ===========================================================================
+# FAQS — delete
+# ===========================================================================
+
+@admin_bp.route("/faqs/<int:fid>/delete", methods=["POST"])
+@admin_required
+def faq_delete(fid):
+    _validate_csrf()
+    faq = FAQ.query.get_or_404(fid)
+    db.session.delete(faq)
+    db.session.commit()
+    flash("FAQ deleted.", "success")
+    return redirect(url_for("admin.faqs"))
+
+
+# ===========================================================================
+# SCHOLARSHIPS — list                                            (Phase 9)
+# ===========================================================================
+
+@admin_bp.route("/scholarships")
+@admin_required
+def scholarships():
+    q      = request.args.get("q", "").strip()
+    uni_id = request.args.get("university_id", "").strip()
+    status = request.args.get("status", "all")
+    page   = max(1, request.args.get("page", 1, type=int))
+
+    query = Scholarship.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(Scholarship.title.ilike(like), Scholarship.description.ilike(like)))
+    if uni_id:
+        query = query.filter(Scholarship.university_id == int(uni_id))
+    if status == "active":
+        query = query.filter(Scholarship.is_active == True)
+    elif status == "inactive":
+        query = query.filter(Scholarship.is_active == False)
+
+    pagination = query.order_by(Scholarship.created_at.desc()).paginate(page=page, per_page=PAGE_SIZE, error_out=False)
+    all_universities = University.query.order_by(University.name).all()
+    return _render("scholarships", pagination=pagination, q=q, uni_id=uni_id,
+                   status=status, all_universities=all_universities)
+
+
+# ===========================================================================
+# SCHOLARSHIPS — new
+# ===========================================================================
+
+@admin_bp.route("/scholarships/new", methods=["GET", "POST"])
+@admin_required
+def scholarship_new():
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id = request.form.get("university_id", "").strip()
+        title  = request.form.get("title", "").strip()
+        if not uni_id or not title:
+            flash("University and title are required.", "error")
+            return _render("scholarship_form", scholarship=None, form=request.form,
+                           all_universities=all_universities, action="new")
+
+        s = Scholarship(
+            university_id=int(uni_id),
+            title=title,
+            description=request.form.get("description", "").strip() or None,
+            amount=_float(request.form.get("amount")),
+            deadline=request.form.get("deadline", "").strip() or None,
+            is_active=bool(request.form.get("is_active")),
+        )
+        db.session.add(s)
+        db.session.commit()
+        flash(f'Scholarship "{s.title}" created.', "success")
+        return redirect(url_for("admin.scholarships"))
+
+    return _render("scholarship_form", scholarship=None, form={}, all_universities=all_universities, action="new")
+
+
+# ===========================================================================
+# SCHOLARSHIPS — edit
+# ===========================================================================
+
+@admin_bp.route("/scholarships/<int:sid>/edit", methods=["GET", "POST"])
+@admin_required
+def scholarship_edit(sid):
+    s = Scholarship.query.get_or_404(sid)
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id = request.form.get("university_id", "").strip()
+        title  = request.form.get("title", "").strip()
+        if not uni_id or not title:
+            flash("University and title are required.", "error")
+            return _render("scholarship_form", scholarship=s, form=request.form,
+                           all_universities=all_universities, action="edit")
+
+        s.university_id = int(uni_id)
+        s.title = title
+        s.description = request.form.get("description", "").strip() or None
+        s.amount = _float(request.form.get("amount"))
+        s.deadline = request.form.get("deadline", "").strip() or None
+        s.is_active = bool(request.form.get("is_active"))
+        s.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Scholarship "{s.title}" updated.', "success")
+        return redirect(url_for("admin.scholarships"))
+
+    return _render("scholarship_form", scholarship=s, form={}, all_universities=all_universities, action="edit")
+
+
+# ===========================================================================
+# SCHOLARSHIPS — delete
+# ===========================================================================
+
+@admin_bp.route("/scholarships/<int:sid>/delete", methods=["POST"])
+@admin_required
+def scholarship_delete(sid):
+    _validate_csrf()
+    s = Scholarship.query.get_or_404(sid)
+    title = s.title
+    db.session.delete(s)
+    db.session.commit()
+    flash(f'Scholarship "{title}" deleted.', "success")
+    return redirect(url_for("admin.scholarships"))
+
+
+# ===========================================================================
+# PLACEMENT PARTNERS — list                                      (Phase 9)
+# ===========================================================================
+
+@admin_bp.route("/placement-partners")
+@admin_required
+def placement_partners():
+    q      = request.args.get("q", "").strip()
+    uni_id = request.args.get("university_id", "").strip()
+    status = request.args.get("status", "all")
+    page   = max(1, request.args.get("page", 1, type=int))
+
+    query = PlacementPartner.query
+    if q:
+        query = query.filter(PlacementPartner.company_name.ilike(f"%{q}%"))
+    if uni_id:
+        query = query.filter(PlacementPartner.university_id == int(uni_id))
+    if status == "active":
+        query = query.filter(PlacementPartner.is_active == True)
+    elif status == "inactive":
+        query = query.filter(PlacementPartner.is_active == False)
+
+    pagination = query.order_by(PlacementPartner.company_name.asc()).paginate(page=page, per_page=PAGE_SIZE, error_out=False)
+    all_universities = University.query.order_by(University.name).all()
+    return _render("placement_partners", pagination=pagination, q=q, uni_id=uni_id,
+                   status=status, all_universities=all_universities)
+
+
+# ===========================================================================
+# PLACEMENT PARTNERS — new
+# ===========================================================================
+
+@admin_bp.route("/placement-partners/new", methods=["GET", "POST"])
+@admin_required
+def placement_partner_new():
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id       = request.form.get("university_id", "").strip()
+        company_name = request.form.get("company_name", "").strip()
+        if not uni_id or not company_name:
+            flash("University and company name are required.", "error")
+            return _render("placement_partner_form", partner=None, form=request.form,
+                           all_universities=all_universities, action="new")
+
+        logo_url = request.form.get("logo_url", "").strip() or None
+        try:
+            uploaded_logo = _save_upload(request.files.get("logo_file"), "placement-logos", ALLOWED_IMAGE_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("placement_partner_form", partner=None, form=request.form,
+                           all_universities=all_universities, action="new")
+        logo_url = uploaded_logo or logo_url
+
+        p = PlacementPartner(
+            university_id=int(uni_id),
+            company_name=company_name,
+            logo_url=logo_url,
+            is_active=bool(request.form.get("is_active")),
+        )
+        db.session.add(p)
+        db.session.commit()
+        flash(f'Placement partner "{p.company_name}" created.', "success")
+        return redirect(url_for("admin.placement_partners"))
+
+    return _render("placement_partner_form", partner=None, form={}, all_universities=all_universities, action="new")
+
+
+# ===========================================================================
+# PLACEMENT PARTNERS — edit
+# ===========================================================================
+
+@admin_bp.route("/placement-partners/<int:pid>/edit", methods=["GET", "POST"])
+@admin_required
+def placement_partner_edit(pid):
+    p = PlacementPartner.query.get_or_404(pid)
+    all_universities = University.query.order_by(University.name).all()
+
+    if request.method == "POST":
+        _validate_csrf()
+        uni_id       = request.form.get("university_id", "").strip()
+        company_name = request.form.get("company_name", "").strip()
+        if not uni_id or not company_name:
+            flash("University and company name are required.", "error")
+            return _render("placement_partner_form", partner=p, form=request.form,
+                           all_universities=all_universities, action="edit")
+
+        logo_url = request.form.get("logo_url", "").strip() or p.logo_url
+        try:
+            uploaded_logo = _save_upload(request.files.get("logo_file"), "placement-logos", ALLOWED_IMAGE_EXT)
+        except ValueError as e:
+            flash(str(e), "error")
+            return _render("placement_partner_form", partner=p, form=request.form,
+                           all_universities=all_universities, action="edit")
+        logo_url = uploaded_logo or logo_url
+
+        p.university_id = int(uni_id)
+        p.company_name = company_name
+        p.logo_url = logo_url
+        p.is_active = bool(request.form.get("is_active"))
+        p.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Placement partner "{p.company_name}" updated.', "success")
+        return redirect(url_for("admin.placement_partners"))
+
+    return _render("placement_partner_form", partner=p, form={}, all_universities=all_universities, action="edit")
+
+
+# ===========================================================================
+# PLACEMENT PARTNERS — delete
+# ===========================================================================
+
+@admin_bp.route("/placement-partners/<int:pid>/delete", methods=["POST"])
+@admin_required
+def placement_partner_delete(pid):
+    _validate_csrf()
+    p = PlacementPartner.query.get_or_404(pid)
+    name = p.company_name
+    db.session.delete(p)
+    db.session.commit()
+    flash(f'Placement partner "{name}" deleted.', "success")
+    return redirect(url_for("admin.placement_partners"))
+
+
+# ===========================================================================
+# SITE CONTENT — homepage stats + site-wide SEO                  (Phase 9)
+# ===========================================================================
+# Single-page key/value editor — no separate list/new/edit views needed
+# since each field is a singleton (see models/site_content.py).
+
+SITE_CONTENT_FIELDS = [
+    ("stat_students",            "Homepage stat — Students guided (number, e.g. 50000)"),
+    ("stat_universities",        "Homepage stat — Verified universities (number, e.g. 100)"),
+    ("stat_admission_pct",       "Homepage stat — Admission support (%, e.g. 100)"),
+    ("homepage_seo_title",       "Homepage <title>"),
+    ("homepage_seo_description", "Homepage meta description"),
+]
+
+
+@admin_bp.route("/site-content", methods=["GET", "POST"])
+@admin_required
+def site_content():
+    if request.method == "POST":
+        _validate_csrf()
+        for key, _label in SITE_CONTENT_FIELDS:
+            SiteContent.set(key, request.form.get(key, "").strip() or None)
+        db.session.commit()
+        flash("Homepage content updated.", "success")
+        return redirect(url_for("admin.site_content"))
+
+    values = SiteContent.get_many([key for key, _ in SITE_CONTENT_FIELDS])
+    return _render("site_content", fields=SITE_CONTENT_FIELDS, values=values)

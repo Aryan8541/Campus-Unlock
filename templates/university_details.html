@@ -1,338 +1,578 @@
 {% extends "base.html" %}
 
-{% block title %}{{ university.meta_title or (university.name ~ ' — Campus Unlock') }}{% endblock %}
-{% block meta_description %}{{ university.meta_description or university.short_description or ('Compare ' ~ university.name ~ ' online degree programs, fees, and NAAC accreditation on Campus Unlock.') }}{% endblock %}
+{% block title %}{{ university.meta_title or (university.name + ' — Fees, Courses & Reviews') }} | Campus Unlock{% endblock %}
+{% block meta_description %}{{ university.meta_description or university.short_description or ('Explore ' + university.name + ' — fees, programs, accreditation, placements, and admission details.') }}{% endblock %}
 
 {% block content %}
+<style>
+  /* ============================================================
+     University Details page — all classes prefixed ud- to avoid
+     colliding with .uc-* (homepage cards) / .udir-* (directory).
+     Additive only: reuses existing --teal/--border-teal/etc tokens,
+     does not touch style.css.
+     ============================================================ */
 
-<section class="udp-hero"{% if university.banner_url or university.banner %} style="background-image:url('{{ university.banner_url or university.banner }}');"{% endif %}>
-  <div class="udp-hero-overlay"></div>
-  <div class="udp-hero-inner">
-    <div class="udp-hero-logo">
-      {% if university.logo_url or university.logo %}
-        <img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo">
-      {% else %}
-        <span>{{ avatar }}</span>
-      {% endif %}
+  .ud-hero {
+    background: var(--white); border-bottom: 1px solid var(--border-teal);
+    padding: 44px 0 40px;
+  }
+  .ud-hero-inner {
+    max-width: var(--cu-content-max, 1200px); margin: 0 auto;
+    padding-left: var(--cu-gutter, 24px); padding-right: var(--cu-gutter, 24px);
+  }
+  .ud-breadcrumb {
+    font-size: 13.5px; color: var(--muted); font-weight: 600; margin-bottom: 22px;
+  }
+  .ud-breadcrumb a { color: var(--muted); text-decoration: none; }
+  .ud-breadcrumb a:hover { color: var(--teal-deep); }
+
+  .ud-hero-top { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .ud-logo {
+    width: 92px; height: 92px; border-radius: 18px; flex-shrink: 0;
+    border: 1px solid var(--border-teal); background: var(--white);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .ud-logo img { width: 100%; height: 100%; object-fit: contain; }
+  .ud-logo-fallback {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--teal-light), var(--teal-xlight));
+    font-size: 28px; font-weight: 900; color: var(--teal-deep);
+  }
+
+  .ud-hero-main { flex: 1; min-width: 260px; }
+  .ud-name { font-size: clamp(24px, 3vw, 34px); font-weight: 800; color: var(--text); letter-spacing: -0.3px; margin-bottom: 8px; }
+  .ud-tagline { font-size: 15.5px; color: var(--muted); font-weight: 500; margin-bottom: 14px; max-width: 640px; }
+
+  .ud-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+  .ud-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--teal-xlight); color: var(--teal-deep);
+    border: 1px solid var(--teal-mid); border-radius: 7px;
+    padding: 4px 10px; font-size: 12.5px; font-weight: 700; white-space: nowrap;
+  }
+  .ud-loc {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 13.5px; color: var(--muted); font-weight: 600;
+  }
+
+  .ud-hero-actions { display: flex; flex-direction: column; gap: 10px; margin-left: auto; }
+  .ud-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 12px; padding: 13px 22px; font-size: 14.5px; font-weight: 700;
+    font-family: 'Inter', sans-serif; cursor: pointer; border: none; text-decoration: none;
+    white-space: nowrap;
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+  }
+  .ud-btn-solid { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.28); }
+  .ud-btn-solid:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(37,99,235,0.4); }
+  .ud-btn-outline { background: var(--white); color: var(--teal-deep); border: 1.5px solid var(--teal-mid); }
+  .ud-btn-outline:hover { background: var(--teal-xlight); transform: translateY(-2px); }
+  .ud-icon-row { display: flex; gap: 8px; }
+  .ud-icon-btn {
+    width: 42px; height: 42px; border-radius: 11px; border: 1px solid var(--border-teal);
+    background: var(--white); color: var(--teal-deep);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .18s var(--ease), transform .15s var(--ease);
+  }
+  .ud-icon-btn:hover { background: var(--teal-xlight); transform: translateY(-1px); }
+  .ud-icon-btn.is-active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+  /* ── Stat strip ────────────────────────────────────────────── */
+  .ud-stats-strip {
+    max-width: var(--cu-content-max, 1200px); margin: 28px auto 0;
+    padding-left: var(--cu-gutter, 24px); padding-right: var(--cu-gutter, 24px);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;
+  }
+  .ud-stat {
+    background: var(--bg); border: 1px solid var(--border-teal); border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .ud-stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 6px; }
+  .ud-stat-value { font-size: 18px; font-weight: 800; color: var(--teal-deep); letter-spacing: -.2px; }
+
+  /* ── Body layout ───────────────────────────────────────────── */
+  .ud-body {
+    max-width: var(--cu-content-max, 1200px); margin: 0 auto; padding: 48px 24px 80px;
+    padding-left: var(--cu-gutter, 24px); padding-right: var(--cu-gutter, 24px);
+    display: grid; grid-template-columns: 1fr 320px; gap: 40px; align-items: start;
+  }
+  .ud-main { min-width: 0; }
+  .ud-side { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .ud-section { margin-bottom: 44px; }
+  .ud-section:last-child { margin-bottom: 0; }
+  .ud-section-title { font-size: 21px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; margin-bottom: 16px; }
+  .ud-prose { font-size: 15px; line-height: 1.75; color: var(--text2, #475569); }
+  .ud-prose + .ud-prose { margin-top: 14px; }
+
+  /* Approvals grid */
+  .ud-approvals { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .ud-approval {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border-teal); border-radius: 12px; padding: 14px 16px;
+    font-size: 14px; font-weight: 700; color: var(--text);
+  }
+  .ud-approval-icon {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--teal); color: #fff;
+  }
+
+  /* Programs */
+  .ud-programs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .ud-program-card {
+    border: 1px solid var(--border-teal); border-radius: 14px; padding: 18px 20px;
+    background: var(--white);
+  }
+  .ud-program-title { font-size: 15.5px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .ud-program-meta { font-size: 13px; color: var(--muted); font-weight: 600; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .ud-program-fee { font-size: 16px; font-weight: 800; color: var(--teal-deep); }
+
+  /* Placement */
+  .ud-placement-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .ud-recruiters { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ud-recruiter-chip {
+    background: var(--bg); border: 1px solid var(--border-teal); border-radius: 20px;
+    padding: 7px 14px; font-size: 13px; font-weight: 600; color: var(--text);
+  }
+  .ud-partner-logos { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
+  .ud-partner-logo {
+    width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--border-teal);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--white);
+  }
+  .ud-partner-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* Scholarships */
+  .ud-scholarship-card {
+    border: 1px solid var(--border-teal); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px;
+    background: var(--teal-xlight);
+  }
+  .ud-scholarship-card:last-child { margin-bottom: 0; }
+  .ud-scholarship-title { font-size: 15.5px; font-weight: 700; color: var(--teal-deep); margin-bottom: 6px; }
+  .ud-scholarship-desc { font-size: 14px; line-height: 1.6; color: var(--text); }
+  .ud-scholarship-meta { font-size: 13px; font-weight: 700; color: var(--teal-deep); margin-top: 8px; }
+
+  /* FAQs */
+  .ud-faq { border: 1px solid var(--border-teal); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .ud-faq:last-child { margin-bottom: 0; }
+  .ud-faq-q {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 18px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--text);
+    background: var(--white);
+  }
+  .ud-faq-q svg { flex-shrink: 0; transition: transform .2s var(--ease); }
+  .ud-faq.is-open .ud-faq-q svg { transform: rotate(180deg); }
+  .ud-faq-a {
+    padding: 0 18px; max-height: 0; overflow: hidden;
+    font-size: 14.5px; line-height: 1.7; color: var(--muted);
+    transition: max-height .25s var(--ease), padding .25s var(--ease);
+  }
+  .ud-faq.is-open .ud-faq-a { padding: 0 18px 18px; max-height: 400px; }
+
+  /* Sidebar card */
+  .ud-side-card {
+    border: 1px solid var(--border-teal); border-radius: 16px; padding: 22px; background: var(--white);
+  }
+  .ud-side-card-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+  .ud-side-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 9px 0; border-bottom: 1px solid var(--border-teal); }
+  .ud-side-row:last-child { border-bottom: none; }
+  .ud-side-row-label { color: var(--muted); font-weight: 600; }
+  .ud-side-row-value { color: var(--text); font-weight: 700; text-align: right; }
+
+  /* Similar universities */
+  .ud-similar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .ud-similar-card {
+    border: 1px solid var(--border-teal); border-radius: 14px; padding: 18px; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease);
+  }
+  .ud-similar-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(37,99,235,0.1); border-color: var(--teal); }
+  .ud-similar-logo { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--teal-xlight); }
+  .ud-similar-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .ud-similar-name { font-size: 14.5px; font-weight: 700; color: var(--text); line-height: 1.35; }
+  .ud-similar-meta { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+  .ud-empty-note { font-size: 14px; color: var(--muted); font-style: italic; }
+
+  /* Coming-soon banner for stub entries */
+  .ud-stub-banner {
+    background: var(--teal-xlight); border: 1px solid var(--teal-mid);
+    border-radius: 14px; padding: 20px 24px; margin-bottom: 36px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .ud-stub-banner-icon {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--teal);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 16px;
+  }
+  .ud-stub-banner-text { flex: 1; }
+  .ud-stub-banner-title { font-size: 15px; font-weight: 800; color: var(--teal-deep); margin-bottom: 4px; }
+  .ud-stub-banner-desc { font-size: 13.5px; color: var(--text); line-height: 1.6; }
+
+  /* Info pill row for stub pages */
+  .ud-info-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .ud-info-pill {
+    background: var(--white); border: 1px solid var(--border-teal); border-radius: 20px;
+    padding: 7px 16px; font-size: 13px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ud-info-pill-label { color: var(--muted); font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .ud-body { grid-template-columns: 1fr; }
+    .ud-side { position: static; }
+    .ud-hero-actions { margin-left: 0; flex-direction: row; width: 100%; }
+    .ud-btn { flex: 1; }
+  }
+</style>
+
+<div class="ud-hero">
+  <div class="ud-hero-inner">
+    <div class="ud-breadcrumb">
+      <a href="{{ url_for('main.index') }}">Home</a> /
+      <a href="{{ url_for('main.universities') }}">Universities</a> /
+      {{ university.name }}
     </div>
-    <div>
-      <h1 class="udp-hero-name">{{ university.name }}</h1>
-      {% if university.short_description %}<p class="udp-hero-sub">{{ university.short_description }}</p>{% endif %}
-      <div class="udp-hero-badges">
-        {% if university.accreditation %}<span class="udp-badge">NAAC {{ university.accreditation }}</span>{% endif %}
-        {% if university.ranking %}<span class="udp-badge">NIRF #{{ university.ranking }}</span>{% endif %}
-        {% if university.established_year %}<span class="udp-badge">Est. {{ university.established_year }}</span>{% endif %}
-        {% if university.city or university.state %}<span class="udp-badge">{{ [university.city, university.state] | select | join(', ') }}</span>{% endif %}
-        {% if university.ugc_approved %}<span class="udp-badge udp-badge-approved">UGC Approved</span>{% endif %}
-        {% if university.aicte_approved %}<span class="udp-badge udp-badge-approved">AICTE Approved</span>{% endif %}
-        {% if university.aiu_member %}<span class="udp-badge udp-badge-approved">AIU Member</span>{% endif %}
-        {% if university.wes_approved %}<span class="udp-badge udp-badge-approved">WES Approved</span>{% endif %}
-      </div>
-      <div class="udp-hero-actions">
-        {% if university.brochure_url %}
-        <a href="{{ university.brochure_url }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);" target="_blank" rel="noopener">Download Brochure</a>
+
+    <div class="ud-hero-top">
+      <div class="ud-logo">
+        {% if university.logo_url or university.logo %}
+          <img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo">
+        {% else %}
+          <div class="ud-logo-fallback">{{ avatar }}</div>
         {% endif %}
-        <button type="button" class="btn-primary" data-university-apply data-university-name="{{ university.name }}">Apply Now</button>
-        <button
-          type="button"
-          class="btn-outline udp-save-btn"
-          style="color:#fff;border-color:rgba(255,255,255,0.5);"
-          data-save-type="university"
-          data-save-id="{{ university.id }}"
-          data-saved="{{ 'true' if is_saved else 'false' }}"
-          data-login-url="{{ url_for('main.login') }}">
-          {{ '🔖 Saved' if is_saved else '🔖 Save' }}
-        </button>
-        <a href="{{ url_for('main.compare') }}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5);">Compare</a>
-        {% if university.website %}<a href="{{ university.website }}" target="_blank" rel="noopener" class="udp-hero-website">Visit official website ↗</a>{% endif %}
       </div>
-    </div>
-  </div>
-</section>
 
-<section class="section" id="overview">
-  <div class="section-eyebrow reveal">Overview</div>
-  <h2 class="section-title reveal">About {{ university.name }}</h2>
-  {% if university.full_description %}
-    <p class="udp-prose reveal">{{ university.full_description }}</p>
-  {% endif %}
-  {% if university.why_choose %}
-    <h3 class="udp-subheading reveal">Why choose {{ university.name }}?</h3>
-    <p class="udp-prose reveal">{{ university.why_choose }}</p>
-  {% endif %}
-  {% if not university.full_description and not university.why_choose %}
-    <div class="tool-result">Overview details coming soon.</div>
-  {% endif %}
-</section>
-
-<section class="section prog-bg" id="highlights">
-  <div class="section-eyebrow reveal">At a glance</div>
-  <h2 class="section-title reveal">Highlights</h2>
-  <div class="feat-grid">
-    {% if university.ownership %}
-    <div class="feat-card reveal reveal-stagger" style="--d:0ms">
-      <div class="feat-icon">🏛️</div>
-      <div class="feat-title">{{ university.ownership }}</div>
-      <div class="feat-desc">Ownership</div>
-    </div>
-    {% endif %}
-    {% if university.university_type %}
-    <div class="feat-card reveal reveal-stagger" style="--d:60ms">
-      <div class="feat-icon">🎓</div>
-      <div class="feat-title">{{ university.university_type }}</div>
-      <div class="feat-desc">University type</div>
-    </div>
-    {% endif %}
-    {% if university.total_students %}
-    <div class="feat-card reveal reveal-stagger" style="--d:120ms">
-      <div class="feat-icon">👥</div>
-      <div class="feat-title">{{ '{:,}'.format(university.total_students) }}+</div>
-      <div class="feat-desc">Total students</div>
-    </div>
-    {% endif %}
-    {% if university.faculty_count %}
-    <div class="feat-card reveal reveal-stagger" style="--d:180ms">
-      <div class="feat-icon">🧑‍🏫</div>
-      <div class="feat-title">{{ '{:,}'.format(university.faculty_count) }}+</div>
-      <div class="feat-desc">Faculty members</div>
-    </div>
-    {% endif %}
-    {% if university.alumni_count %}
-    <div class="feat-card reveal reveal-stagger" style="--d:240ms">
-      <div class="feat-icon">🌍</div>
-      <div class="feat-title">{{ '{:,}'.format(university.alumni_count) }}+</div>
-      <div class="feat-desc">Alumni network</div>
-    </div>
-    {% endif %}
-    <div class="feat-card reveal reveal-stagger" style="--d:300ms">
-      <div class="feat-icon">💼</div>
-      <div class="feat-title">{{ 'Available' if university.placement_support else 'Not offered' }}</div>
-      <div class="feat-desc">Placement support</div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="programs">
-  <div class="section-eyebrow reveal">Degrees offered</div>
-  <h2 class="section-title reveal">Programs at {{ university.name }}</h2>
-  {% if programs %}
-  <div class="prog-grid">
-    {% for program in programs %}
-    <a href="{{ url_for('main.programs') }}" class="prog-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
-      <div class="prog-icon">{{ program.emoji }}</div>
-      <div>
-        <div class="prog-name">{{ program.title }}</div>
-        <div class="prog-meta">
-          {{ program.category or '' }}{% if program.specialization %} · {{ program.specialization }}{% endif %}{% if program.duration %} · {{ program.duration }}{% endif %}
+      <div class="ud-hero-main">
+        <h1 class="ud-name">{{ university.name }}</h1>
+        {% if university.short_description %}
+          <p class="ud-tagline">{{ university.short_description }}</p>
+        {% endif %}
+        <div class="ud-meta-row">
+          {% if university.accreditation %}<span class="ud-badge">NAAC {{ university.accreditation }}</span>{% endif %}
+          {% if university.ranking %}<span class="ud-badge">NIRF #{{ university.ranking }}</span>{% endif %}
+          {% if university.university_type %}<span class="ud-badge">{{ university.university_type }}</span>{% endif %}
+          {% if university.city or university.state %}
+            <span class="ud-loc">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              {{ university.city }}{% if university.city and university.state %}, {% endif %}{{ university.state }}
+            </span>
+          {% endif %}
         </div>
-        {% if program.fees %}<div class="prog-meta">From ₹{{ '{:,.0f}'.format(program.fees) }}/yr</div>{% endif %}
-        {% if program.eligibility %}<div class="prog-meta">Eligibility: {{ program.eligibility }}</div>{% endif %}
-        {% if program.mode %}<span class="prog-tag">{{ program.mode }}</span>{% endif %}
       </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="tool-result">No programs listed yet for this university.</div>
-  {% endif %}
-</section>
 
-<section class="section prog-bg" id="placement">
-  <div class="section-eyebrow reveal">Careers</div>
-  <h2 class="section-title reveal">Placement Record</h2>
-  <div class="udp-placement-stats">
-    {% if university.highest_package %}
-    <div class="udp-stat-box reveal reveal-stagger" style="--d:0ms">
-      <div class="udp-stat-num">₹{{ '{:,.0f}'.format(university.highest_package) }}</div>
-      <div class="udp-stat-label">Highest Package</div>
-    </div>
-    {% endif %}
-    {% if university.average_package %}
-    <div class="udp-stat-box reveal reveal-stagger" style="--d:60ms">
-      <div class="udp-stat-num">₹{{ '{:,.0f}'.format(university.average_package) }}</div>
-      <div class="udp-stat-label">Average Package</div>
-    </div>
-    {% endif %}
-    <div class="udp-stat-box reveal reveal-stagger" style="--d:120ms">
-      <div class="udp-stat-num">{{ 'Yes' if university.placement_support else 'No' }}</div>
-      <div class="udp-stat-label">Placement Support</div>
+      <div class="ud-hero-actions">
+        <a class="ud-btn ud-btn-solid" href="#lead" data-apply="{{ university.id }}">Apply Now</a>
+        {% if university.brochure_url %}
+          <a class="ud-btn ud-btn-outline" href="{{ university.brochure_url }}" data-brochure="{{ university.id }}" download>Download Brochure</a>
+        {% else %}
+          <button class="ud-btn ud-btn-outline" data-brochure="{{ university.id }}">Download Brochure</button>
+        {% endif %}
+        <div class="ud-icon-row">
+          <button class="ud-icon-btn {% if is_saved %}is-active{% endif %}" data-fav="{{ university.id }}" aria-label="Save {{ university.name }}" title="Save">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="{% if is_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+          <button class="ud-icon-btn" data-compare="{{ university.id }}" aria-label="Add {{ university.name }} to compare" title="Compare">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 3 21 3 21 8"></polyline><line x1="21" y1="3" x2="12" y2="12"></line>
+              <polyline points="8 21 3 21 3 16"></polyline><line x1="3" y1="21" x2="12" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-  {% if top_recruiters %}
-  <div class="uni-chips udp-recruiters">
-    {% for name in top_recruiters %}<span class="uni-chip">{{ name }}</span>{% endfor %}
+
+  <div class="ud-stats-strip">
+    <div class="ud-stat">
+      <div class="ud-stat-label">Established</div>
+      <div class="ud-stat-value">{{ university.established_year or '—' }}</div>
+    </div>
+    <div class="ud-stat">
+      <div class="ud-stat-label">Ownership</div>
+      <div class="ud-stat-value">{{ university.ownership or '—' }}</div>
+    </div>
+    <div class="ud-stat">
+      <div class="ud-stat-label">Programs</div>
+      <div class="ud-stat-value">{{ programs|length }}</div>
+    </div>
+    <div class="ud-stat">
+      <div class="ud-stat-label">Starting Fee</div>
+      <div class="ud-stat-value">
+        {% set fees_list = programs | selectattr('fees') | map(attribute='fees') | list %}
+        {% if fees_list %}₹{{ '{:,.0f}'.format(fees_list | min) }}/yr{% else %}On request{% endif %}
+      </div>
+    </div>
   </div>
-  {% endif %}
-  {% if placement_partners %}
-  <div class="udp-partner-grid">
-    {% for partner in placement_partners %}
-    <div class="udp-partner-logo">
-      {% if partner.logo %}
-        <img src="{{ partner.logo }}" alt="{{ partner.name }}">
+</div>
+
+<div class="ud-body">
+  <div class="ud-main">
+
+    {% if not university.full_description and not university.short_description %}
+    <div class="ud-stub-banner">
+      <div class="ud-stub-banner-icon">ℹ</div>
+      <div class="ud-stub-banner-text">
+        <div class="ud-stub-banner-title">Detailed profile coming soon</div>
+        <div class="ud-stub-banner-desc">
+          We're currently compiling verified information for {{ university.name }}.
+          For the most up-to-date details on programs, fees, and admissions,
+          visit the university's official website or get free guidance from our counselors.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if university.full_description or university.description %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">About {{ university.name }}</h2>
+      <p class="ud-prose">{{ university.full_description or university.description }}</p>
+    </div>
+    {% elif university.short_description %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">About {{ university.name }}</h2>
+      <p class="ud-prose">{{ university.short_description }}</p>
+    </div>
+    {% endif %}
+
+    {# Show key facts as pills when there's no rich content #}
+    {% if not university.full_description %}
+    {% set has_pills = university.established_year or university.university_type or university.ownership or university.accreditation or university.ranking %}
+    {% if has_pills %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Key Facts</h2>
+      <div class="ud-info-pills">
+        {% if university.established_year %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">Est.</span> {{ university.established_year }}</div>
+        {% endif %}
+        {% if university.university_type %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">Type</span> {{ university.university_type }}</div>
+        {% endif %}
+        {% if university.ownership %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">Ownership</span> {{ university.ownership }}</div>
+        {% endif %}
+        {% if university.accreditation %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">NAAC</span> {{ university.accreditation }}</div>
+        {% endif %}
+        {% if university.ranking %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">NIRF Rank</span> #{{ university.ranking }}</div>
+        {% endif %}
+        {% if university.city %}
+        <div class="ud-info-pill"><span class="ud-info-pill-label">Location</span> {{ university.city }}{% if university.state %}, {{ university.state }}{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if university.why_choose %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Why Choose {{ university.name }}</h2>
+      <p class="ud-prose">{{ university.why_choose }}</p>
+    </div>
+    {% endif %}
+
+    {% if university.ugc_approved or university.aicte_approved or university.aiu_member or university.wes_approved %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Approvals &amp; Recognition</h2>
+      <div class="ud-approvals">
+        {% if university.ugc_approved %}
+        <div class="ud-approval">
+          <span class="ud-approval-icon">✓</span> UGC-DEB Approved
+        </div>
+        {% endif %}
+        {% if university.aicte_approved %}
+        <div class="ud-approval">
+          <span class="ud-approval-icon">✓</span> AICTE Approved
+        </div>
+        {% endif %}
+        {% if university.aiu_member %}
+        <div class="ud-approval">
+          <span class="ud-approval-icon">✓</span> AIU Member
+        </div>
+        {% endif %}
+        {% if university.wes_approved %}
+        <div class="ud-approval">
+          <span class="ud-approval-icon">✓</span> WES Recognized
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="ud-section">
+      <h2 class="ud-section-title">Programs Offered</h2>
+      {% if programs %}
+        <div class="ud-programs-grid">
+          {% for program in programs %}
+          <div class="ud-program-card">
+            <div class="ud-program-title">{{ program.title }}</div>
+            <div class="ud-program-meta">
+              {% if program.duration %}<span>{{ program.duration }}</span>{% endif %}
+              {% if program.mode %}<span>{{ program.mode }}</span>{% endif %}
+              {% if program.category %}<span>{{ program.category }}</span>{% endif %}
+            </div>
+            <div class="ud-program-fee">
+              {% if program.fees %}₹{{ '{:,.0f}'.format(program.fees) }}/yr{% else %}Fee on request{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
       {% else %}
-        <span>{{ partner.name }}</span>
+        <div class="ud-stub-banner" style="margin-bottom:0;">
+          <div class="ud-stub-banner-icon" style="font-size:14px;">📋</div>
+          <div class="ud-stub-banner-text">
+            <div class="ud-stub-banner-title">Program details being updated</div>
+            <div class="ud-stub-banner-desc">
+              Full program listings for {{ university.name }} are being compiled.
+              <a href="#lead" data-apply="{{ university.id }}" style="color:var(--teal-deep);font-weight:700;">Get free counseling</a>
+              and our team will share the latest program and fee details with you directly.
+            </div>
+          </div>
+        </div>
       {% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% if not university.highest_package and not university.average_package and not top_recruiters and not placement_partners %}
-  <div class="tool-result">Placement details coming soon.</div>
-  {% endif %}
-</section>
 
-<section class="section schol-bg" id="scholarships">
-  <div class="section-eyebrow reveal">Financial aid</div>
-  <h2 class="section-title reveal">Scholarships</h2>
-  {% if scholarships %}
-  <div class="schol-grid">
-    {% for s in scholarships %}
-    <div class="schol-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
-      {% if s.amount %}<div class="schol-amt">₹{{ '{:,.0f}'.format(s.amount) }}</div>{% endif %}
-      <div class="schol-name">{{ s.title }}</div>
-      {% if s.description %}<div class="schol-desc">{{ s.description }}</div>{% endif %}
-      {% if s.deadline %}<div class="schol-desc">Deadline: {{ s.deadline }}</div>{% endif %}
+    {% if university.placement_support or top_recruiters or placement_partners or university.highest_package or university.average_package %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Placement</h2>
+      <div class="ud-placement-grid">
+        {% if university.highest_package %}
+        <div class="ud-stat">
+          <div class="ud-stat-label">Highest Package</div>
+          <div class="ud-stat-value">₹{{ '{:,.0f}'.format(university.highest_package) }}</div>
+        </div>
+        {% endif %}
+        {% if university.average_package %}
+        <div class="ud-stat">
+          <div class="ud-stat-label">Average Package</div>
+          <div class="ud-stat-value">₹{{ '{:,.0f}'.format(university.average_package) }}</div>
+        </div>
+        {% endif %}
+        {% if university.placement_support %}
+        <div class="ud-stat">
+          <div class="ud-stat-label">Placement Cell</div>
+          <div class="ud-stat-value">Dedicated Support</div>
+        </div>
+        {% endif %}
+      </div>
+      {% if top_recruiters %}
+        <div class="ud-recruiters">
+          {% for recruiter in top_recruiters %}
+            <span class="ud-recruiter-chip">{{ recruiter }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if placement_partners %}
+        <div class="ud-partner-logos">
+          {% for partner in placement_partners %}
+            <div class="ud-partner-logo" title="{{ partner.name }}">
+              {% if partner.logo %}<img src="{{ partner.logo }}" alt="{{ partner.name }}">{% else %}{{ partner.name[:2]|upper }}{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="tool-result">No scholarships listed yet.</div>
-  {% endif %}
-</section>
+    {% endif %}
 
-<section class="section" id="faqs">
-  <div class="section-eyebrow reveal">Questions</div>
-  <h2 class="section-title reveal">Frequently Asked Questions</h2>
-  {% if faqs %}
-  <div class="udp-faq-list">
-    {% for f in faqs %}
-    <details class="udp-faq-item">
-      <summary class="udp-faq-q">{{ f.question }}</summary>
-      <div class="udp-faq-a">{{ f.answer }}</div>
-    </details>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="tool-result">No FAQs added yet.</div>
-  {% endif %}
-</section>
+    {% if scholarships %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Scholarships</h2>
+      {% for scholarship in scholarships %}
+        <div class="ud-scholarship-card">
+          <div class="ud-scholarship-title">{{ scholarship.title }}</div>
+          {% if scholarship.description %}<div class="ud-scholarship-desc">{{ scholarship.description }}</div>{% endif %}
+          {% if scholarship.amount or scholarship.deadline %}
+            <div class="ud-scholarship-meta">
+              {% if scholarship.amount %}₹{{ '{:,.0f}'.format(scholarship.amount) }}{% endif %}
+              {% if scholarship.amount and scholarship.deadline %} · {% endif %}
+              {% if scholarship.deadline %}Deadline: {{ scholarship.deadline }}{% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
-<section class="section prog-bg" id="contact">
-  <div class="section-eyebrow reveal">Get in touch</div>
-  <h2 class="section-title reveal">Contact {{ university.name }}</h2>
-  <div class="udp-contact-grid">
-    {% if university.address %}
-    <div class="udp-contact-item"><strong>Address</strong><span>{{ university.address }}</span></div>
+    {% if faqs %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Frequently Asked Questions</h2>
+      {% for faq in faqs %}
+        <div class="ud-faq" data-ud-faq>
+          <div class="ud-faq-q" data-ud-faq-toggle>
+            {{ faq.question }}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="ud-faq-a">{{ faq.answer }}</div>
+        </div>
+      {% endfor %}
+    </div>
     {% endif %}
-    {% if university.email %}
-    <div class="udp-contact-item"><strong>Email</strong><a href="mailto:{{ university.email }}">{{ university.email }}</a></div>
-    {% endif %}
-    {% if university.phone %}
-    <div class="udp-contact-item"><strong>Phone</strong><a href="tel:{{ university.phone }}">{{ university.phone }}</a></div>
-    {% endif %}
-    {% if university.website %}
-    <div class="udp-contact-item"><strong>Website</strong><a href="{{ university.website }}" target="_blank" rel="noopener">{{ university.website }}</a></div>
-    {% endif %}
-  </div>
-</section>
 
-{% if similar_universities %}
-<section class="section" id="similar">
-  <div class="section-eyebrow reveal">Explore more</div>
-  <h2 class="section-title reveal">Similar Universities</h2>
-  <div class="uni-grid">
-    {% for u in similar_universities %}
-    <a href="{{ url_for('main.university_detail', slug=u.slug) }}" class="uni-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms">
-      <div class="uni-top">
-        <div class="uni-avatar">{% if u.logo %}<img src="{{ u.logo }}" alt="{{ u.name }} logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">{% else %}{{ u.avatar }}{% endif %}</div>
-        <div><div class="uni-name">{{ u.name }}</div><div class="uni-naac">{{ u.naac or 'Accreditation pending' }}{% if u.nirf %} · NIRF #{{ u.nirf }}{% endif %}</div></div>
+    {% if similar_universities %}
+    <div class="ud-section">
+      <h2 class="ud-section-title">Similar Universities</h2>
+      <div class="ud-similar-grid">
+        {% for su in similar_universities %}
+          <a class="ud-similar-card" href="{{ url_for('main.university_detail', slug=su.slug) }}">
+            <div class="ud-similar-logo">
+              {% if su.logo %}<img src="{{ su.logo }}" alt="{{ su.name }}">{% else %}{{ su.avatar }}{% endif %}
+            </div>
+            <div class="ud-similar-name">{{ su.name }}</div>
+            <div class="ud-similar-meta">
+              {% if su.naac %}NAAC {{ su.naac }}{% endif %}
+              {% if su.city %}{% if su.naac %} · {% endif %}{{ su.city }}{% endif %}
+            </div>
+          </a>
+        {% endfor %}
       </div>
-      <div class="uni-chips">
-        {% for name in u.programs[:4] %}<span class="uni-chip">{{ name.replace('Online ', '') }}</span>{% endfor %}
-      </div>
-      <div class="uni-fee">{% if u.fee %}From ₹{{ '{:,.0f}'.format(u.fee) }}/yr{% else %}Fees on request{% endif %}</div>
-    </a>
-    {% endfor %}
+    </div>
+    {% endif %}
+
   </div>
-</section>
-{% endif %}
 
-{% endblock %}
+  <div class="ud-side">
+    <div class="ud-side-card">
+      <div class="ud-side-card-title">Quick Facts</div>
+      {% if university.university_type %}
+        <div class="ud-side-row"><span class="ud-side-row-label">Type</span><span class="ud-side-row-value">{{ university.university_type }}</span></div>
+      {% endif %}
+      {% if university.ownership %}
+        <div class="ud-side-row"><span class="ud-side-row-label">Ownership</span><span class="ud-side-row-value">{{ university.ownership }}</span></div>
+      {% endif %}
+      {% if university.accreditation %}
+        <div class="ud-side-row"><span class="ud-side-row-label">NAAC Grade</span><span class="ud-side-row-value">{{ university.accreditation }}</span></div>
+      {% endif %}
+      {% if university.ranking %}
+        <div class="ud-side-row"><span class="ud-side-row-label">NIRF Rank</span><span class="ud-side-row-value">#{{ university.ranking }}</span></div>
+      {% endif %}
+      {% if university.total_students %}
+        <div class="ud-side-row"><span class="ud-side-row-label">Total Students</span><span class="ud-side-row-value">{{ '{:,}'.format(university.total_students) }}</span></div>
+      {% endif %}
+      {% if university.website %}
+        <div class="ud-side-row"><span class="ud-side-row-label">Website</span><span class="ud-side-row-value"><a href="{{ university.website }}" target="_blank" rel="noopener" style="color:var(--teal-deep);">Visit ↗</a></span></div>
+      {% endif %}
+    </div>
 
-{% block scripts %}
+    <a class="ud-btn ud-btn-solid" href="#lead" data-apply="{{ university.id }}" style="width:100%;">Get Free Counselling</a>
+  </div>
+</div>
+
 <script>
-  // Phase 7C-1: expose login state to inline JS (0 = anonymous).
-  window.__cuUserId = {{ session.get('user_id', 0) | tojson }};
-  // Phase 7C-2: university context for brochure tracking
-  window.__cuUniId = {{ university.id | tojson }};
-</script>
-<script>
-  // Apply Now on this page reuses whichever lead-capture trigger the
-  // global nav CTA is already wired to in app.js, so behaviour stays
-  // consistent with the rest of the site without duplicating that logic.
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-university-apply]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var navCta = document.querySelector('.nav-cta');
-        if (navCta) { navCta.click(); }
-      });
+(function () {
+  'use strict';
+  document.querySelectorAll('[data-ud-faq-toggle]').forEach(function (toggle) {
+    toggle.addEventListener('click', function () {
+      var faq = toggle.closest('[data-ud-faq]');
+      if (faq) faq.classList.toggle('is-open');
     });
-
-    // Phase 7C-1 — Save / unsave university toggle
-    document.querySelectorAll('.udp-save-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var loginUrl = btn.dataset.loginUrl;
-        var type     = btn.dataset.saveType;
-        var id       = btn.dataset.saveId;
-
-        // Redirect guests to login (current_user_id is 0 when not logged in)
-        if (!window.__cuUserId) {
-          window.location.href = loginUrl + '?next=' + encodeURIComponent(window.location.pathname);
-          return;
-        }
-
-        fetch('/save/' + type + '/' + id, {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-          btn.dataset.saved = data.saved ? 'true' : 'false';
-          btn.textContent   = data.saved ? '🔖 Saved' : '🔖 Save';
-        })
-        .catch(function () {});
-      });
-    });
-
-    // Phase 7C-2 — Intercept brochure download links to record history
-    // Only fires for logged-in users; guests download directly.
-    if (window.__cuUserId) {
-      document.querySelectorAll('a[href][rel~="noopener"]').forEach(function (link) {
-        var href = link.getAttribute('href') || '';
-        // Heuristic: treat links containing 'brochure' in href or text as brochure links
-        var isBrochure = /brochure/i.test(href) || /brochure/i.test(link.textContent);
-        if (!isBrochure) return;
-
-        link.addEventListener('click', function (e) {
-          e.preventDefault();
-          var url = link.href;
-          fetch('/brochure/track', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-              university_id: window.__cuUniId || null,
-              program_id: null
-            })
-          })
-          .finally(function () {
-            window.open(url, '_blank', 'noopener');
-          });
-        });
-      });
-    }
   });
+})();
 </script>
 {% endblock %}

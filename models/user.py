@@ -15,6 +15,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import db
 
+# Known role values for `User.role`. Not a DB constraint (the column is a
+# plain string so new roles never need a migration) — this is just the
+# single place that lists what currently exists, kept in step with
+# ROLE_DASHBOARD_ENDPOINTS in routes/main.py. Adding a role (e.g.
+# "counselor") means adding it here, adding its dashboard route + a
+# ROLE_DASHBOARD_ENDPOINTS entry, and nothing else.
+ROLE_STUDENT = "student"
+ROLE_TEACHER = "teacher"
+ROLE_ADMIN = "admin"
+KNOWN_ROLES = (ROLE_STUDENT, ROLE_TEACHER, ROLE_ADMIN)
+
 
 class User(db.Model):
     __tablename__ = "users"

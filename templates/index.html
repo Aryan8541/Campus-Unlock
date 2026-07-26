@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}Campus Unlock — Your Dream Degree, Found in Minutes{% endblock %}
+{% block title %}{{ site_content.get('homepage_seo_title') if site_content and site_content.get('homepage_seo_title') else 'Campus Unlock — Your Dream Degree, Found in Minutes' }}{% endblock %}
+{% block meta_description %}{{ site_content.get('homepage_seo_description') if site_content and site_content.get('homepage_seo_description') else 'Campus Unlock — Compare UGC-DEB approved online universities side-by-side. Fees, specialisations, EMI plans and NAAC ratings. Free, unbiased counselling.' }}{% endblock %}
 
 {% block content %}
 <script type="application/json" id="campus-data">{{ campus_data | tojson }}</script>
@@ -14,6 +15,8 @@
 {% include 'includes/universities.html' %}
 
 {% include 'includes/compare.html' %}
+
+{% include 'includes/mentors.html' %}
 
 {% include 'includes/scholarships.html' %}
 

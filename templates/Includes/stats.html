@@ -2,17 +2,17 @@
   <div class="stats-inner">
     <div class="stat-item reveal reveal-stagger" style="--d:0ms">
       <div class="stat-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-      <div class="stat-num" data-count="50000" data-suffix="+">0</div>
+      <div class="stat-num" data-count="{{ site_content.get('stat_students', '50000') if site_content else '50000' }}" data-suffix="+">0</div>
       <div class="stat-label">Students guided</div>
     </div>
     <div class="stat-item reveal reveal-stagger" style="--d:80ms">
       <div class="stat-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path></svg></div>
-      <div class="stat-num" data-count="100" data-suffix="+">0</div>
+      <div class="stat-num" data-count="{{ site_content.get('stat_universities', '100') if site_content else '100' }}" data-suffix="+">0</div>
       <div class="stat-label">Verified universities</div>
     </div>
     <div class="stat-item reveal reveal-stagger" style="--d:160ms">
       <div class="stat-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
-      <div class="stat-num" data-count="100" data-suffix="%">0</div>
+      <div class="stat-num" data-count="{{ site_content.get('stat_admission_pct', '100') if site_content else '100' }}" data-suffix="%">0</div>
       <div class="stat-label">Admission support</div>
     </div>
     <div class="stat-item reveal reveal-stagger" style="--d:240ms">

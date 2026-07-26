@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block title %}All Universities — Campus Unlock{% endblock %}
+{% block meta_description %}Browse every UGC-DEB approved online university on Campus Unlock. Compare fees, courses, NAAC grades and more. Free, unbiased counselling.{% endblock %}
+
+{% block content %}
+<script type="application/json" id="campus-data">{{ campus_data | tojson }}</script>
+<script type="application/json" id="udir-data">{{ all_universities | tojson }}</script>
+
+<style>
+  /* ── Page hero ─────────────────────────────────────────────────── */
+  /* Container width now rides the sitewide --cu-content-max / --cu-gutter
+     tokens (defined in style.css, Phase 8F) instead of a hardcoded 1200px —
+     that hardcode was the reason this page looked narrower than the rest
+     of the site and didn't line up with the nav. */
+  .udir-hero {
+    background: var(--white); border-bottom: 1px solid var(--border-teal);
+    padding: 64px 0 52px;
+  }
+  .udir-hero-inner {
+    max-width: var(--cu-content-max); margin: 0 auto;
+    padding-left: var(--cu-gutter); padding-right: var(--cu-gutter);
+  }
+  .udir-hero-inner .section-eyebrow { margin-bottom: 10px; }
+  .udir-hero-inner .section-title   { margin-bottom: 8px; font-size: clamp(28px,3vw,40px); }
+  .udir-hero-inner .section-sub     { margin-bottom: 32px; }
+
+  /* Search */
+  .udir-search-wrap {
+    display: flex; gap: 12px; max-width: 600px;
+  }
+  .udir-search-field {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    background: var(--bg); border: 1.5px solid var(--border-teal);
+    border-radius: 14px; padding: 0 18px; height: 52px;
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .udir-search-field:focus-within {
+    border-color: var(--teal); box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  }
+  .udir-search-field svg { flex-shrink: 0; opacity: .4; }
+  .udir-search-field input {
+    border: none; background: transparent; outline: none;
+    font-family: 'Inter', sans-serif; font-size: 15px; color: var(--text); width: 100%;
+  }
+  .udir-search-btn {
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+    color: #fff; border: none; border-radius: 14px; padding: 0 28px; height: 52px;
+    font-weight: 700; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif;
+    white-space: nowrap; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.28);
+    transition: transform .15s var(--ease), box-shadow .2s var(--ease);
+  }
+  .udir-search-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(37,99,235,0.36); }
+
+  /* Filter chips row */
+  .udir-filters {
+    max-width: var(--cu-content-max); margin: 0 auto;
+    padding: 20px var(--cu-gutter) 0;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .udir-filter-chip {
+    height: 38px; padding: 0 16px; border: 1.5px solid var(--border-teal);
+    border-radius: 999px; background: var(--white); color: var(--text2);
+    font-size: 13.5px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; appearance: none; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px;
+    transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease);
+  }
+  .udir-filter-chip:focus,
+  .udir-filter-chip.active { border-color: var(--teal); color: var(--teal-deep); background-color: var(--teal-xlight); }
+  .udir-clear-chip {
+    height: 38px; padding: 0 16px; border: 1.5px solid var(--border-teal);
+    border-radius: 999px; background: var(--white); color: var(--muted);
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer;
+    display: none; align-items: center; gap: 5px;
+    transition: border-color .18s, background .18s, color .18s;
+  }
+  .udir-clear-chip.visible { display: inline-flex; }
+  .udir-clear-chip:hover { border-color: var(--danger,#dc2626); color: var(--danger,#dc2626); }
+
+  /* ── Main layout ───────────────────────────────────────────────── */
+  .udir-body {
+    max-width: var(--cu-content-max); margin: 0 auto;
+    padding: 22px var(--cu-gutter) 80px;
+  }
+
+  /* Toolbar */
+  .udir-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .udir-count { font-size: 14px; font-weight: 600; color: var(--muted); }
+  .udir-count strong { color: var(--text); font-weight: 800; }
+  .udir-sort {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .udir-sort-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .udir-sort-select {
+    height: 36px; padding: 0 30px 0 12px; border: 1px solid var(--border-teal);
+    border-radius: 10px; background: var(--white); color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; appearance: none; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+
+  /* ── University card grid ──────────────────────────────────────── */
+  /*  Fixed 4-up premium grid on desktop/laptop (not auto-fill/auto-fit —
+      exactly 4 equal columns so large monitors show 4 large cards instead
+      of stretching to 5-6 small ones or leaving blank tracks). Steps down
+      to 2 at tablet, 1 at mobile. Same markup/classes as before — sizing
+      and spacing only. */
+  .udir-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+    gap: 34px;
+  }
+
+  .udir-card {
+    background: var(--white); border: 1px solid var(--border-teal);
+    border-radius: 20px; padding: 34px 30px 26px;
+    display: flex; flex-direction: column; align-items: flex-start;
+    cursor: pointer; text-decoration: none; color: inherit;
+    transition: transform .24s var(--ease), box-shadow .24s var(--ease), border-color .2s var(--ease);
+    position: relative; height: 100%;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.03), 0 10px 24px rgba(15,23,42,0.035);
+  }
+  .udir-card:hover {
+    border-color: var(--teal); transform: translateY(-7px);
+    box-shadow: 0 34px 64px rgba(37,99,235,0.19), 0 8px 20px rgba(15,23,42,0.09);
+  }
+
+  /* Logo area — enlarged to a consistent premium footprint */
+  .udir-card-logo {
+    width: 100%; height: 108px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 22px; padding: 6px; flex-shrink: 0;
+  }
+  .udir-card-logo img {
+    max-width: 100%; max-height: 96px; object-fit: contain; display: block;
+  }
+  /* Professional default mark (no more two-letter initials) — a simple
+     institution/mortarboard glyph on the same gradient chip. */
+  .udir-card-logo-fallback {
+    width: 80px; height: 80px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--teal-light), var(--teal-xlight));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--teal-deep);
+  }
+  .udir-card-logo-fallback svg { display: block; }
+
+  /* Divider line under logo */
+  .udir-card-divider {
+    width: 100%; height: 1px; background: var(--border-teal); margin-bottom: 20px; flex-shrink: 0;
+  }
+
+  /* Name — clamped to exactly 2 lines, fixed line-height so 1-line and
+     2-line titles occupy predictable, comparable space */
+  .udir-card-name {
+    font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.4;
+    margin-bottom: 10px; letter-spacing: -0.2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    min-height: calc(18px * 1.4 * 2); flex-shrink: 0;
+  }
+
+  /* Meta row: NAAC badge + location — location clamped to exactly 1 line */
+  .udir-card-meta {
+    display: flex; align-items: center; gap: 9px; flex-wrap: nowrap;
+    font-size: 13.5px; color: var(--muted); font-weight: 600; margin-bottom: 20px;
+    line-height: 1.5; width: 100%; flex-shrink: 0;
+  }
+  .udir-card-meta span:not(.udir-card-naac) {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .udir-card-naac {
+    display: inline-flex; align-items: center; flex-shrink: 0;
+    background: var(--teal-xlight); color: var(--teal-deep);
+    border: 1px solid var(--teal-mid); border-radius: 7px;
+    padding: 3px 10px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  }
+
+  /* Course count + arrow */
+  .udir-card-footer {
+    margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border-teal);
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .udir-card-courses {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14.5px; font-weight: 700; color: var(--text2);
+  }
+  .udir-card-courses-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: var(--teal); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .udir-card-courses-icon svg { display: block; }
+  .udir-card-arrow {
+    width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border-teal);
+    display: flex; align-items: center; justify-content: center; color: var(--muted); flex-shrink: 0;
+    transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+  }
+  .udir-card:hover .udir-card-arrow {
+    background: var(--teal); border-color: var(--teal); color: #fff; transform: translateX(3px);
+  }
+
+  /* Empty state */
+  .udir-empty {
+    grid-column: 1/-1; text-align: center; padding: 72px 24px;
+    background: var(--white); border: 1px solid var(--border-teal); border-radius: 18px;
+  }
+  .udir-empty-icon { font-size: 44px; margin-bottom: 16px; }
+  .udir-empty h3 { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .udir-empty p  { font-size: 15px; color: var(--muted); }
+
+  /* Load more */
+  .udir-load-wrap { text-align: center; margin-top: 44px; }
+  .udir-load-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--white); color: var(--teal-deep);
+    border: 2px solid var(--teal-mid); border-radius: 50px;
+    padding: 14px 40px; font-size: 15px; font-weight: 700;
+    font-family: 'Inter', sans-serif; cursor: pointer;
+    transition: border-color .2s var(--ease), background .2s var(--ease), transform .18s var(--ease);
+  }
+  .udir-load-btn:hover { border-color: var(--teal); background: var(--teal-xlight); transform: translateY(-1px); }
+  .udir-load-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ── Responsive: desktop/laptop 4-up → tablet 2-up → mobile 1-up ─── */
+  @media (max-width: 1180px) {
+    /* still "laptop" territory — 4 columns, just tighter gutter/gap so
+       cards don't get cramped before the tablet breakpoint kicks in */
+    .udir-grid { gap: 26px; }
+    .udir-card { padding: 28px 24px 22px; }
+  }
+  @media (max-width: 960px) {
+    .udir-hero  { padding: 48px 0 36px; }
+    .udir-body  { padding: 24px var(--cu-gutter) 60px; }
+    .udir-grid  { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+  }
+  @media (max-width: 600px) {
+    .udir-search-wrap { flex-direction: column; }
+    .udir-search-btn  { width: 100%; }
+    .udir-grid  { grid-template-columns: 1fr; gap: 16px; }
+    .udir-card  { padding: 22px 20px 18px; }
+    .udir-card-logo { height: 80px; margin-bottom: 16px; }
+    .udir-card-logo-fallback { width: 60px; height: 60px; border-radius: 14px; }
+    .udir-card-name { font-size: 16.5px; }
+  }
+</style>
+
+{# ── Hero ─────────────────────────────────────────────────────────── #}
+<div class="udir-hero">
+  <div class="udir-hero-inner">
+    <span class="section-eyebrow">University Directory</span>
+    <h1 class="section-title">Find Your Perfect University</h1>
+    <p class="section-sub">Every UGC-DEB approved institution, all in one place.</p>
+    <div class="udir-search-wrap">
+      <div class="udir-search-field">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="udirSearch" placeholder="Search by name, city or state…" autocomplete="off" aria-label="Search universities">
+      </div>
+      <button class="udir-search-btn" id="udirSearchBtn" type="button">Search</button>
+    </div>
+  </div>
+</div>
+
+{# ── Filter chips ─────────────────────────────────────────────────── #}
+<div class="udir-filters">
+  <select class="udir-filter-chip" id="udirState" aria-label="Filter by state">
+    <option value="">All States</option>
+    {% for state in filter_states %}
+    <option value="{{ state }}">{{ state }}</option>
+    {% endfor %}
+  </select>
+
+  <select class="udir-filter-chip" id="udirType" aria-label="Filter by university type">
+    <option value="">All Types</option>
+    {% for utype in filter_types %}
+    <option value="{{ utype }}">{{ utype }}</option>
+    {% endfor %}
+  </select>
+
+  <select class="udir-filter-chip" id="udirDegree" aria-label="Filter by degree">
+    <option value="">All Degrees</option>
+    <option value="Bachelor">Bachelor's (UG)</option>
+    <option value="Master">Master's (PG)</option>
+  </select>
+
+  <select class="udir-filter-chip" id="udirFees" aria-label="Filter by fees">
+    <option value="">Any Fee</option>
+    <option value="30000">Under ₹30,000/yr</option>
+    <option value="60000">Under ₹60,000/yr</option>
+    <option value="100000">Under ₹1,00,000/yr</option>
+    <option value="200000">Under ₹2,00,000/yr</option>
+  </select>
+
+  <select class="udir-filter-chip" id="udirNaac" aria-label="Filter by NAAC grade">
+    <option value="">Any NAAC</option>
+    <option value="A++">A++</option>
+    <option value="A+">A+ or higher</option>
+    <option value="A">A or higher</option>
+  </select>
+
+  <button class="udir-clear-chip" id="udirClearBtn" type="button">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    Clear filters
+  </button>
+</div>
+
+{# ── Body ─────────────────────────────────────────────────────────── #}
+<div class="udir-body">
+  <div class="udir-toolbar">
+    <p class="udir-count">
+      <strong id="udirCount">{{ all_universities|length }}</strong> universities
+    </p>
+    <div class="udir-sort">
+      <span class="udir-sort-label">Sort</span>
+      <select class="udir-sort-select" id="udirSort" aria-label="Sort universities">
+        <option value="ranking">By Ranking</option>
+        <option value="name">Name A–Z</option>
+        <option value="courses">Most Courses</option>
+        <option value="fee-asc">Fee: Low to High</option>
+        <option value="fee-desc">Fee: High to Low</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="udir-grid" id="udirGrid">
+    {% for u in all_universities %}
+    <a class="udir-card reveal reveal-stagger" style="--d:{{ [loop.index0 * 40, 600] | min }}ms"
+       href="{{ url_for('main.university_detail', slug=u.slug) }}"
+       data-name="{{ u.name | lower }}"
+       data-state="{{ u.state or '' }}"
+       data-type="{{ u.university_type or '' }}"
+       data-degree="{{ u.degree | join(',') }}"
+       data-fee="{{ u.fee or '' }}"
+       data-naac="{{ u.naac or '' }}"
+       data-nirf="{{ u.nirf or 9999 }}"
+       data-courses="{{ u.programs | length }}">
+
+      <div class="udir-card-logo">
+        {% if u.logo_url or u.logo %}
+          <img src="{{ u.logo_url or u.logo }}" alt="{{ u.name }} logo" loading="lazy">
+        {% else %}
+          <div class="udir-card-logo-fallback" role="img" aria-label="{{ u.name }}">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10L12 5 2 10l10 5 10-5z"></path>
+              <path d="M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5"></path>
+              <path d="M22 10v6"></path>
+            </svg>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="udir-card-divider"></div>
+
+      <div class="udir-card-name">{{ u.name }}</div>
+
+      <div class="udir-card-meta">
+        {% if u.naac %}<span class="udir-card-naac">NAAC {{ u.naac }}</span>{% endif %}
+        {% if u.city or u.state %}
+          <span>{{ u.city }}{% if u.city and u.state %}, {% endif %}{{ u.state }}</span>
+        {% endif %}
+      </div>
+
+      <div class="udir-card-footer">
+        <span class="udir-card-courses">
+          <span class="udir-card-courses-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+          </span>
+          {{ u.programs | length }} Courses
+        </span>
+        <span class="udir-card-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+      </div>
+
+    </a>
+    {% endfor %}
+
+    <div class="udir-empty" id="udirEmpty" style="display:none;">
+      <div class="udir-empty-icon">🔍</div>
+      <h3>No universities match your filters</h3>
+      <p>Try a different search term or adjust the filters above.</p>
+    </div>
+  </div>
+
+  <div class="udir-load-wrap" id="udirLoadWrap" style="display:none;">
+    <button class="udir-load-btn" id="udirLoadBtn" type="button">
+      Load More
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var PER_PAGE = 24;
+  var all = [];
+  var visible = [];
+  var shown = 0;
+
+  var NAAC = {'A++':5,'A+':4,'A':3,'B++':2,'B+':1,'B':0};
+  function naacVal(g){ return NAAC[g] !== undefined ? NAAC[g] : -1; }
+
+  function cards(){ return Array.from(document.querySelectorAll('#udirGrid .udir-card')); }
+
+  function filters(){
+    return {
+      q:      (document.getElementById('udirSearch').value || '').toLowerCase().trim(),
+      state:  document.getElementById('udirState').value,
+      type:   document.getElementById('udirType').value,
+      degree: document.getElementById('udirDegree').value,
+      fees:   document.getElementById('udirFees').value ? Number(document.getElementById('udirFees').value) : null,
+      naac:   document.getElementById('udirNaac').value,
+      sort:   document.getElementById('udirSort').value,
+    };
+  }
+
+  function matches(card, f){
+    var name  = card.dataset.name  || '';
+    var state = (card.dataset.state || '').toLowerCase();
+    if (f.q && name.indexOf(f.q) === -1 && state.indexOf(f.q) === -1) return false;
+    if (f.state  && card.dataset.state  !== f.state)  return false;
+    if (f.type   && card.dataset.type   !== f.type)   return false;
+    if (f.degree && (card.dataset.degree || '').indexOf(f.degree) === -1) return false;
+    if (f.fees !== null) {
+      var fee = parseFloat(card.dataset.fee);
+      if (!fee || fee > f.fees) return false;
+    }
+    if (f.naac) {
+      if (naacVal(card.dataset.naac) < naacVal(f.naac)) return false;
+    }
+    return true;
+  }
+
+  function sorted(list, s){
+    var a = list.slice();
+    if (s === 'name')     a.sort(function(x,y){ return (x.dataset.name||'').localeCompare(y.dataset.name||''); });
+    else if (s === 'courses')  a.sort(function(x,y){ return Number(y.dataset.courses||0)-Number(x.dataset.courses||0); });
+    else if (s === 'fee-asc')  a.sort(function(x,y){ return (parseFloat(x.dataset.fee)||Infinity)-(parseFloat(y.dataset.fee)||Infinity); });
+    else if (s === 'fee-desc') a.sort(function(x,y){ return (parseFloat(y.dataset.fee)||0)-(parseFloat(x.dataset.fee)||0); });
+    else /* ranking */         a.sort(function(x,y){ return Number(x.dataset.nirf||9999)-Number(y.dataset.nirf||9999); });
+    return a;
+  }
+
+  function hasActiveFilter(f){
+    return f.q || f.state || f.type || f.degree || f.fees !== null || f.naac;
+  }
+
+  function run(){
+    var f = filters();
+    all = cards();
+    var matched = all.filter(function(c){ return matches(c, f); });
+    visible = sorted(matched, f.sort);
+
+    var grid = document.getElementById('udirGrid');
+    all.forEach(function(c){ c.style.display = 'none'; });
+
+    shown = Math.min(PER_PAGE, visible.length);
+    visible.forEach(function(c, i){
+      if (i < shown){
+        c.style.display = '';
+        c.classList.add('in-view'); // guarantee visibility — the scroll-reveal
+        // IntersectionObserver in app.js only fires once per element and may
+        // have already run while this card was hidden (display:none), which
+        // would otherwise leave it stuck at opacity:0 forever.
+        grid.appendChild(c);
+      }
+    });
+
+    document.getElementById('udirCount').textContent = visible.length;
+
+    var empty = document.getElementById('udirEmpty');
+    var loadW = document.getElementById('udirLoadWrap');
+    empty.style.display = visible.length === 0 ? '' : 'none';
+    loadW.style.display = visible.length > PER_PAGE ? '' : 'none';
+    document.getElementById('udirLoadBtn').disabled = shown >= visible.length;
+
+    // Clear btn visibility
+    var clearBtn = document.getElementById('udirClearBtn');
+    if (hasActiveFilter(f)) clearBtn.classList.add('visible');
+    else clearBtn.classList.remove('visible');
+
+    // Highlight active filter chips
+    ['udirState','udirType','udirDegree','udirFees','udirNaac'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.classList.toggle('active', !!el.value);
+    });
+  }
+
+  function loadMore(){
+    var grid = document.getElementById('udirGrid');
+    var next = Math.min(shown + PER_PAGE, visible.length);
+    for (var i = shown; i < next; i++){
+      visible[i].style.display = '';
+      visible[i].classList.add('in-view');
+      grid.appendChild(visible[i]);
+    }
+    shown = next;
+    document.getElementById('udirLoadBtn').disabled = shown >= visible.length;
+  }
+
+  function clearAll(){
+    document.getElementById('udirSearch').value = '';
+    ['udirState','udirType','udirDegree','udirFees','udirNaac'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    run();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Wire listeners
+    document.getElementById('udirSearch').addEventListener('input', run);
+    document.getElementById('udirSearchBtn').addEventListener('click', run);
+    document.getElementById('udirSort').addEventListener('change', run);
+    document.getElementById('udirClearBtn').addEventListener('click', clearAll);
+    document.getElementById('udirLoadBtn').addEventListener('click', loadMore);
+    ['udirState','udirType','udirDegree','udirFees','udirNaac'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', run);
+    });
+
+    // Initial render
+    run();
+  });
+})();
+</script>
+{% endblock %}

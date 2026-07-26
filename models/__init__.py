@@ -41,3 +41,6 @@ from .saved import SavedUniversity, SavedProgram
 
 # Phase 7C-2 — user history
 from .history import RecentlyViewed, CompareHistory, BrochureDownload
+
+# Phase 9 — CMS & Content (homepage content + site-wide SEO key/value store)
+from .site_content import SiteContent

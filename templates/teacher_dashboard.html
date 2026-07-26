@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#003da2" />
+<title>Teacher Dashboard — Campus Unlock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/teacher-dashboard.css') }}">
+</head>
+<body class="td-body">
+
+<div class="td-shell">
+
+  {# ── Sidebar ─────────────────────────────────────────────────────── #}
+  <aside class="td-sidebar" id="tdSidebar">
+    <div class="td-brand">
+      <span class="td-brand-name">Campus Unlock</span>
+      <span class="td-brand-sub">Teacher Dashboard</span>
+    </div>
+
+    <nav class="td-nav" aria-label="Dashboard navigation">
+      <a href="#" class="td-nav-item is-active" data-nav="overview">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </span>
+        Overview
+      </a>
+      <a href="#" class="td-nav-item" data-nav="courses">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path></svg>
+        </span>
+        My Courses
+      </a>
+      <a href="#" class="td-nav-item" data-nav="progress">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </span>
+        Student Progress
+      </a>
+      <a href="#" class="td-nav-item" data-nav="assignments">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"></path><rect x="9" y="1" width="6" height="4" rx="1"></rect></svg>
+        </span>
+        Assignments
+      </a>
+      <a href="#" class="td-nav-item" data-nav="communications">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </span>
+        Communications
+      </a>
+      <a href="#" class="td-nav-item" data-nav="schedule">
+        <span class="td-nav-icon" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </span>
+        Schedule
+      </a>
+    </nav>
+  </aside>
+
+  <div class="td-main">
+
+    {# ── Topbar ─────────────────────────────────────────────────────── #}
+    <header class="td-topbar">
+      <button type="button" class="td-menu-toggle" id="tdMenuToggle" aria-label="Toggle navigation" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <label class="td-search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" placeholder="Search courses, students, or resources…" aria-label="Search">
+      </label>
+
+      <div class="td-topbar-actions">
+        <button type="button" class="td-icon-btn" aria-label="Notifications">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </button>
+        <button type="button" class="td-icon-btn" aria-label="Help">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </button>
+        <button type="button" class="td-icon-btn" aria-label="Settings">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <div class="td-profile">
+          <img src="{{ teacher.avatar_url if teacher is defined else 'https://i.pravatar.cc/80?img=13' }}" alt="" class="td-profile-avatar">
+          <span class="td-profile-text">
+            <strong>{{ teacher.name if teacher is defined else 'Prof. Anderson' }}</strong>
+            <small>{{ teacher.role if teacher is defined else 'Head of Marketing' }}</small>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    {# ── Scrollable content ─────────────────────────────────────────── #}
+    <main class="td-content">
+
+      <section class="td-stats" aria-label="Key metrics">
+        <div class="td-stat-card">
+          <span class="td-stat-value">4</span>
+          <span class="td-stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path></svg></span>
+          <span class="td-stat-label">Active Courses</span>
+        </div>
+        <div class="td-stat-card">
+          <span class="td-stat-value">128</span>
+          <span class="td-stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+          <span class="td-stat-label">Total Students</span>
+        </div>
+        <div class="td-stat-card">
+          <span class="td-stat-value">84%</span>
+          <span class="td-stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
+          <span class="td-stat-label">Avg. Attendance</span>
+        </div>
+        <div class="td-stat-card">
+          <span class="td-stat-value td-stat-value--accent">12</span>
+          <span class="td-stat-icon td-stat-icon--accent"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><path d="M12 12v4l2 2"></path></svg></span>
+          <span class="td-stat-label">Pending Reviews</span>
+        </div>
+      </section>
+
+      <div class="td-layout">
+        {# ── Main column ─────────────────────────────────────────────── #}
+        <div class="td-col-main">
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Active Courses</h2>
+              <a href="#" class="td-link">View All Courses</a>
+            </div>
+
+            <div class="td-course-list">
+              {% for course in courses if courses is defined else [
+                {'name':'Advanced Marketing Strategy','icon':'chart','students':42,'semester':2,'progress':72},
+                {'name':'Consumer Behavior','icon':'brain','students':38,'semester':1,'progress':45},
+                {'name':'Digital Media Planning','icon':'target','students':48,'semester':3,'progress':90}
+              ] %}
+              <article class="td-course-card">
+                <div class="td-course-icon td-course-icon--{{ course.icon }}">
+                  {% if course.icon == 'chart' %}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18.7 8 13 13.7l-4-4L3 16"></path></svg>
+                  {% elif course.icon == 'brain' %}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+                  {% else %}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                  {% endif %}
+                </div>
+
+                <div class="td-course-body">
+                  <div class="td-course-top">
+                    <div>
+                      <h3 class="td-course-name">{{ course.name }}</h3>
+                      <p class="td-course-meta">{{ course.students }} Students • Semester {{ course.semester }}</p>
+                    </div>
+                    <span class="td-pill">{{ course.progress }}% PROGRESS</span>
+                  </div>
+
+                  <div class="td-progress-track">
+                    <div class="td-progress-fill" style="width: {{ course.progress }}%"></div>
+                  </div>
+
+                  <div class="td-course-actions">
+                    <a href="#" class="td-course-action td-course-action--primary">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                      Grade
+                    </a>
+                    <a href="#" class="td-course-action">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+                      Attendance
+                    </a>
+                  </div>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Student Performance Trends</h2>
+              <div class="td-chart-controls">
+                <span class="td-legend"><i class="td-dot td-dot--dark"></i>This Semester</span>
+                <span class="td-legend"><i class="td-dot td-dot--light"></i>Last Semester</span>
+                <select class="td-select" aria-label="Date range">
+                  <option>Last 6 Months</option>
+                  <option>Last 3 Months</option>
+                  <option>This Year</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="td-chart-wrap">
+              <svg viewBox="0 0 760 220" class="td-chart-svg" preserveAspectRatio="none" aria-hidden="true">
+                <line x1="0" y1="10" x2="760" y2="10" class="td-chart-grid"></line>
+                <line x1="0" y1="80" x2="760" y2="80" class="td-chart-grid"></line>
+                <line x1="0" y1="150" x2="760" y2="150" class="td-chart-grid"></line>
+                <path d="M0,120 C90,140 130,150 190,130 C260,105 300,55 380,45 C450,37 500,60 570,55 C640,50 700,35 760,30"
+                      class="td-chart-line td-chart-line--light" fill="none"></path>
+                <path d="M0,90 C80,105 140,70 200,75 C270,80 300,25 380,20 C450,16 500,45 570,42 C630,40 700,55 760,45"
+                      class="td-chart-line td-chart-line--dark" fill="none"></path>
+              </svg>
+              <div class="td-chart-axis">
+                <span>AUG</span><span>SEP</span><span>OCT</span><span>NOV</span><span>DEC</span><span>JAN</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Academic Calendar</h2>
+            </div>
+
+            <div class="td-calendar">
+              <div class="td-calendar-head">
+                <span class="td-calendar-month">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  October 2024
+                </span>
+                <span class="td-calendar-nav">
+                  <button type="button" class="td-icon-btn td-icon-btn--sm" aria-label="Previous month">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button type="button" class="td-icon-btn td-icon-btn--sm" aria-label="Next month">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </span>
+              </div>
+
+              <div class="td-calendar-grid td-calendar-dow">
+                <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+              </div>
+              <div class="td-calendar-grid">
+                <span class="td-day td-day--empty"></span><span class="td-day td-day--empty"></span>
+                <span class="td-day">1</span><span class="td-day">2</span><span class="td-day">3</span><span class="td-day">4</span><span class="td-day">5</span>
+                <span class="td-day">6</span><span class="td-day">7</span><span class="td-day">8</span><span class="td-day">9</span><span class="td-day">10</span><span class="td-day">11</span><span class="td-day">12</span>
+                <span class="td-day">13</span><span class="td-day">14</span><span class="td-day">15</span><span class="td-day">16</span><span class="td-day">17</span><span class="td-day">18</span><span class="td-day">19</span>
+                <span class="td-day">20</span><span class="td-day is-today">21</span><span class="td-day">22</span><span class="td-day">23</span><span class="td-day">24</span><span class="td-day">25</span><span class="td-day">26</span>
+                <span class="td-day">27</span><span class="td-day">28</span><span class="td-day">29</span><span class="td-day">30</span><span class="td-day">31</span>
+              </div>
+
+              <div class="td-calendar-legend">
+                <span><i class="td-dot td-dot--outline"></i>Working Days</span>
+                <span><i class="td-dot td-dot--outline-light"></i>Free Periods / Holidays</span>
+                <span><i class="td-dot td-dot--dark"></i>Today</span>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        {# ── Side column ─────────────────────────────────────────────── #}
+        <div class="td-col-side">
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Schedule</h2>
+              <button type="button" class="td-icon-btn td-icon-btn--sm" aria-label="More options">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>
+              </button>
+            </div>
+
+            <ol class="td-timeline">
+              <li class="td-timeline-item is-active">
+                <span class="td-timeline-dot"></span>
+                <span class="td-timeline-time">09:00 AM – 10:30 AM</span>
+                <h4>Advanced Marketing Lecture</h4>
+                <p>Hall B, Main Building</p>
+                <p class="td-timeline-meta">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                  42 Students
+                </p>
+              </li>
+              <li class="td-timeline-item">
+                <span class="td-timeline-dot"></span>
+                <span class="td-timeline-time">11:00 AM – 12:30 PM</span>
+                <h4>Faculty Board Meeting</h4>
+                <p>Conference Room 402</p>
+              </li>
+              <li class="td-timeline-item is-active">
+                <span class="td-timeline-dot"></span>
+                <span class="td-timeline-time">02:00 PM – 04:00 PM</span>
+                <h4>Open Office Hours</h4>
+                <p>Faculty Wing, Office 12A</p>
+                <p class="td-timeline-meta">
+                  <a href="#" class="td-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    5 Bookings
+                  </a>
+                </p>
+              </li>
+            </ol>
+          </section>
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Faculty Updates &amp; Student Queries</h2>
+            </div>
+
+            <div class="td-updates">
+              <div class="td-update-card">
+                <span class="td-update-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"></path><path d="M11.6 16.8a2 2 0 1 1-3.2 2.4"></path></svg>
+                </span>
+                <div>
+                  <div class="td-update-top">
+                    <strong>Faculty Board</strong>
+                    <span class="td-update-time">2h ago</span>
+                  </div>
+                  <p>Mid-term grading deadline extended to October 28th. Please review the updated syllabus guidelines.</p>
+                </div>
+              </div>
+
+              <div class="td-query-card">
+                <img src="https://i.pravatar.cc/64?img=47" alt="" class="td-query-avatar">
+                <div class="td-query-body">
+                  <div class="td-update-top">
+                    <strong>Sarah Jenkins <span class="td-muted">(Student)</span></strong>
+                    <span class="td-query-tag">NEW QUERY</span>
+                  </div>
+                  <p>Professor, can you clarify the case study requirements for the Digital Media project? Thanks!</p>
+                  <a href="#" class="td-link">Reply Now</a>
+                </div>
+              </div>
+            </div>
+
+            <a href="#" class="td-panel-footer-link">View All Notifications</a>
+          </section>
+
+          <section class="td-panel">
+            <div class="td-panel-head">
+              <h2>Leave Requests</h2>
+              <button type="button" class="td-btn-primary td-btn-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                New Request
+              </button>
+            </div>
+
+            <table class="td-table">
+              <thead>
+                <tr><th>Type</th><th>Dates</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <span class="td-table-icon td-table-icon--danger">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    </span>
+                    Sick Leave
+                  </td>
+                  <td>Oct 24 – Oct 25</td>
+                  <td><span class="td-status td-status--pending">PENDING</span></td>
+                  <td class="td-table-menu">⋮</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="td-table-icon td-table-icon--accent">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </span>
+                    Personal Leave
+                  </td>
+                  <td>Oct 12, 2024</td>
+                  <td><span class="td-status td-status--approved">APPROVED</span></td>
+                  <td class="td-table-menu">⋮</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="td-table-icon td-table-icon--teal">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.4.6c-.4.6-.2 1.4.4 1.8L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.6 5.6c.4.6 1.2.8 1.8.4l.6-.4c.4-.3.6-.8.5-1.3z"></path></svg>
+                    </span>
+                    Conference
+                  </td>
+                  <td>Sep 15 – Sep 18</td>
+                  <td><span class="td-status td-status--approved">APPROVED</span></td>
+                  <td class="td-table-menu">⋮</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <a href="#" class="td-panel-footer-link">View History</a>
+          </section>
+
+        </div>
+      </div>
+    </main>
+
+    <footer class="td-footer">
+      <span>Campus Unlock <span class="td-muted">© 2026 Campus Unlock. All rights reserved.</span></span>
+      <span class="td-footer-links">
+        <a href="#">Support</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </span>
+    </footer>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/teacher-dashboard.js') }}"></script>
+</body>
+</html>

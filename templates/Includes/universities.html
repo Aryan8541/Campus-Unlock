@@ -1,24 +1,79 @@
-{# NOTE: the <style> block below only ADDS new rules (.uni-banner-img,
-   .uni-banner::after) and enlarges .uni-banner's height so a photo has
-   room to show. It doesn't remove or override any existing theme colors
-   — it's scoped to this one feature so style.css itself stays untouched. #}
+{# ============================================================================
+   Featured Universities — Homepage section (top 10 only).
+   Full directory lives at /universities.
+   Every new class below is prefixed uc- and used ONLY inside this card, so
+   nothing here touches .uni-avatar/.uni-name/.action-btn/etc. — those class
+   names are still shared with the unrelated search-results card rendered by
+   app.js, which is untouched by this redesign. Scoped <style> block follows
+   this file's existing convention: additive only, style.css itself is not
+   edited for these rules.
+   ============================================================================ #}
 <style>
-  /* Bigger grid, matching programs.html sizing */
-  .uni-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+  .uni-grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; }
 
-  .uni-banner { height: 190px; position: relative; overflow: hidden; }
-  .uni-banner-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
-  .uni-banner::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(15,23,42,0.05) 0%, rgba(15,23,42,0.6) 100%); pointer-events: none; }
-  .uni-banner-badges, .uni-banner .uni-rating-badge { position: relative; z-index: 2; }
+  .uni-card { padding: 26px 24px 26px; display: flex; flex-direction: column; height: 100%; }
+  .uni-card .uni-avatar { width: 60px; height: 60px; border-radius: 14px; }
 
-  /* Fix: the old -24px pull-up on .uni-top was designed for the thin
-     64px gradient strip and dragged the name text up into the photo now
-     that the banner is taller. Instead: .uni-top stays in normal flow
-     below the photo (name always fully readable in white space), and
-     only the avatar circle is nudged up via relative positioning (which
-     doesn't affect its siblings) so it still "peeks" over the photo edge. */
-  .uni-top { margin-top: 16px; }
-  .uni-avatar { position: relative; top: -34px; margin-bottom: -34px; z-index: 3; }
+  .uc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+  .uc-quick { display: flex; gap: 8px; }
+  .uc-icon-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border-teal);
+    background: var(--teal-xlight); color: var(--teal-deep); display: flex; align-items: center;
+    justify-content: center; cursor: pointer; transition: background .18s var(--ease), transform .15s var(--ease);
+  }
+  .uc-icon-btn:hover { background: var(--teal-light); transform: translateY(-1px); }
+  .uc-icon-btn.is-active { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .uc-icon-btn svg { flex-shrink: 0; }
+
+  .uc-name {
+    font-size: 21px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; line-height: 1.3; margin-bottom: 10px;
+    min-height: 2.6em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .uc-meta {
+    display: flex; align-items: center; flex-wrap: nowrap; gap: 14px; font-size: 14px; color: var(--muted); font-weight: 600; margin-bottom: 24px;
+    min-height: 18px; overflow: hidden;
+  }
+  .uc-rating { display: inline-flex; align-items: center; gap: 5px; color: #b45309; font-weight: 800; flex-shrink: 0; }
+  .uc-loc { display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .uc-loc svg, .uc-rating svg { flex-shrink: 0; }
+
+  .uc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+  .uc-stat { background: var(--bg); border: 1px solid var(--border-teal); border-radius: 12px; padding: 14px 16px; }
+  .uc-stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 5px; }
+  .uc-stat-value { font-size: 17px; font-weight: 800; color: var(--teal-deep); letter-spacing: -.2px; }
+
+  .uc-actions { display: flex; gap: 12px; margin-top: auto; }
+  .uc-btn {
+    flex: 1; text-align: center; border-radius: 12px; padding: 14px 16px; font-size: 14.5px; font-weight: 700;
+    font-family: 'Inter', sans-serif; cursor: pointer; border: none; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+  }
+  .uc-btn-outline { background: var(--white); color: var(--teal-deep); border: 1.5px solid var(--teal-mid); }
+  .uc-btn-outline:hover { background: var(--teal-xlight); transform: translateY(-2px); }
+  .uc-btn-solid { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.28); }
+  .uc-btn-solid:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(37,99,235,0.4); }
+
+  /* View All button */
+  .uni-view-all-wrap { text-align: center; margin-top: 52px; }
+  .uni-view-all-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--white); color: var(--teal-deep);
+    border: 2px solid var(--teal-mid); border-radius: 50px;
+    padding: 16px 40px; font-size: 16px; font-weight: 700;
+    font-family: 'Inter', sans-serif; text-decoration: none; cursor: pointer;
+    transition: border-color .2s var(--ease), background .2s var(--ease), transform .18s var(--ease), box-shadow .2s var(--ease);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.07);
+  }
+  .uni-view-all-btn:hover {
+    border-color: var(--teal); background: var(--teal-xlight);
+    transform: translateY(-2px); box-shadow: 0 8px 22px rgba(37,99,235,0.15);
+  }
+  .uni-view-all-btn svg { transition: transform .2s var(--ease); }
+  .uni-view-all-btn:hover svg { transform: translateX(3px); }
+
+  @media (max-width: 420px) { .uc-actions { flex-direction: column; } }
 </style>
 
 <section id="universities">
@@ -30,61 +85,72 @@
       {% if top_universities %}
         {% for university in top_universities %}
         <div class="uni-card reveal reveal-stagger" style="--d:{{ loop.index0 * 60 }}ms" data-id="{{ university.id }}" data-slug="{{ university.slug }}">
-          <div class="uni-banner">
-            {# TEMP placeholder via picsum.photos when university.banner isn't
-               set in the DB yet — seeded per university.id for a stable,
-               distinct photo per card. Swap for a real campus photo later
-               (recommended 800×280, ~2.85:1) and this will prefer
-               university.banner automatically. #}
-            <img
-              class="uni-banner-img"
-              src="{{ university.banner or ('https://picsum.photos/seed/uni' ~ university.id ~ '/800/280') }}"
-              alt="{{ university.name }}"
-              loading="lazy">
-            <div class="uni-banner-badges">
-              <span class="uni-badge uni-badge-ugc">UGC-DEB</span>
-              {% if university.naac %}<span class="uni-badge uni-badge-naac">NAAC {{ university.naac }}</span>{% endif %}
+
+          <div class="uc-top">
+            <div class="uni-avatar">
+              {% if university.logo_url or university.logo %}<img src="{{ university.logo_url or university.logo }}" alt="{{ university.name }} logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">{% else %}{{ university.avatar }}{% endif %}
             </div>
+            <div class="uc-quick">
+              <button class="uc-icon-btn" data-compare="{{ university.id }}" aria-label="Add {{ university.name }} to compare" title="Compare">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="21" y1="3" x2="12" y2="12"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="3" y1="21" x2="12" y2="12"></line></svg>
+              </button>
+              <button class="uc-icon-btn" data-fav="{{ university.id }}" aria-label="Save {{ university.name }}" title="Save">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="uc-name">{{ university.name }}</div>
+          <div class="uc-meta">
             {% if university.rating %}
-            <span class="uni-rating-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>{{ '%.1f'|format(university.rating) }}</span>
+            <span class="uc-rating">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+              {{ '%.1f'|format(university.rating) }}
+            </span>
+            {% endif %}
+            {% if university.naac %}
+            <span class="uc-rating" style="color:var(--teal-deep);">NAAC {{ university.naac }}</span>
+            {% endif %}
+            {% if university.city or university.state %}
+            <span class="uc-loc">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              {{ university.city }}{% if university.city and university.state %}, {% endif %}{{ university.state }}
+            </span>
             {% endif %}
           </div>
-          <div class="uni-top">
-            <div class="uni-avatar">{% if university.logo %}<img src="{{ university.logo }}" alt="{{ university.name }} logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">{% else %}{{ university.avatar }}{% endif %}</div>
-            <div><div class="uni-name">{{ university.name }}</div><div class="uni-naac">{{ university.naac or 'Accreditation pending' }}{% if university.nirf %} · NIRF #{{ university.nirf }}{% endif %}</div></div>
-          </div>
-          <div class="uni-chips">
-            {% for name in university.programs[:4] %}<span class="uni-chip">{{ name.replace('Online ', '') }}</span>{% endfor %}
-          </div>
-          <div class="uni-meta-row">
-            <div class="uni-fee">{% if university.fee %}From ₹{{ '{:,.0f}'.format(university.fee) }}/yr{% else %}Fees on request{% endif %}</div>
-            {% if university.placement %}
-            <div class="uni-placement">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18.7 8l-5.1 5.1-4-4L3 15.5"></path></svg>
-              {{ university.placement }}% Placement
+
+          <div class="uc-stats">
+            <div class="uc-stat">
+              <div class="uc-stat-label">Starting Fee</div>
+              <div class="uc-stat-value">{% if university.fee %}₹{{ '{:,.0f}'.format(university.fee) }}/yr{% else %}On request{% endif %}</div>
             </div>
-            {% endif %}
+            <div class="uc-stat">
+              <div class="uc-stat-label">Courses</div>
+              <div class="uc-stat-value">{{ university.programs|length }}</div>
+            </div>
           </div>
-          <div class="result-actions uni-actions" style="margin-top:12px;">
-            <button class="action-btn action-light uni-icon-btn" data-compare="{{ university.id }}" aria-label="Add {{ university.name }} to compare" title="Compare">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="21" y1="3" x2="12" y2="12"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="3" y1="21" x2="12" y2="12"></line></svg>
-              Compare
+
+          <div class="uc-actions">
+            <button class="uc-btn uc-btn-outline" data-brochure="{{ university.id }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Brochure
             </button>
-            <button class="action-btn action-light uni-icon-btn" data-fav="{{ university.id }}" aria-label="Save {{ university.name }}" title="Save">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              Save
-            </button>
-            <button class="action-btn action-apply"
-              data-apply-uni="{{ university.name }}"
-              data-apply-program="{{ university.programs[0] if university.programs else '' }}">
-              Apply Now
-            </button>
+            <a class="uc-btn uc-btn-solid" href="{{ url_for('main.university_detail', slug=university.slug) }}">View University</a>
           </div>
+
         </div>
         {% endfor %}
       {% else %}
         <div class="tool-result">No universities available yet. Please check back soon.</div>
       {% endif %}
+    </div>
+
+    {# View All Universities button — links to the full /universities directory #}
+    <div class="uni-view-all-wrap reveal">
+      <a href="{{ url_for('main.universities') }}" class="uni-view-all-btn">
+        View All Universities
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </a>
     </div>
   </div>
 </section>

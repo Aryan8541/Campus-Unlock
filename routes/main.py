@@ -38,6 +38,7 @@ from flask import (
 from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import joinedload
 
+from data.mentors import MENTORS
 from models import (
     University,
     Program,
@@ -46,6 +47,7 @@ from models import (
     Scholarship,
     FAQ,
     PlacementPartner,
+    SiteContent,
     db,
 )
 from models.lead import Lead
@@ -60,6 +62,12 @@ main_bp = Blueprint("main", __name__)
 # ---------------------------------------------------------------------------
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MIN_PASSWORD_LENGTH = 8
+
+# Roles a user can grant themselves at signup. Admin is deliberately not in
+# this set — even if a tampered request sends role=admin, register() below
+# clamps anything outside this set back to "student" rather than trusting
+# it. Admin can only ever be granted from the backend.
+SELF_SERVE_ROLES = {"student", "teacher"}
 
 
 def _digits_only(value):
@@ -109,11 +117,71 @@ def admin_required(view):
 
         if not user.is_admin_role():
             flash("You do not have permission to access that page.", "error")
-            return redirect(url_for("main.dashboard"))
+            return redirect(_dashboard_url_for(user))
 
         return view(*args, **kwargs)
 
     return wrapped
+
+
+# ---------------------------------------------------------------------------
+# Phase 8B — Role-based routing (generalized)
+# ---------------------------------------------------------------------------
+# Single source of truth mapping a User.role value to the endpoint that
+# role lands on after login. login() and role_required() both read from
+# this instead of hardcoding an if/elif chain, so adding a new role
+# (Counselor, University Representative, ...) is a two-step change:
+#   1. add "counselor": "main.counselor_dashboard" here
+#   2. add the @role_required("counselor") route it points to
+# Nothing else in the auth flow needs to change.
+ROLE_DASHBOARD_ENDPOINTS = {
+    "admin": "admin.dashboard",
+    "teacher": "main.teacher_dashboard",
+    "student": "main.dashboard",
+}
+_DEFAULT_DASHBOARD_ENDPOINT = "main.dashboard"
+
+
+def _dashboard_url_for(user):
+    """Resolve the correct dashboard URL for a user's role, falling back
+    to the student dashboard for any role not yet in the map above."""
+    endpoint = ROLE_DASHBOARD_ENDPOINTS.get(user.role, _DEFAULT_DASHBOARD_ENDPOINT)
+    return url_for(endpoint)
+
+
+def role_required(*roles):
+    """
+    Generic version of admin_required for any role (or set of roles).
+    Usage: @role_required("teacher") or @role_required("teacher", "admin").
+
+    Same two-step gate as admin_required — must be logged in, then must
+    hold one of the allowed roles — so every dashboard gets identical
+    unauthorized-access handling regardless of which role it belongs to.
+    """
+
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            user_id = session.get("user_id")
+            if not user_id:
+                flash("Please log in to continue.", "error")
+                return redirect(url_for("main.login", next=request.path))
+
+            user = User.query.get(user_id)
+            if user is None or not user.is_active:
+                session.pop("user_id", None)
+                flash("Please log in to continue.", "error")
+                return redirect(url_for("main.login", next=request.path))
+
+            if user.role not in roles:
+                flash("You do not have permission to access that page.", "error")
+                return redirect(_dashboard_url_for(user))
+
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
 
 _COMING_SOON_TEMPLATE = """
 <!DOCTYPE html>
@@ -178,6 +246,7 @@ def _serialize_program(program):
         "id": str(program.id),
         "name": program.title,
         "title": program.title,
+        "slug": program.slug,
         "category": category_name,
         "specialization": specialization_name,
         "university": university_name,
@@ -222,7 +291,7 @@ def _serialize_university(university, active_programs):
         "id": str(university.id),
         "slug": university.slug,
         "name": university.name,
-        "logo": university.logo,
+        "logo": university.logo_url or university.logo,
         "naac": university.accreditation,
         "nirf": university.ranking,
         "rating": None,
@@ -237,6 +306,11 @@ def _serialize_university(university, active_programs):
         "specs": specs,
         "degree": degrees,
         "avatar": _avatar_initials(university.name),
+        # --- fields added for university directory page ---
+        "university_type": university.university_type,
+        "ugc_approved": bool(university.ugc_approved),
+        "aicte_approved": bool(university.aicte_approved),
+        "wes_approved": bool(university.wes_approved),
     }
 
 
@@ -267,10 +341,11 @@ def _load_campus_data():
         for p in university_programs[uni.id]
     ]
 
+    # Top 10 by NIRF ranking for the homepage featured section
     top_universities = sorted(
         serialized_universities,
         key=lambda u: (u["nirf"] is None, u["nirf"] if u["nirf"] is not None else 0),
-    )[:6]
+    )[:10]
 
     featured_programs = [p for p in serialized_programs if p["is_featured"]]
     if not featured_programs:
@@ -831,6 +906,13 @@ def index():
     scholarships = _load_global_scholarships(limit=3)
     stats = _compute_stats()
 
+    # Phase 9 — CMS & Content: admin-editable homepage stats + SEO overrides.
+    # Falls back to the template's hardcoded defaults when a key is unset.
+    site_content = SiteContent.get_many([
+        "stat_students", "stat_universities", "stat_admission_pct",
+        "homepage_seo_title", "homepage_seo_description",
+    ])
+
     return render_template(
         "index.html",
         top_universities=data["top_universities"],
@@ -838,6 +920,8 @@ def index():
         campus_data=data["campus_data"],
         scholarships=scholarships,
         stats=stats,
+        site_content=site_content,
+        mentors=MENTORS,
     )
 
 
@@ -948,6 +1032,11 @@ def contact():
     return _coming_soon("Contact")
 
 
+@main_bp.route("/forgot-password")
+def forgot_password():
+    return _coming_soon("Forgot Password")
+
+
 @main_bp.route("/programs")
 def programs():
     return _coming_soon("Programs")
@@ -955,7 +1044,40 @@ def programs():
 
 @main_bp.route("/universities")
 def universities():
-    return _coming_soon("Universities")
+    """
+    University Directory — /universities
+
+    Renders every active university so visitors can search, filter,
+    and browse the full catalogue. Reuses _load_campus_data() so the
+    same eager-loaded query that powers the homepage also powers this
+    page — no duplicate DB round-trips.
+
+    Template variables
+    ------------------
+    all_universities  — list of ALL serialised university dicts (for JS filtering)
+    filter_states     — sorted distinct state values (for the State <select>)
+    filter_cities     — sorted distinct city values  (for the City  <select>)
+    filter_types      — sorted distinct university_type values
+    campus_data       — full JSON payload so app.js compare/save state works
+    """
+    data = _load_campus_data()
+    all_universities = sorted(
+        data["campus_data"]["universities"],
+        key=lambda u: (u["nirf"] is None, u["nirf"] if u["nirf"] is not None else 0),
+    )
+
+    filter_states = sorted({u["state"] for u in all_universities if u["state"]})
+    filter_cities = sorted({u["city"]  for u in all_universities if u["city"]})
+    filter_types  = sorted({u["university_type"] for u in all_universities if u.get("university_type")})
+
+    return render_template(
+        "university_directory.html",
+        all_universities=all_universities,
+        filter_states=filter_states,
+        filter_cities=filter_cities,
+        filter_types=filter_types,
+        campus_data=data["campus_data"],
+    )
 
 
 @main_bp.route("/blog")
@@ -1475,6 +1597,14 @@ def register():
         password = request.form.get("password") or ""
         confirm_password = request.form.get("confirm_password") or ""
 
+        # Clamp rather than trust: anything that isn't "student" or
+        # "teacher" (missing field, or a tampered value like "admin")
+        # silently falls back to "student" instead of erroring — self-serve
+        # signup is never allowed to grant admin.
+        role = (request.form.get("role") or "").strip().lower()
+        if role not in SELF_SERVE_ROLES:
+            role = "student"
+
         errors = []
 
         if len(full_name) < 2:
@@ -1507,10 +1637,12 @@ def register():
                 flash(message, "error")
             return (
                 render_template(
-                    "register.html",
+                    "auth.html",
+                    mode="register",
                     full_name=full_name,
                     email=email,
                     mobile=mobile,
+                    role=role,
                 ),
                 400,
             )
@@ -1519,6 +1651,7 @@ def register():
             full_name=full_name,
             email=email,
             mobile=mobile,
+            role=role,
             is_verified=False,
             is_admin=False,
             is_active=True,
@@ -1533,10 +1666,12 @@ def register():
             flash("Could not create your account. Please try again.", "error")
             return (
                 render_template(
-                    "register.html",
+                    "auth.html",
+                    mode="register",
                     full_name=full_name,
                     email=email,
                     mobile=mobile,
+                    role=role,
                 ),
                 500,
             )
@@ -1546,7 +1681,7 @@ def register():
         flash("Welcome to Campus Unlock! Your account has been created.", "success")
         return redirect(url_for("main.index"))
 
-    return render_template("register.html")
+    return render_template("auth.html", mode="register")
 
 
 @main_bp.route("/login", methods=["GET", "POST"])
@@ -1562,14 +1697,14 @@ def login():
 
         if not user or not user.check_password(password):
             flash("Invalid email or password.", "error")
-            return render_template("login.html", email=email), 401
+            return render_template("auth.html", mode="login", email=email), 401
 
         if not user.is_active:
             flash(
                 "This account has been deactivated. Please contact support.",
                 "error",
             )
-            return render_template("login.html", email=email), 403
+            return render_template("auth.html", mode="login", email=email), 403
 
         session.clear()
         session["user_id"] = user.id
@@ -1582,18 +1717,17 @@ def login():
 
         flash(f"Welcome back, {user.full_name.split(' ')[0]}!", "success")
 
-        # Phase 8A: role-based landing. An explicit ?next= (e.g. from
-        # login_required/admin_required bouncing an anonymous visit)
-        # still wins, preserving existing redirect-back behavior.
+        # Phase 8A/8B: role-based landing, driven by ROLE_DASHBOARD_ENDPOINTS
+        # so new roles never need a new branch here. An explicit ?next=
+        # (e.g. from login_required/role_required bouncing an anonymous
+        # visit) still wins, preserving existing redirect-back behavior.
         next_url = request.args.get("next")
         if next_url:
             return redirect(next_url)
 
-        if user.is_admin_role():
-            return redirect(url_for("admin.dashboard"))
-        return redirect(url_for("main.dashboard"))
+        return redirect(_dashboard_url_for(user))
 
-    return render_template("login.html")
+    return render_template("auth.html", mode="login")
 
 
 @main_bp.route("/profile")
@@ -1614,6 +1748,21 @@ def logout():
 
 
 # ---------------------------------------------------------------------------
+# Teacher Dashboard
+# ---------------------------------------------------------------------------
+# Phase 8B: role + route are fully wired (gated by role_required, reachable
+# automatically from login()'s role-based redirect) so a teacher account
+# never lands on a 404. The page itself is a placeholder pending the real
+# teacher dashboard UI — same pattern already used elsewhere in this app
+# (_coming_soon) for routes that are live and protected but not yet
+# designed, so nothing here front-runs a UI that hasn't been scoped.
+@main_bp.route("/teacher/dashboard")
+@role_required("teacher")
+def teacher_dashboard():
+    return _coming_soon("Teacher Dashboard")
+
+
+# ---------------------------------------------------------------------------
 # Student Dashboard
 # ---------------------------------------------------------------------------
 # Read-only profile summary + "My Enquiries" (the logged-in user's own Lead
@@ -1628,7 +1777,7 @@ def logout():
 
 
 @main_bp.route("/dashboard")
-@login_required
+@role_required("student")
 def dashboard():
     """
     Student dashboard: profile summary, enquiry history, and the
