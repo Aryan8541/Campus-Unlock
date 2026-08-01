@@ -656,12 +656,14 @@
     .nav-link-auth-primary { margin-top: 2px; }
     .nav-cta { margin-top: 8px; margin-left: 0; text-align: center; justify-content: center; }
     .hamburger { display: block; }
-    .hero-inner { grid-template-columns: 1fr; gap: 48px; }
-    .hero-right-wrap { order: -1; }
+    .hero-inner { grid-template-columns: 1fr; gap: 44px; }
+    .hero-right-wrap { order: -1; width: 100%; max-width: 440px; margin: 0 auto; padding-top: 44px; padding-bottom: 38px; }
     .hero-illustration { display: none; }
-    .hero-float-card--top { top: -6px; left: -6px; }
-    .hero-float-card--bottom { bottom: -8px; right: -6px; }
+    .hero-float-card--top { top: 0; left: 50%; right: auto; transform: translateX(-50%); }
+    .hero-float-card--bottom { bottom: 0; left: 50%; right: auto; transform: translateX(-50%); }
     .hero-search { max-width: 100%; }
+    .course-item > div:not(.ci-icon):not(.ci-badge) { min-width: 0; flex: 1 1 auto; }
+    .ci-name, .ci-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .float-actions { left: 12px; bottom: 16px; gap: 8px; }
     .float-btn { width: 46px; height: 46px; }
     .uni-grid, .feat-grid, .testi-grid { grid-template-columns: 1fr; }
@@ -709,14 +711,17 @@
     .stat-icon { width: 36px; height: 36px; }
     .steps-grid { grid-template-columns: 1fr; }
     .steps-grid::before { display: none; }
-    .hero { padding: 40px 20px 64px; }
+    .hero { padding: 36px 20px 40px; }
     .hero h1 { font-size: 30px; }
     .hero-btns { flex-direction: column; align-items: stretch; }
     .hero-btns button { width: 100%; }
-    .hero-float-card { padding: 10px 12px; gap: 8px; }
-    .hero-float-card--top { top: -10px; left: -6px; }
-    .hero-float-card--bottom { bottom: -12px; right: -6px; }
-    .hfc-label { display: none; }
+    .hero-right-wrap { max-width: 100%; padding-top: 38px; padding-bottom: 32px; }
+    .hero-right { padding: 20px 18px; }
+    .hero-float-card { padding: 8px 12px; gap: 7px; max-width: calc(100% - 24px); }
+    .hero-float-card--top { top: 0; }
+    .hero-float-card--bottom { bottom: 0; }
+    .hero-float-card .stat-num { font-size: 15px; }
+    .hfc-label { display: block; font-size: 9.5px; }
     .section { padding: 64px 20px; }
     #progGrid.prog-grid .prog-card { flex-basis: 86%; }
     .float-btn { width: 48px; height: 48px; font-size: 20px; }
@@ -1101,9 +1106,14 @@ header.scrolled nav {
 /* ── Hero — premium background + layout ─────────────────────────────────── */
 .hero {
   background: var(--cu-surface);
-  padding: 56px 32px 96px;
   position: relative;
   overflow: hidden;
+}
+/* Desktop-only padding — was unconditional before, which silently
+   overrode every mobile/tablet .hero padding rule declared earlier in
+   this file (later same-specificity rules always win the cascade). */
+@media (min-width: 961px) {
+  .hero { padding: 56px 32px 96px; }
 }
 
 /* Replace the old ::before / ::after blobs with named elements so we
@@ -1147,9 +1157,12 @@ header.scrolled nav {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 64px;
   align-items: center;
+  /* grid-template-columns and gap intentionally NOT re-declared here —
+     they were unconditionally overriding the mobile/tablet single-column
+     layout set in the @media (max-width: 960px) block above, since this
+     rule runs later in the file. Desktop values are already set by the
+     original .hero-inner rule earlier in this file. */
 }
 
 /* Rename "left div" — the h1/p are already inside a plain <div>; hero.html
@@ -1345,20 +1358,25 @@ header.scrolled nav {
     0 1px 4px rgba(0,61,162,0.06);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  padding: 12px 18px;
 }
 .hero-float-card .stat-num {
   font-family: 'Manrope', 'Inter', sans-serif;
-  font-size: 17px;
   font-weight: 800;
   color: var(--cu-primary);
   letter-spacing: -0.4px;
 }
 .hfc-label {
   font-family: 'Hanken Grotesk', 'Inter', sans-serif;
-  font-size: 10.5px;
   color: var(--cu-outline);
   font-weight: 600;
+}
+/* Desktop-only sizing — padding/font-size here were unconditional
+   before and silently overrode the mobile/tablet float-card rules
+   declared earlier in this file. */
+@media (min-width: 961px) {
+  .hero-float-card { padding: 12px 18px; }
+  .hero-float-card .stat-num { font-size: 17px; }
+  .hfc-label { font-size: 10.5px; }
 }
 
 /* ── Program card (hero-right) ───────────────────────────────────────────── */
@@ -1369,7 +1387,9 @@ header.scrolled nav {
   box-shadow:
     0 8px 32px rgba(0,61,162,0.1),
     0 1px 4px rgba(0,61,162,0.04);
-  padding: 24px 26px;
+}
+@media (min-width: 961px) {
+  .hero-right { padding: 24px 26px; }
 }
 .hero-right-title {
   font-family: 'Hanken Grotesk', 'Inter', sans-serif;
