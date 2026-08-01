@@ -82,7 +82,7 @@ EXISTING_UNIVERSITY_DEFS = [
         "accreditation": "NAAC A++",
         "established_year": 2012,
         "description": "LPU's online division, offering a wide catalogue of UGC-approved undergraduate and postgraduate programs.",
-        "logo_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lovely_Professional_University_Official_Logo.png",
+        "logo_url": "/static/images/logo/LPU_University.jpg",
     },
     {
         "name": "Jain Online (Deemed-to-be University)",

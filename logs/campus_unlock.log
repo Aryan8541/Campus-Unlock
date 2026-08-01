@@ -1358,14 +1358,14 @@ Traceback (most recent call last):
     {% block content %}{% endblock %}
     ^^^^^^^^^^^^^^^^^^^^^^^^^
   File "D:\Project\Campus Unlock\templates\index.html", line 19, in block 'content'
-    {% include 'includes/mentors.html' %}
+    {% Include 'Includes/mentors.html' %}
     ^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\DELL\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 65, in get_source
     return self._get_source_fast(environment, template)
            ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\DELL\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\templating.py", line 99, in _get_source_fast
     raise TemplateNotFound(template)
-jinja2.exceptions.TemplateNotFound: includes/mentors.html
+jinja2.exceptions.TemplateNotFound: Includes/mentors.html
 [2026-07-24 22:39:54,396] INFO in app: Campus Unlock application initialized successfully.
 [2026-07-24 22:40:03,499] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 [2026-07-24 23:02:23,577] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
@@ -1419,3 +1419,47 @@ jinja2.exceptions.TemplateNotFound: includes/mentors.html
 [2026-07-26 12:23:51,336] INFO in app: Campus Unlock application initialized successfully.
 [2026-07-26 12:40:43,651] INFO in app: Campus Unlock application initialized successfully.
 [2026-07-26 12:41:02,476] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 17:27:33,035] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:28:43,264] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:28:49,916] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:29:05,056] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:29:27,476] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 17:47:30,148] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:52:10,987] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 17:59:21,079] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 19:53:14,213] INFO in APP: Campus Unlock application initialized successfully.
+[2026-07-26 19:53:38,208] WARNING in APP: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 20:03:25,170] INFO in APP: Campus Unlock application initialized successfully.
+[2026-07-26 20:03:58,899] WARNING in APP: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 20:18:57,313] INFO in APP: Campus Unlock application initialized successfully.
+[2026-07-26 20:19:30,679] WARNING in APP: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 20:43:26,420] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 21:17:31,115] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 21:20:04,470] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 21:23:47,734] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 21:24:07,595] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-26 21:24:15,126] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 21:28:41,681] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-26 21:28:53,827] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 14:44:23,435] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 14:44:38,892] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-27 19:59:36,576] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:17:46,619] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:23:54,423] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:27:24,371] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:27:46,330] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:27:56,304] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-27 21:55:36,367] INFO in app: Campus Unlock application initialized successfully.
+[2026-07-27 21:55:42,075] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-27 21:57:31,782] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-07-27 21:57:49,117] INFO in app: Campus Unlock application initialized successfully.
+[2026-08-01 19:45:08,162] INFO in app: Campus Unlock application initialized successfully.
+[2026-08-01 19:45:13,476] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 19:45:16,837] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 19:48:20,980] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 19:48:23,730] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 19:48:33,102] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 19:49:14,918] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 20:54:09,057] INFO in app: Campus Unlock application initialized successfully.
+[2026-08-01 20:54:13,893] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+[2026-08-01 20:54:15,253] WARNING in app: 404 Not Found: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.

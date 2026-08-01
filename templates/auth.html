@@ -4,316 +4,644 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="{% if mode == 'register' %}Apply for access to Campus Unlock — create your account to compare UGC-DEB approved online universities, save shortlists and track applications.{% else %}Log in to your Campus Unlock account to view saved universities and manage your applications.{% endif %}">
-  <meta name="theme-color" content="#003da2" />
+  <meta name="theme-color" content="#2563EB" />
   <title>{% if mode == 'register' %}Apply for Access | Campus Unlock{% else %}Log In | Campus Unlock{% endif %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <style>
-    /* ── Layout-level rules only — everything else (auth-tabs, auth-input-*,
-       auth-role-btn, the login/register card animation) lives in style.css
-       alongside the rest of the auth styling. Kept here because these are
-       specific to this page's shell, same convention as the old login.html. ── */
+    /* ==========================================================================
+       auth.html — the ONE template rendered by both main.login() and
+       main.register() (see routes/main.py: render_template("auth.html",
+       mode=...)). Premium split-screen redesign, self-contained: defines
+       its own tokens/components rather than the marketing site's classes,
+       so nothing here can drift the rest of the site, and nothing on the
+       rest of the site can break this page.
+       ========================================================================== */
 
-    /* Fixed background — position:fixed is immune to style.css resets, and
-       because this is now the ONE auth page (no second page underneath a
-       modal), the page simply never has anything to scroll behind it. */
-    .auth-bg {
-      position: fixed;
-      inset: 0;
-      background: var(--bg, #f4f6fb);
-      background-image:
-        radial-gradient(circle at 18% 20%, rgba(0,61,162,.07) 0%, transparent 48%),
-        radial-gradient(circle at 82% 80%, rgba(0,180,160,.07) 0%, transparent 48%);
-      z-index: 0;
+    :root {
+      --cu-blue: #2563EB;
+      --cu-blue-hover: #1D4FD1;
+      --cu-navy: #1E3A8A;
+      --cu-bg: #FFFFFF;
+      --cu-bg-light: #F8FAFC;
+      --cu-text: #0F172A;
+      --cu-text2: #475569;
+      --cu-border: #E5E7EB;
+      --cu-blue-tint: #EEF3FF;
+      --cu-danger: #DC2626;
+      --cu-success: #16A34A;
+      --cu-radius: 14px;
+      --cu-ease: cubic-bezier(.4, 0, .2, 1);
     }
 
-    /* ── Scrollable foreground — sits above fixed bg ─────────────────── */
-    .auth-wrap {
-      position: relative;
-      z-index: 1;
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--cu-bg);
+      color: var(--cu-text);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: inherit; }
+
+    h1, h2, .cu-display {
+      font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .cu-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 46%) minmax(0, 54%);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 48px 16px 48px;
-      box-sizing: border-box;
     }
 
-    .auth-inner {
-      width: 100%;
-      max-width: 480px;
+    /* ══════════════════════ LEFT — marketing panel ══════════════════════ */
+    .cu-marketing {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(160deg, var(--cu-navy) 0%, var(--cu-blue) 100%);
+      color: #fff;
+      padding: 56px 56px 48px;
       display: flex;
       flex-direction: column;
-      align-items: center;
     }
 
-    /* ── Logo ──────────────────────────────────────────────────────────── */
-    .auth-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      margin-bottom: 28px;
+    .cu-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: .35;
+      pointer-events: none;
     }
-    .auth-logo-icon {
-      width: 38px;
-      height: 38px;
-      background: var(--teal, #009688);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 20px;
-      line-height: 1;
-    }
-    .auth-logo-name {
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--text, #1a1a2e);
-    }
+    .cu-blob--a { width: 380px; height: 380px; background: #60A5FA; top: -120px; right: -100px; animation: cuFloatA 18s ease-in-out infinite; }
+    .cu-blob--b { width: 320px; height: 320px; background: #1E3A8A; bottom: -80px; left: -80px; opacity: .5; animation: cuFloatB 22s ease-in-out infinite; }
+    .cu-blob--c { width: 220px; height: 220px; background: #93C5FD; bottom: 30%; right: 10%; opacity: .25; animation: cuFloatA 26s ease-in-out infinite reverse; }
 
-    /* ── Heading ───────────────────────────────────────────────────────── */
-    .auth-heading {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .auth-heading h1 {
-      font-size: 24px;
-      margin: 6px 0 6px;
-    }
-    .auth-heading p {
-      margin: 0;
-      color: var(--muted, #6b7280);
-      font-size: 14px;
-    }
+    @keyframes cuFloatA { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-24px, 26px) scale(1.06); } }
+    @keyframes cuFloatB { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(20px, -20px) scale(1.04); } }
 
-    /* ── Card ──────────────────────────────────────────────────────────── */
-    .auth-card {
-      width: 100%;
-    }
+    .cu-marketing-top, .cu-marketing-mid, .cu-marketing-bottom { position: relative; z-index: 1; }
 
-    /* ── Footer link ───────────────────────────────────────────────────── */
-    .auth-foot {
-      margin-top: 18px;
-      text-align: center;
-      font-size: 14px;
-      color: var(--muted, #6b7280);
-      padding-bottom: 8px;
+    .cu-logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+    .cu-logo-mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255, 255, 255, .16); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
     }
-    .auth-foot a {
-      color: var(--teal, #009688);
-      font-weight: 700;
-      text-decoration: none;
+    .cu-logo-name { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+
+    .cu-marketing-mid { margin-top: auto; padding: 64px 0 40px; max-width: 460px; }
+    .cu-tagline { font-size: clamp(30px, 3vw, 40px); line-height: 1.15; margin-bottom: 16px; }
+    .cu-tagline-sub { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 15.5px; line-height: 1.6; color: rgba(255, 255, 255, .78); max-width: 380px; }
+
+    .cu-stats { display: flex; gap: 36px; margin-top: 40px; }
+    .cu-stat-value { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.01em; }
+    .cu-stat-label { display: block; margin-top: 4px; font-size: 12.5px; color: rgba(255, 255, 255, .68); }
+
+    .cu-testimonial {
+      margin-top: auto;
+      background: rgba(255, 255, 255, .1);
+      border: 1px solid rgba(255, 255, 255, .18);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-radius: var(--cu-radius);
+      padding: 22px 24px;
+      max-width: 420px;
     }
-    .auth-foot a:hover { text-decoration: underline; }
+    .cu-testimonial p { margin: 0 0 14px; font-size: 14.5px; line-height: 1.65; color: rgba(255, 255, 255, .92); }
+    .cu-testimonial-who { display: flex; align-items: center; gap: 10px; }
+    .cu-testimonial-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, .3); }
+    .cu-testimonial-name { font-size: 13px; font-weight: 700; }
+    .cu-testimonial-role { font-size: 12px; color: rgba(255, 255, 255, .65); }
+
+    /* ══════════════════════ RIGHT — form panel ══════════════════════════ */
+    .cu-form-panel { display: flex; align-items: center; justify-content: center; padding: 48px 32px; background: var(--cu-bg); }
+
+    .cu-form-wrap {
+      width: 100%; max-width: 400px;
+      opacity: 0; transform: translateY(8px);
+      animation: cuFadeUp .5s var(--cu-ease) .05s forwards;
+    }
+    @keyframes cuFadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    .cu-logo--mobile { display: none; margin-bottom: 36px; }
+    .cu-logo--mobile .cu-logo-mark { background: var(--cu-blue-tint); color: var(--cu-blue); }
+    .cu-logo--mobile .cu-logo-name { color: var(--cu-text); }
+
+    .cu-form-heading { margin-bottom: 28px; }
+    .cu-form-heading h1 { font-size: 28px; color: var(--cu-text); margin-bottom: 8px; }
+    .cu-form-heading p { margin: 0; font-size: 14.5px; color: var(--cu-text2); }
+
+    .cu-alert {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13.5px; line-height: 1.5;
+      padding: 11px 14px; border-radius: 10px; margin-bottom: 18px;
+      background: #FEF2F2; color: var(--cu-danger); border: 1px solid #FEE2E2;
+    }
+    .cu-alert--success { background: #F0FDF4; color: var(--cu-success); border-color: #DCFCE7; }
+
+    .cu-field { margin-bottom: 16px; }
+    .cu-field-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+    .cu-label { font-size: 13.5px; font-weight: 600; color: var(--cu-text); display: block; margin-bottom: 7px; }
+    .cu-field-head .cu-label { margin-bottom: 0; }
+    .cu-forgot { font-size: 13px; font-weight: 600; color: var(--cu-blue); text-decoration: none; }
+    .cu-forgot:hover { text-decoration: underline; }
+
+    .cu-input-wrap { position: relative; display: flex; align-items: center; }
+    .cu-input-icon { position: absolute; left: 15px; color: #94A3B8; display: inline-flex; pointer-events: none; }
+    .cu-input, select.cu-input {
+      width: 100%; height: 50px; padding: 0 16px 0 44px;
+      border: 1.5px solid var(--cu-border); border-radius: 12px;
+      background: var(--cu-bg); color: var(--cu-text);
+      font-family: 'Inter', sans-serif; font-size: 14.5px;
+      transition: border-color .18s var(--cu-ease), box-shadow .18s var(--cu-ease);
+    }
+    select.cu-input {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    .cu-input::placeholder { color: #94A3B8; }
+    .cu-input:hover { border-color: #CBD5E1; }
+    .cu-input:focus {
+      outline: none; border-color: var(--cu-blue);
+      box-shadow: 0 0 0 4px var(--cu-blue-tint);
+    }
+    .cu-input[type="password"] { padding-right: 44px; }
+
+    .cu-eye-toggle {
+      position: absolute; right: 12px;
+      border: none; background: none; color: #94A3B8; cursor: pointer;
+      display: inline-flex; padding: 6px; border-radius: 8px;
+      transition: color .15s var(--cu-ease), background .15s var(--cu-ease);
+    }
+    .cu-eye-toggle:hover { color: var(--cu-text2); background: var(--cu-bg-light); }
+    .cu-eye-toggle:focus-visible { outline: 2px solid var(--cu-blue); outline-offset: 2px; }
+    .cu-eye-toggle[aria-pressed="true"] { color: var(--cu-blue); }
+
+    .cu-row { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 24px; }
+    .cu-remember { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--cu-text2); font-weight: 500; cursor: pointer; user-select: none; }
+    .cu-remember input {
+      appearance: none; -webkit-appearance: none;
+      width: 18px; height: 18px; border: 1.5px solid var(--cu-border); border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: background .15s var(--cu-ease), border-color .15s var(--cu-ease);
+      flex-shrink: 0;
+    }
+    .cu-remember input:checked {
+      background: var(--cu-blue); border-color: var(--cu-blue);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center;
+    }
+    .cu-remember input:focus-visible { outline: 2px solid var(--cu-blue); outline-offset: 2px; }
+
+    .cu-submit {
+      width: 100%; height: 52px; border: none; border-radius: 12px;
+      background: var(--cu-blue); color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: -0.005em;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background .18s var(--cu-ease), transform .12s var(--cu-ease), box-shadow .18s var(--cu-ease);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+    }
+    .cu-submit:hover { background: var(--cu-blue-hover); box-shadow: 0 6px 16px rgba(37, 99, 235, .28); }
+    .cu-submit:active { transform: translateY(1px); }
+    .cu-submit:focus-visible { outline: 2px solid var(--cu-navy); outline-offset: 2px; }
+
+    .cu-spinner {
+      width: 17px; height: 17px; border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, .4); border-top-color: #fff;
+      display: none; animation: cuSpin .7s linear infinite;
+    }
+    @keyframes cuSpin { to { transform: rotate(360deg); } }
+    .cu-submit.is-loading { pointer-events: none; opacity: .9; }
+    .cu-submit.is-loading .cu-spinner { display: inline-block; }
+    .cu-submit.is-loading .cu-submit-label { opacity: .85; }
+
+    .cu-trust { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 22px; flex-wrap: wrap; }
+    .cu-trust-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--cu-text2); }
+    .cu-trust-item svg { color: #94A3B8; flex-shrink: 0; }
+
+    .cu-foot { margin-top: 28px; text-align: center; font-size: 14px; color: var(--cu-text2); }
+    .cu-foot a { color: var(--cu-blue); font-weight: 700; text-decoration: none; }
+    .cu-foot a:hover { text-decoration: underline; }
+
+    /* ── Card stage — Login <-> Register cross-fade/slide in place.
+       Only one .auth-panel is ever visible; #authStage animates its own
+       height between the two panel heights. JS below drives the classes,
+       this only defines what each state looks like. ── */
+    .auth-card-stage { position: relative; width: 100%; transition: height .38s var(--cu-ease); }
+    .auth-panel { width: 100%; transition: opacity .32s ease, transform .32s ease; }
+    .auth-panel[hidden] { display: none; }
+    .auth-panel--stacked { position: absolute; top: 0; left: 0; }
+    .auth-panel--out-to-left   { opacity: 0; transform: translateX(-28px); }
+    .auth-panel--out-to-right  { opacity: 0; transform: translateX(28px); }
+    .auth-panel--in-from-left  { opacity: 0; transform: translateX(-28px); }
+    .auth-panel--in-from-right { opacity: 0; transform: translateX(28px); }
+    .auth-panel--settled       { opacity: 1; transform: translateX(0); }
+
+    /* ── Responsive ── */
+    @media (max-width: 960px) {
+      .cu-shell { grid-template-columns: 1fr; }
+      .cu-marketing { display: none; }
+      .cu-logo--mobile { display: inline-flex; }
+      .cu-form-panel { min-height: 100vh; padding: 40px 24px; }
+    }
+    @media (max-width: 420px) {
+      .cu-form-heading h1 { font-size: 24px; }
+      .cu-trust { gap: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cu-blob { animation: none; }
+      .cu-form-wrap { animation: none; opacity: 1; transform: none; }
+      .cu-input, .cu-submit, .cu-eye-toggle, .cu-remember input { transition: none; }
+      .auth-card-stage, .auth-panel { transition: none !important; }
+    }
   </style>
 </head>
 <body data-auth-mode="{{ mode|default('login') }}">
 
-{# Fixed background — never scrolls, never has a second page under it #}
-<div class="auth-bg" aria-hidden="true"></div>
+<div class="cu-shell">
 
-{# Scrollable content on top #}
-<div class="auth-wrap">
-  <div class="auth-inner">
+  {# ══════════════════════ LEFT — marketing panel (same for both modes) ══════════════════════ #}
+  <aside class="cu-marketing" aria-hidden="true">
+    <div class="cu-blob cu-blob--a"></div>
+    <div class="cu-blob cu-blob--b"></div>
+    <div class="cu-blob cu-blob--c"></div>
 
-    {# Logo #}
-    <a href="{{ url_for('main.index') }}" class="auth-logo" aria-label="Campus Unlock home">
-      <div class="auth-logo-icon">🎓</div>
-      <span class="auth-logo-name">CampusUnlock</span>
-    </a>
-
-    {# Heading — swapped by JS on animated switch, server-rendered correctly
-       on direct navigation to /login or /register so there's no flash of
-       the wrong copy for no-JS clients or the first paint. #}
-    <div class="auth-heading" id="authHeading">
-      <div class="section-eyebrow" id="authEyebrow">{% if mode == 'register' %}Get started{% else %}Welcome back{% endif %}</div>
-      <h1 class="section-title" id="authTitle" style="font-size:26px;">{% if mode == 'register' %}Create your account{% else %}Log in to your account{% endif %}</h1>
-      <p id="authSubtitle">{% if mode == 'register' %}Compare, shortlist and apply — all in one place.{% else %}Pick up right where you left off.{% endif %}</p>
+    <div class="cu-marketing-top">
+      <span class="cu-logo">
+        <span class="cu-logo-mark">🎓</span>
+        <span class="cu-logo-name">CampusUnlock</span>
+      </span>
     </div>
 
-    {# Flashed messages — rendered once, above the card stage, so they show
-       next to whichever panel the server actually returned (a form error
-       always comes back with the matching mode + a fresh render). #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div style="width:100%;">
-          {% for category, message in messages %}
-            <div class="form-error show" style="{% if category == 'success' %}color:var(--success);{% endif %}position:static;display:flex;margin-bottom:12px;">{{ message }}</div>
-          {% endfor %}
+    <div class="cu-marketing-mid">
+      <h2 class="cu-tagline">Unlock Your Future, One Decision at a Time.</h2>
+      <p class="cu-tagline-sub">Compare UGC-DEB approved online universities, track every application, and get unbiased counselling — all from one dashboard.</p>
+
+      <div class="cu-stats">
+        <div><span class="cu-stat-value">10,000+</span><span class="cu-stat-label">Students Guided</span></div>
+        <div><span class="cu-stat-value">150+</span><span class="cu-stat-label">Approved Universities</span></div>
+        <div><span class="cu-stat-value">4.8/5</span><span class="cu-stat-label">Average Rating</span></div>
+      </div>
+    </div>
+
+    <div class="cu-marketing-bottom">
+      <div class="cu-testimonial">
+        <p>"Campus Unlock made comparing accredited programs painless — I found the right MBA and enrolled within two weeks."</p>
+        <div class="cu-testimonial-who">
+          <img class="cu-testimonial-avatar" src="https://i.pravatar.cc/68?img=32" alt="">
+          <span>
+            <span class="cu-testimonial-name" style="display:block;">Ananya Rao</span>
+            <span class="cu-testimonial-role">MBA Student, Class of 2026</span>
+          </span>
         </div>
-      {% endif %}
-    {% endwith %}
+      </div>
+    </div>
+  </aside>
 
-    {# ── Card stage — holds both panels; only one is ever visible, and
-       #authStage animates the height/opacity/slide between them so the
-       login card visibly transforms into the register card in place. ── #}
-    <div class="auth-card-stage" id="authStage">
+  {# ══════════════════════ RIGHT — form panel ══════════════════════════ #}
+  <main class="cu-form-panel">
+    <div class="cu-form-wrap">
 
-      {# ---------------- LOGIN PANEL ---------------- #}
-      <div class="pdp-info-card auth-card auth-panel" id="authPanelLogin" data-panel="login"{% if mode == 'register' %} hidden{% endif %}>
+      <a href="{{ url_for('main.index') }}" class="cu-logo cu-logo--mobile" aria-label="Campus Unlock home">
+        <span class="cu-logo-mark">🎓</span>
+        <span class="cu-logo-name">CampusUnlock</span>
+      </a>
 
-        <div class="auth-tabs" role="tablist" aria-label="Login mode">
-          <button type="button" class="auth-tab is-active" data-auth-tab="universal" role="tab" aria-selected="true">Universal</button>
-          <button type="button" class="auth-tab" data-auth-tab="institutional" role="tab" aria-selected="false">Institutional</button>
-        </div>
+      <div class="cu-form-heading" id="authHeading">
+        <h1 id="authTitle">{% if mode == 'register' %}Create your account{% else %}Welcome back{% endif %}</h1>
+        <p id="authSubtitle">{% if mode == 'register' %}Start comparing universities in minutes.{% else %}Sign in to continue to your dashboard.{% endif %}</p>
+      </div>
 
-        <form method="POST" action="{{ url_for('main.login') }}" novalidate id="authForm">
-          <input type="hidden" name="login_mode" id="authLoginMode" value="universal">
-          <input type="hidden" name="role_hint" id="authRoleHint" value="">
-
-          <div class="form-group">
-            <label for="email" id="authEmailLabel">Email or Username</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              </span>
-              <input type="text" id="email" name="email" value="{% if mode != 'register' %}{{ email or '' }}{% endif %}" required autocomplete="username" placeholder="name@campus.edu">
-            </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div>
+            {% for category, message in messages %}
+              <div class="cu-alert{% if category == 'success' %} cu-alert--success{% endif %}" role="alert">{{ message }}</div>
+            {% endfor %}
           </div>
+        {% endif %}
+      {% endwith %}
 
-          <div class="form-group">
-            <div class="auth-field-head">
-              <label for="password">Password</label>
-              <a href="{{ url_for('main.forgot_password') }}" class="auth-forgot">Forgot Password?</a>
+      <div class="auth-card-stage" id="authStage">
+
+        {# ---------------- LOGIN PANEL ---------------- #}
+        <div class="auth-panel" id="authPanelLogin" data-panel="login"{% if mode == 'register' %} hidden{% endif %}>
+          <form method="POST" action="{{ url_for('main.login') }}" novalidate id="authForm">
+
+            <div class="cu-field">
+              <label class="cu-label" for="email">Email</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 6-10 7L2 6"></path></svg>
+                </span>
+                <input class="cu-input" type="email" id="email" name="email" value="{% if mode != 'register' %}{{ email or '' }}{% endif %}" required autocomplete="username" placeholder="name@campus.edu">
+              </div>
             </div>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              </span>
-              <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
-              <button type="button" class="auth-eye-toggle" id="authEyeToggle" aria-label="Show password" aria-pressed="false">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
+
+            <div class="cu-field">
+              <div class="cu-field-head">
+                <label class="cu-label" for="password">Password</label>
+                <a href="{{ url_for('main.forgot_password') }}" class="cu-forgot">Forgot password?</a>
+              </div>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input class="cu-input" type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+                <button type="button" class="cu-eye-toggle" data-eye-target="password" aria-label="Show password" aria-pressed="false">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <label class="auth-remember">
-            <input type="checkbox" name="remember" value="1">
-            Keep me logged in
-          </label>
+            <div class="cu-row">
+              <label class="cu-remember">
+                <input type="checkbox" name="remember" value="1">
+                Keep me logged in
+              </label>
+            </div>
 
-          <button type="submit" class="form-submit">Sign In</button>
-
-          <div class="auth-divider"><span>Alternative Access</span></div>
-
-          {# Convenience shortcuts only — they set a placeholder/hint, they do
-             not select what role you log in as. The actual post-login
-             destination is always decided server-side from the account's
-             real role (see login() / ROLE_DASHBOARD_ENDPOINTS). #}
-          <div class="auth-roles">
-            <button type="button" class="auth-role-btn" data-role="student">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 18c0-2.5 2.2-4 5-4s5 1.5 5 4"></path></svg>
-              Student
+            <button type="submit" class="cu-submit">
+              <span class="cu-spinner" aria-hidden="true"></span>
+              <span class="cu-submit-label">Sign In</span>
             </button>
-            <button type="button" class="auth-role-btn" data-role="teacher">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"></path><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"></path></svg>
-              Teacher
+
+            <div class="cu-trust">
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Secure Login</span>
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z"></path></svg>256-bit Encryption</span>
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"></path><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Privacy Protected</span>
+            </div>
+          </form>
+        </div>{# /#authPanelLogin #}
+
+        {# ---------------- REGISTER PANEL ---------------- #}
+        <div class="auth-panel" id="authPanelRegister" data-panel="register"{% if mode != 'register' %} hidden{% endif %}>
+          <form method="POST" action="{{ url_for('main.register') }}" novalidate id="registerForm">
+
+            <div class="cu-field">
+              <label class="cu-label" for="full_name">Full Name</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </span>
+                <input class="cu-input" type="text" id="full_name" name="full_name" value="{% if mode == 'register' %}{{ full_name or '' }}{% endif %}" required autocomplete="name" placeholder="Your full name">
+              </div>
+            </div>
+
+            <div class="cu-field">
+              <label class="cu-label" for="reg_email">Email</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 6-10 7L2 6"></path></svg>
+                </span>
+                <input class="cu-input" type="email" id="reg_email" name="email" value="{% if mode == 'register' %}{{ email or '' }}{% endif %}" required autocomplete="email" placeholder="name@campus.edu">
+              </div>
+            </div>
+
+            <div class="cu-field">
+              <label class="cu-label" for="mobile">Mobile Number</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </span>
+                <input class="cu-input" type="tel" id="mobile" name="mobile" value="{% if mode == 'register' %}{{ mobile or '' }}{% endif %}" required inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10-digit mobile number">
+              </div>
+            </div>
+
+            {# Self-serve signup only ever offers Student / Teacher — Admin is
+               never selectable here and can only be granted from the backend
+               (see register() / KNOWN_ROLES in models/user.py). #}
+            <div class="cu-field">
+              <label class="cu-label" for="reg_role">I am a</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 18c0-2.5 2.2-4 5-4s5 1.5 5 4"></path></svg>
+                </span>
+                <select class="cu-input" id="reg_role" name="role" required>
+                  <option value="student"{% if mode != 'register' or (role or 'student') == 'student' %} selected{% endif %}>Student</option>
+                  <option value="teacher"{% if mode == 'register' and role == 'teacher' %} selected{% endif %}>Counsellor</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="cu-field">
+              <label class="cu-label" for="reg_password">Password</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input class="cu-input" type="password" id="reg_password" name="password" required autocomplete="new-password" placeholder="At least 8 characters">
+                <button type="button" class="cu-eye-toggle" data-eye-target="reg_password" aria-label="Show password" aria-pressed="false">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="cu-field">
+              <label class="cu-label" for="confirm_password">Confirm Password</label>
+              <div class="cu-input-wrap">
+                <span class="cu-input-icon" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input class="cu-input" type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password" placeholder="Re-enter your password">
+                <button type="button" class="cu-eye-toggle" data-eye-target="confirm_password" aria-label="Show password" aria-pressed="false">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="cu-submit" style="margin-top:6px;">
+              <span class="cu-spinner" aria-hidden="true"></span>
+              <span class="cu-submit-label">Create Account</span>
             </button>
-            <button type="button" class="auth-role-btn" data-role="admin">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z"></path><path d="M9.5 12.5 11 14l3.5-3.5"></path></svg>
-              Admin
-            </button>
-          </div>
-        </form>
-      </div>{# /#authPanelLogin #}
 
-      {# ---------------- REGISTER PANEL ---------------- #}
-      <div class="pdp-info-card auth-card auth-panel" id="authPanelRegister" data-panel="register"{% if mode != 'register' %} hidden{% endif %}>
-
-        <form method="POST" action="{{ url_for('main.register') }}" novalidate id="registerForm">
-
-          <div class="form-group">
-            <label for="full_name">Full Name</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              </span>
-              <input type="text" id="full_name" name="full_name" value="{% if mode == 'register' %}{{ full_name or '' }}{% endif %}" required autocomplete="name" placeholder="Your full name">
+            <div class="cu-trust">
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Secure Signup</span>
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z"></path></svg>256-bit Encryption</span>
+              <span class="cu-trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"></path><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Privacy Protected</span>
             </div>
-          </div>
+          </form>
+        </div>{# /#authPanelRegister #}
 
-          <div class="form-group">
-            <label for="reg_email">Email</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 6-10 7L2 6"></path></svg>
-              </span>
-              <input type="email" id="reg_email" name="email" value="{% if mode == 'register' %}{{ email or '' }}{% endif %}" required autocomplete="email" placeholder="name@campus.edu">
-            </div>
-          </div>
+      </div>{# /#authStage #}
 
-          <div class="form-group">
-            <label for="mobile">Mobile Number</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              </span>
-              <input type="tel" id="mobile" name="mobile" value="{% if mode == 'register' %}{{ mobile or '' }}{% endif %}" required inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10-digit mobile number">
-            </div>
-          </div>
+      <p class="cu-foot" id="authFoot">
+        {% if mode == 'register' %}
+          Already have an account? <a href="{{ url_for('main.login') }}" id="authToLogin">Log In</a>
+        {% else %}
+          Don't have an account? <a href="{{ url_for('main.register') }}" id="authToRegister">Apply for Access</a>
+        {% endif %}
+      </p>
 
-          {# Self-serve signup only ever offers Student / Teacher — Admin is
-             never selectable here and can only be granted from the backend
-             (see register() / KNOWN_ROLES in models/user.py). Plain
-             .form-group select (no icon-wrap) — that padding rule is
-             input-only, this reuses the generic select styling already
-             used elsewhere in the app instead of needing a style.css change. #}
-          <div class="form-group">
-            <label for="reg_role">I am a</label>
-            <select id="reg_role" name="role" required>
-              <option value="student"{% if mode != 'register' or (role or 'student') == 'student' %} selected{% endif %}>Student</option>
-              <option value="teacher"{% if mode == 'register' and role == 'teacher' %} selected{% endif %}>Teacher</option>
-            </select>
-          </div>
+    </div>
+  </main>
 
-          <div class="form-group">
-            <label for="reg_password">Password</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              </span>
-              <input type="password" id="reg_password" name="password" required autocomplete="new-password" placeholder="At least 8 characters">
-              <button type="button" class="auth-eye-toggle" data-eye-target="reg_password" aria-label="Show password" aria-pressed="false">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="confirm_password">Confirm Password</label>
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              </span>
-              <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password" placeholder="Re-enter your password">
-              <button type="button" class="auth-eye-toggle" data-eye-target="confirm_password" aria-label="Show password" aria-pressed="false">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" class="form-submit">Create Account</button>
-        </form>
-      </div>{# /#authPanelRegister #}
-
-    </div>{# /#authStage #}
-
-    <p class="auth-foot" id="authFoot">
-      {% if mode == 'register' %}
-        Already have an account? <a href="{{ url_for('main.login') }}" id="authToLogin">Log In</a>
-      {% else %}
-        Don't have an account? <a href="{{ url_for('main.register') }}" id="authToRegister">Apply for Access</a>
-      {% endif %}
-    </p>
-
-  </div>{# /.auth-inner #}
-</div>{# /.auth-wrap #}
+</div>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  // Everything this page actually needs to function is inline and
+  // self-contained on purpose — this page previously broke because it
+  // depended on shared app.js code that crashes on pages missing
+  // homepage-only elements. None of that risk here: password toggles,
+  // submit spinners, and the Login<->Register panel switch all work
+  // even if app.js fails entirely.
+  (function () {
+    // Password show/hide — covers both panels via data-eye-target.
+    document.querySelectorAll('.cu-eye-toggle[data-eye-target]').forEach(function (btn) {
+      var target = document.getElementById(btn.dataset.eyeTarget);
+      if (!target) return;
+      btn.addEventListener('click', function () {
+        var showing = target.type === 'text';
+        target.type = showing ? 'password' : 'text';
+        btn.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      });
+    });
+
+    // Submit loading state — both forms.
+    ['authForm', 'registerForm'].forEach(function (id) {
+      var form = document.getElementById(id);
+      if (!form) return;
+      form.addEventListener('submit', function () {
+        var btn = form.querySelector('.cu-submit');
+        if (btn) btn.classList.add('is-loading');
+      });
+    });
+
+    // Login <-> Register panel switch.
+    var stage = document.getElementById('authStage');
+    if (!stage) return;
+
+    var body = document.body;
+    var panels = {
+      login: document.getElementById('authPanelLogin'),
+      register: document.getElementById('authPanelRegister'),
+    };
+    var titleEl = document.getElementById('authTitle');
+    var subtitleEl = document.getElementById('authSubtitle');
+    var footEl = document.getElementById('authFoot');
+
+    var COPY = {
+      login: {
+        title: 'Log In | Campus Unlock',
+        heading: 'Welcome back',
+        subtitle: 'Sign in to continue to your dashboard.',
+        foot: 'Don\u2019t have an account? <a href="/register" id="authToRegister">Apply for Access</a>',
+        url: '/login',
+      },
+      register: {
+        title: 'Apply for Access | Campus Unlock',
+        heading: 'Create your account',
+        subtitle: 'Start comparing universities in minutes.',
+        foot: 'Already have an account? <a href="/login" id="authToLogin">Log In</a>',
+        url: '/register',
+      },
+    };
+
+    var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ANIM_MS = prefersReduced ? 0 : 340;
+    var animating = false;
+
+    function focusFirstField(panel) {
+      var field = panel.querySelector('input:not([type="hidden"])');
+      if (field) field.focus({ preventScroll: true });
+    }
+
+    function bindFootLink() {
+      var link = document.getElementById('authToRegister') || document.getElementById('authToLogin');
+      if (link) link.addEventListener('click', onToggleClick);
+    }
+
+    function applyCopy(mode) {
+      var c = COPY[mode];
+      if (!c) return;
+      document.title = c.title;
+      if (titleEl) titleEl.textContent = c.heading;
+      if (subtitleEl) subtitleEl.textContent = c.subtitle;
+      if (footEl) footEl.innerHTML = c.foot;
+      bindFootLink();
+    }
+
+    function switchTo(mode, pushState) {
+      if (animating || body.dataset.authMode === mode || !panels[mode]) return;
+      var from = panels[body.dataset.authMode];
+      var to = panels[mode];
+      if (!from || !to) return;
+
+      animating = true;
+      var goingForward = mode === 'register';
+
+      if (prefersReduced) {
+        from.hidden = true;
+        to.hidden = false;
+        body.dataset.authMode = mode;
+        applyCopy(mode);
+        focusFirstField(to);
+        if (pushState !== false) history.pushState({ authMode: mode }, '', COPY[mode].url);
+        animating = false;
+        return;
+      }
+
+      var fromH = from.offsetHeight;
+      stage.style.height = fromH + 'px';
+
+      from.classList.add('auth-panel--stacked', goingForward ? 'auth-panel--out-to-left' : 'auth-panel--out-to-right');
+
+      to.hidden = false;
+      to.classList.add('auth-panel--stacked', goingForward ? 'auth-panel--in-from-right' : 'auth-panel--in-from-left');
+
+      void to.offsetHeight;
+
+      requestAnimationFrame(function () {
+        stage.style.height = to.scrollHeight + 'px';
+        from.classList.remove('auth-panel--out-to-left', 'auth-panel--out-to-right');
+        to.classList.remove('auth-panel--in-from-right', 'auth-panel--in-from-left');
+        to.classList.add('auth-panel--settled');
+      });
+
+      setTimeout(function () {
+        from.hidden = true;
+        from.classList.remove('auth-panel--stacked', 'auth-panel--settled', 'auth-panel--out-to-left', 'auth-panel--out-to-right');
+        to.classList.remove('auth-panel--stacked', 'auth-panel--settled');
+        stage.style.height = '';
+        animating = false;
+      }, ANIM_MS + 20);
+
+      body.dataset.authMode = mode;
+      applyCopy(mode);
+      focusFirstField(to);
+
+      if (pushState !== false) {
+        history.pushState({ authMode: mode }, '', COPY[mode].url);
+      }
+    }
+
+    function onToggleClick(e) {
+      e.preventDefault();
+      switchTo(this.id === 'authToRegister' ? 'register' : 'login');
+    }
+
+    bindFootLink();
+
+    window.addEventListener('popstate', function (e) {
+      var fallback = location.pathname.indexOf('register') !== -1 ? 'register' : 'login';
+      switchTo((e.state && e.state.authMode) || fallback, false);
+    });
+  })();
+</script>
 </body>
 </html>

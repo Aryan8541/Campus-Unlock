@@ -29,15 +29,15 @@
   <button class="cu-info-bar-close" id="cuInfoBarClose" aria-label="Dismiss notice" title="Dismiss">✕</button>
 </div>
 
-{% include 'includes/navbar.html' %}
+{% include 'Includes/navbar.html' %}
 
 <main id="top">
 {% block content %}{% endblock %}
 </main>
 
-{% include 'includes/footer.html' %}
+{% include 'Includes/footer.html' %}
 
-{% include 'includes/modal.html' %}
+{% include 'Includes/modal.html' %}
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>

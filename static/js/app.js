@@ -1022,13 +1022,14 @@
     function applyWizardVisibility() {
       wizardInputs.forEach((id, i) => $('#'+id).closest('.form-group').style.display = (i === state.wizardStep ? 'block' : 'none'));
       $('#cfPrev').style.display = state.wizardStep === 0 ? 'none' : 'inline-block';
-      $('#cfNext').style.display = state.wizardStep >= 4 ? 'none' : 'inline-block';
+      $('#cfNext').style.display = state.wizardStep >= 5 ? 'none' : 'inline-block';
       $('#cfRun').style.display = state.wizardStep === 5 ? 'inline-block' : 'none';
       renderWizardSteps();
     }
     applyWizardVisibility();
     $('#cfNext').addEventListener('click', () => { state.wizardStep = Math.min(5, state.wizardStep + 1); applyWizardVisibility(); });
     $('#cfPrev').addEventListener('click', () => { state.wizardStep = Math.max(0, state.wizardStep - 1); applyWizardVisibility(); });
+    $('#cfSkip').addEventListener('click', () => { state.wizardStep = Math.min(5, state.wizardStep + 1); applyWizardVisibility(); });
     $('#cfRun').addEventListener('click', () => {
       const degree = $('#cfDegree').value, budget = Number($('#cfBudget').value || 0), spec = $('#cfSpec').value.toLowerCase();
       const recs = appData.universities.filter(u => (!degree || u.degree.includes(degree)) && (!budget || u.fee <= budget) && (!spec || u.specs.join(' ').toLowerCase().includes(spec))).slice(0,3);
@@ -1043,6 +1044,13 @@
       if (a < 17) { ok = false; reasons.push('Minimum age 17'); }
       $('#eligibilityResult').innerHTML = ok ? `✅ Eligible for ${c}.` : `❌ Not eligible: ${reasons.join(', ')}.`;
     });
+    $('#eligibilityReset').addEventListener('click', () => {
+      $('#elQual').selectedIndex = 0;
+      $('#elMarks').value = '';
+      $('#elAge').value = '';
+      $('#elCourse').selectedIndex = 0;
+      $('#eligibilityResult').textContent = 'No eligibility check performed yet.';
+    });
 
     $('#emiCalcBtn').addEventListener('click', () => {
       const P = Number($('#emiFees').value || 0), annual = Number($('#emiInterest').value || 0), n = Number($('#emiMonths').value || 0);
@@ -1050,6 +1058,12 @@
       const r = annual / 12 / 100;
       const emi = r ? (P * r * Math.pow(1+r, n)) / (Math.pow(1+r, n)-1) : P / n;
       $('#emiResult').innerHTML = `Estimated Monthly EMI: <strong>${inr(Math.round(emi))}</strong>`;
+    });
+    $('#emiReset').addEventListener('click', () => {
+      $('#emiFees').value = '';
+      $('#emiInterest').value = '';
+      $('#emiMonths').value = '';
+      $('#emiResult').textContent = 'Enter your details and click "Calculate EMI" to view your estimated monthly payment.';
     });
 
     $('#scholarshipBtn').addEventListener('click', () => {
@@ -1061,6 +1075,13 @@
       if (marks >= 75) score += 1;
       const map = ['Not eligible', 'Possible 5%', 'Likely 10%', 'Likely 15%', 'Likely 20%'];
       $('#scholarshipResult').innerHTML = `Scholarship result: <strong>${map[score]}</strong>`;
+    });
+    $('#scholarshipReset').addEventListener('click', () => {
+      $('#scIncome').value = '';
+      $('#scCategory').selectedIndex = 0;
+      $('#scGender').selectedIndex = 0;
+      $('#scMarks').value = '';
+      $('#scholarshipResult').textContent = 'Enter your details to discover scholarships you may qualify for.';
     });
 
     $('#blogSearchInput').addEventListener('input', renderBlogs);
