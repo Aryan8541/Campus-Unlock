@@ -479,17 +479,48 @@ def _parse_scholarships(md: str) -> list[dict]:
 # Main parser: single MD file → detail dict
 # ---------------------------------------------------------------------------
 
+def _is_skip_import(md: str) -> bool:
+    """
+    Return True when the file declares itself as a research/rejected page
+    that should never be imported as a university record.
+
+    Convention: any line in the file that matches
+        skip_import: true
+    (case-insensitive, YAML-style, anywhere in the document) signals that
+    this file should be explicitly skipped.  The reason for skipping must
+    also appear in the file (as a comment or section) so the intent is
+    self-documenting.  The flag is *not* a silent no-op — load_md_details()
+    counts skipped files separately from errored ones, and the run summary
+    prints both lists.
+    """
+    return bool(re.search(r"^skip_import\s*:\s*true\s*$", md, re.MULTILINE | re.IGNORECASE))
+
+
 def parse_md_detail(filepath: Path) -> dict | None:
     """
     Parse one university detail Markdown file into a detail dict.
 
     Returns None (and logs a warning) if the file cannot be parsed or
     does not contain a recognisable university name.  Never raises.
+
+    Returns None (with an INFO log, not a warning) when the file declares
+    ``skip_import: true`` — these are research/rejected pages that should
+    not become university records.  They are counted in md_skipped, not
+    md_errored, so the run summary shows them clearly.
     """
     try:
         md = filepath.read_text(encoding="utf-8")
     except OSError as exc:
         logger.warning("MD parser: cannot read %s — %s", filepath.name, exc)
+        return None
+
+    # Explicit skip flag — research or rejected pages that must never be
+    # imported as university records.  Counted in skipped, not errored.
+    if _is_skip_import(md):
+        logger.info(
+            "MD parser: skipped %s — skip_import: true (research/rejected page)",
+            filepath.name,
+        )
         return None
 
     # Must find a university name or we can't match it to the DB
@@ -631,6 +662,159 @@ def slugify(text):
     """Lowercase, hyphen-separated slug from an arbitrary string."""
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return slug
+
+
+# ===========================================================================
+# UNIVERSITY NAME MATCHER
+# ===========================================================================
+# Matches a detail-page's parsed "name" (from Markdown or hand-curated
+# Python entries) against the University rows seeded from UNIVERSITY_DEFS.
+#
+# Why this exists: detail-page names are written by different people/
+# sources at different times, so they routinely differ from the
+# canonical UNIVERSITY_DEFS name in harmless ways — "Alagappa
+# University Online" vs "Alagappa University", trailing "(CDOE —
+# Centre for Distance and Online Education)" annotations, "&" vs
+# "and", etc. Requiring byte-for-byte equality (the old behaviour)
+# silently drops any entry with so much as a stray suffix — with no
+# warning, so the drop is invisible until someone counts rows by hand.
+#
+# This resolves names in increasing-risk tiers, stopping at the first
+# tier that produces exactly one match:
+#   1. Exact string match (fastest, zero risk).
+#   2. Normalized match — lowercase, parenthetical/em-dash suffixes
+#      and punctuation stripped, so "Alagappa University Online"
+#      collapses to the same key as "Alagappa University".
+#   3. Token-subset match — one name's significant words (generic
+#      words like "university"/"online"/"institute" excluded) must be
+#      a full subset of the other's. Only fires when exactly one
+#      University qualifies; if two or more share enough words (e.g.
+#      "Manipal" appears in three different seeded universities), the
+#      match is genuinely ambiguous and is deliberately left
+#      unresolved rather than guessed.
+#   4. A short, explicitly-verified alias table for real abbreviations
+#      (LPU, NMIMS, KIIT, VISTAS, ...) that no automatic rule can
+#      infer safely. Add to this table only after manually confirming
+#      the mapping — never as a guess.
+#
+# Anything that still doesn't resolve is left unmatched and reported
+# by name in the run summary (see run_seed / __main__) instead of
+# silently disappearing — that visibility is the actual fix for the
+# original bug.
+# ===========================================================================
+
+_NAME_STOPWORDS = {
+    "university", "college", "institute", "institution", "online",
+    "education", "the", "of", "and", "for", "distance", "deemed",
+    "to", "be", "technology", "science", "sciences", "academy",
+    "higher", "research", "studies",
+}
+
+# Verified abbreviation aliases. Each entry was manually confirmed
+# against the actual detail-page content — do not extend this table
+# with a guessed mapping; add a normalization/token rule instead if
+# the case is generalizable, or leave it unmatched for manual review.
+UNIVERSITY_NAME_ALIASES = {
+    "lpu online": "Lovely Professional University Online",
+    "nmims online": "NMIMS Global Access",
+    "kiit online": "Kalinga Institute of Industrial Technology (KIIT)",
+    "vistas online": "Vels Institute of Science, Technology and Advanced Studies (VISTAS)",
+
+    "bits pilani": "Birla Institute of Technology and Science, Pilani (BITS Pilani)",
+    "jagan nath university": "Jagannath University",
+    "jawaharlal nehru university": "Jawaharlal Nehru University",
+    "manipal academy of higher education online": "Manipal Academy of Higher Education",
+    "sikkim manipal university online": "Sikkim Manipal University Distance Education",
+    "university of madras online institute of distance education": "University of Madras",
+    "vit online": "Vellore Institute of Technology (VIT)",
+
+    # IIT abbreviations — detail pages use "IIT <City>" but UNIVERSITY_DEFS stores
+    # the full "Indian Institute of Technology <City>" names.  The token-subset
+    # tier cannot bridge "iit" ↔ "indian" automatically, so these are listed
+    # explicitly.  Each mapping was verified against the corresponding .md file
+    # and the UNIVERSITY_DEFS entry.
+    "iit bombay": "Indian Institute of Technology Bombay",
+    "iit guwahati": "Indian Institute of Technology Guwahati",
+    "iit kanpur": "Indian Institute of Technology Kanpur",
+    "iit roorkee": "Indian Institute of Technology Roorkee",
+
+    # BRAOU — the detail-page name includes ", formerly Andhra Pradesh Open
+    # University" after the parenthetical, which leaves extra tokens (andhra,
+    # pradesh, formerly) that cause the token-subset tier to produce two
+    # candidates (Andhra University + BRAOU) and correctly refuse to guess.
+    # This alias pins the mapping explicitly.
+    "dr b r ambedkar open university formerly andhra pradesh open university": (
+        "Dr. B.R. Ambedkar Open University"
+    ),
+
+    # JNU — the detail-page name is "Jawaharlal Nehru University (JNU), New Delhi".
+    # After normalization: "jawaharlal nehru university new delhi".
+    # The extra tokens "new" and "delhi" cause the token-subset tier to find
+    # two candidates (JNU + University of Delhi) and correctly refuse to guess.
+    # The existing alias key "jawaharlal nehru university" doesn't fire because
+    # tier 3 checks the normalized *detail* name, not the UNIVERSITY_DEFS name.
+    # NOTE: the JNU research file explicitly concludes JNU does not offer
+    # online/distance degree programmes.  The detail page is imported so JNU
+    # appears on the platform with that accurate finding; no online programme
+    # data, fees, or approval badges should be shown for this university.
+    "jawaharlal nehru university new delhi": "Jawaharlal Nehru University",
+}
+
+
+
+def _normalize_university_name(name: str) -> str:
+    """Lowercase; strip markdown bold, parentheticals, em-dash trailers
+    and punctuation; collapse whitespace."""
+    n = name.lower()
+    n = re.sub(r"\*{1,3}", "", n)
+    n = re.sub(r"\([^)]*\)", "", n)
+    n = re.sub(r"[—–].*$", "", n)
+    n = re.sub(r"[^a-z0-9\s]", " ", n)
+    n = re.sub(r"\s+", " ", n).strip()
+    return n
+
+
+def _name_tokens(normalized: str) -> set:
+    return {t for t in normalized.split() if t not in _NAME_STOPWORDS and len(t) > 2}
+
+
+def build_university_matcher(universities: dict):
+    """
+    Given the {name: University} lookup built by seed_universities(),
+    return a `resolve(detail_name) -> University | None` function that
+    applies the tiered matching strategy described above.
+    """
+    norm_index = {}       # normalized name -> University
+    token_index = {}      # University -> token set
+    for name, university in universities.items():
+        norm = _normalize_university_name(name)
+        norm_index[norm] = university
+        token_index[university] = _name_tokens(norm)
+
+    def resolve(detail_name: str):
+        if detail_name in universities:
+            return universities[detail_name]
+
+        norm = _normalize_university_name(detail_name)
+        if norm in norm_index:
+            return norm_index[norm]
+
+        if norm in UNIVERSITY_NAME_ALIASES:
+            aliased = UNIVERSITY_NAME_ALIASES[norm]
+            return universities.get(aliased)
+
+        detail_tokens = _name_tokens(norm)
+        if detail_tokens:
+            candidates = [
+                uni for uni, tok in token_index.items()
+                if tok and (detail_tokens <= tok or tok <= detail_tokens)
+            ]
+            if len(candidates) == 1:
+                return candidates[0]
+
+        return None
+
+    return resolve
 
 
 # ----------------------------------------------------------------------
@@ -831,6 +1015,19 @@ def seed_universities():
             },
         )
         universities[uni["name"]] = university
+        university.name = uni["name"]
+        university.city = uni["city"]
+        university.state = uni["state"]
+        university.country = "India"
+        university.website = uni["website"]
+        university.ranking = uni["ranking"]
+        university.accreditation = uni["accreditation"]
+        university.established_year = uni["established_year"]
+        university.description = uni["description"]
+        university.university_type = uni.get("university_type")
+        university.ownership = uni.get("ownership")
+        university.logo_url = uni.get("logo_url")
+        university.is_active = True
     return universities
 
 
@@ -860,14 +1057,22 @@ def seed_university_details(universities, detail_list):
         "wes_approved", "placement_support",
     }
 
+    resolve_university = build_university_matcher(universities)
+
     faqs_created = 0
     scholarships_created = 0
     matched = 0
+    unmatched_names = []
 
     for detail in detail_list:
-        university = universities.get(detail["name"])
+        university = resolve_university(detail["name"])
         if university is None:
-            continue  # name doesn't match a seeded university — skip rather than error
+            # Name doesn't match a seeded university under any tier of
+            # build_university_matcher() — skip rather than error, but
+            # always report it (see run_seed / __main__) so this is
+            # never a silent data loss the way it used to be.
+            unmatched_names.append(detail["name"])
+            continue
         matched += 1
 
         fields = {
@@ -922,6 +1127,7 @@ def seed_university_details(universities, detail_list):
         "universities_matched": matched,
         "faqs_created": faqs_created,
         "scholarships_created": scholarships_created,
+        "unmatched_names": unmatched_names,
     }
 
 
@@ -1038,6 +1244,7 @@ def run_seed():
         "md_errored_names":          md_errored,
         # Detail seeding stats
         "university_details_matched": details_summary["universities_matched"],
+        "university_details_unmatched_names": details_summary["unmatched_names"],
         "faqs_created":              details_summary["faqs_created"],
         "scholarships_created":      details_summary["scholarships_created"],
         # Rest
@@ -1083,6 +1290,16 @@ if __name__ == "__main__":
                 print("\n  Errored MD files:")
                 for name in summary["md_errored_names"]:
                     print(f"    ✗  {name}")
+
+            if summary["university_details_unmatched_names"]:
+                print("\n  Detail entries that didn't match any seeded university:")
+                for name in summary["university_details_unmatched_names"]:
+                    print(f"    ?  {name}")
+                print(
+                    "     (name not found in UNIVERSITY_DEFS under any matching\n"
+                    "      tier — fix the detail page's Name/heading, or add a\n"
+                    "      verified entry to UNIVERSITY_NAME_ALIASES in seed.py)"
+                )
 
             print("=" * 58 + "\n")
 

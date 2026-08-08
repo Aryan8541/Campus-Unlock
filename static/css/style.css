@@ -1,5 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
+    color-scheme: light;
     --teal: #3b82f6;
     --teal-dark: #2563eb;
     --teal-deep: #1e3a8a;
@@ -656,7 +657,8 @@
     .nav-link-auth-primary { margin-top: 2px; }
     .nav-cta { margin-top: 8px; margin-left: 0; text-align: center; justify-content: center; }
     .hamburger { display: block; }
-    .hero-inner { grid-template-columns: 1fr; gap: 44px; }
+    .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 44px; }
+    .hero-left, .hero-right-wrap { min-width: 0; }
     .hero-right-wrap { order: -1; width: 100%; max-width: 440px; margin: 0 auto; padding-top: 44px; padding-bottom: 38px; }
     .hero-illustration { display: none; }
     .hero-float-card--top { top: 0; left: 50%; right: auto; transform: translateX(-50%); }
