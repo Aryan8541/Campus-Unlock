@@ -1508,6 +1508,9 @@ def program_detail(slug):
                 .joinedload(Program.category),
             joinedload(Program.university).joinedload(University.programs)
                 .joinedload(Program.specialization),
+            joinedload(Program.university).joinedload(University.scholarships),
+            joinedload(Program.university).joinedload(University.faqs),
+            joinedload(Program.university).joinedload(University.placement_partners),
             joinedload(Program.category),
             joinedload(Program.specialization),
         )
@@ -1521,6 +1524,33 @@ def program_detail(slug):
     related_programs = _get_related_programs(program)
 
     uni_avatar = _avatar_initials(university.name) if university else ""
+    program_emoji = _PROGRAM_EMOJI.get(category.name if category else None, "🎓")
+    program_level = _CATEGORY_DEGREE_LEVEL.get(category.name) if category else None
+
+    # Program itself carries no scholarships/FAQs/placement-partners of its
+    # own (see models/program.py — no such relationships exist there).
+    # These are university-level relationships, so we surface the parent
+    # university's data here for applicant context, exactly the way
+    # university_detail() already does for the university page.
+    scholarships = []
+    faqs = []
+    placement_partners = []
+    top_recruiters = []
+    if university:
+        active_scholarships = [s for s in university.scholarships if s.is_active]
+        scholarships = [_serialize_scholarship(s) for s in active_scholarships]
+
+        active_faqs = sorted(
+            (f for f in university.faqs if f.is_active),
+            key=lambda f: (f.sort_order is None, f.sort_order, f.id),
+        )
+        faqs = [_serialize_faq(f) for f in active_faqs]
+
+        active_partners = [p for p in university.placement_partners if p.is_active]
+        placement_partners = [_serialize_placement_partner(p) for p in active_partners]
+
+        if university.top_recruiters:
+            top_recruiters = [r.strip() for r in university.top_recruiters.split(",") if r.strip()]
 
     # Phase 7C-1: has the current user saved this program?
     is_saved = False
@@ -1549,6 +1579,12 @@ def program_detail(slug):
         specialization=specialization,
         related_programs=related_programs,
         uni_avatar=uni_avatar,
+        program_emoji=program_emoji,
+        program_level=program_level,
+        scholarships=scholarships,
+        faqs=faqs,
+        placement_partners=placement_partners,
+        top_recruiters=top_recruiters,
         is_saved=is_saved,
     )
 
