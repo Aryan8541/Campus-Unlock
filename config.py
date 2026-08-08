@@ -54,6 +54,38 @@ class Config:
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
     # ------------------------------------------------------------------
+    # Email — Flask-Mail
+    # All values come from environment variables; nothing is hardcoded.
+    # For Render (production): set these in the service's Environment tab.
+    # For local dev: add them to your .env file.
+    # ------------------------------------------------------------------
+    MAIL_SERVER   = os.environ.get("MAIL_SERVER",   "smtp.gmail.com")
+    MAIL_PORT     = int(os.environ.get("MAIL_PORT",  "587"))
+    MAIL_USE_TLS  = os.environ.get("MAIL_USE_TLS",  "true").lower() == "true"
+    MAIL_USE_SSL  = os.environ.get("MAIL_USE_SSL",  "false").lower() == "true"
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = os.environ.get(
+        "MAIL_DEFAULT_SENDER",
+        os.environ.get("MAIL_USERNAME", "noreply@campusunlock.in"),
+    )
+
+    # ------------------------------------------------------------------
+    # Password reset — token lifetime and abuse protection
+    # ------------------------------------------------------------------
+    RESET_TOKEN_EXPIRY_MINUTES = int(
+        os.environ.get("RESET_TOKEN_EXPIRY_MINUTES", "30")
+    )
+    # Minimum seconds between reset requests for the same email (anti-spam).
+    RESET_COOLDOWN_SECONDS = int(
+        os.environ.get("RESET_COOLDOWN_SECONDS", "60")
+    )
+    # Public base URL for building reset links in emails.
+    # On Render: set to https://campus-unlock.onrender.com (no trailing slash)
+    # Locally: leave blank — the route falls back to request.host_url.
+    APP_BASE_URL = os.environ.get("APP_BASE_URL", "")
+
+    # ------------------------------------------------------------------
     # Flags (overridden per-environment below)
     # ------------------------------------------------------------------
     DEBUG = False

@@ -14,9 +14,14 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask
+from flask_mail import Mail
 
 from config import Config
 from models import db, migrate
+
+# Shared Mail extension instance — bound to the app via mail.init_app(app).
+# Other modules import this as:  from app import mail
+mail = Mail()
 
 
 def create_app(config_class=Config):
@@ -55,6 +60,11 @@ def create_app(config_class=Config):
     # ------------------------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
+
+    # ------------------------------------------------------------------
+    # Email (Flask-Mail)
+    # ------------------------------------------------------------------
+    mail.init_app(app)
 
     # ------------------------------------------------------------------
     # Logging

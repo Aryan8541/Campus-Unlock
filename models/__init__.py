@@ -44,3 +44,6 @@ from .history import RecentlyViewed, CompareHistory, BrochureDownload
 
 # Phase 9 — CMS & Content (homepage content + site-wide SEO key/value store)
 from .site_content import SiteContent
+
+# Password reset — single-use hashed tokens with expiry (forgot-password flow)
+from .password_reset_token import PasswordResetToken

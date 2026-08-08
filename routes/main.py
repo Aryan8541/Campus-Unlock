@@ -19,12 +19,15 @@ app.js already uses for appData.universities — so the existing
 renderResults() card template works without modification.
 """
 
+import hashlib
 import re
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
     Blueprint,
+    current_app,
     render_template,
     render_template_string,
     request,
@@ -34,11 +37,12 @@ from flask import (
     session,
     flash,
 )
+from flask_mail import Message
 
 from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import joinedload
 
-from data.mentors import MENTORS
+from data.counsellors import COUNSELLORS
 from models import (
     University,
     Program,
@@ -54,6 +58,7 @@ from models.lead import Lead
 from models.user import User
 from models.saved import SavedUniversity, SavedProgram
 from models.history import RecentlyViewed, CompareHistory, BrochureDownload
+from models.password_reset_token import PasswordResetToken
 
 main_bp = Blueprint("main", __name__)
 
@@ -921,7 +926,7 @@ def index():
         scholarships=scholarships,
         stats=stats,
         site_content=site_content,
-        mentors=MENTORS,
+        mentors=COUNSELLORS,
     )
 
 
@@ -1030,11 +1035,6 @@ def about():
 @main_bp.route("/contact")
 def contact():
     return _coming_soon("Contact")
-
-
-@main_bp.route("/forgot-password")
-def forgot_password():
-    return _coming_soon("Forgot Password")
 
 
 @main_bp.route("/programs")
@@ -1774,6 +1774,238 @@ def profile():
         return redirect(url_for("main.login", next=request.path))
 
     return render_template("profile.html")
+
+
+# ---------------------------------------------------------------------------
+# Forgot Password / Reset Password
+# ---------------------------------------------------------------------------
+# Security design:
+#   • Raw token (secrets.token_urlsafe(32)) lives ONLY in the email link
+#     and in memory for the duration of the request.
+#   • DB stores only SHA-256(raw_token) — never the token itself.
+#   • Tokens expire after RESET_TOKEN_EXPIRY_MINUTES (default 30 min).
+#   • Tokens are single-use: used_at is set on first consumption.
+#   • Generic success message on /forgot-password regardless of whether
+#     the email is registered (no account enumeration).
+#   • Per-email cooldown (RESET_COOLDOWN_SECONDS) prevents spam without
+#     requiring a new dependency — implemented via the most-recent
+#     PasswordResetToken.created_at for that user.
+#   • No role field on either form; role is preserved from the User record.
+#   • No automatic login after reset — user is redirected to /login.
+# ---------------------------------------------------------------------------
+
+def _hash_token(raw_token: str) -> str:
+    """Return the SHA-256 hex digest of a raw reset token."""
+    return hashlib.sha256(raw_token.encode()).hexdigest()
+
+
+def _send_reset_email(user, raw_token: str) -> None:
+    """
+    Build and send the password-reset email.
+
+    The full reset URL is constructed here from APP_BASE_URL (env var)
+    or, when that is blank, from request.host_url (local dev).  The raw
+    token appears only in the URL sent to the user — it is NOT logged.
+    """
+    from app import mail  # imported here to avoid circular imports
+
+    base = (current_app.config.get("APP_BASE_URL") or request.host_url.rstrip("/"))
+    reset_path = url_for("main.reset_password", token=raw_token)
+    reset_url = base + reset_path
+
+    expiry_minutes = current_app.config.get("RESET_TOKEN_EXPIRY_MINUTES", 30)
+
+    subject = "Reset your Campus Unlock password"
+    body = (
+        f"Hi {user.full_name},\n\n"
+        f"We received a request to reset the password for your Campus Unlock account "
+        f"({user.email}).\n\n"
+        f"Click the link below to set a new password. This link expires in "
+        f"{expiry_minutes} minutes and can only be used once.\n\n"
+        f"  {reset_url}\n\n"
+        f"If you did not request a password reset, please ignore this email — "
+        f"your account is safe and your password has not been changed.\n\n"
+        f"— The Campus Unlock Team"
+    )
+
+    msg = Message(subject=subject, recipients=[user.email], body=body)
+    mail.send(msg)
+
+
+@main_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """
+    Step 1: user enters their email address.
+
+    POST always returns the same generic message regardless of whether
+    the email exists — this prevents account enumeration.
+    """
+    if session.get("user_id"):
+        return redirect(url_for("main.index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+
+        # Always show the same message — do not reveal whether the account exists.
+        generic_msg = (
+            "If an account exists for this email, "
+            "we'll send you a password reset link shortly."
+        )
+
+        if EMAIL_RE.match(email):
+            user = User.query.filter_by(email=email, is_active=True).first()
+            if user:
+                cooldown_seconds = current_app.config.get("RESET_COOLDOWN_SECONDS", 60)
+                expiry_minutes = current_app.config.get("RESET_TOKEN_EXPIRY_MINUTES", 30)
+
+                # Cooldown: check the most recent token for this user.
+                recent = (
+                    PasswordResetToken.query
+                    .filter_by(user_id=user.id)
+                    .order_by(PasswordResetToken.created_at.desc())
+                    .first()
+                )
+                if recent:
+                    elapsed = (datetime.utcnow() - recent.created_at).total_seconds()
+                    if elapsed < cooldown_seconds:
+                        # Still within cooldown — return generic message without
+                        # creating a new token (silently rate-limited).
+                        flash(generic_msg, "success")
+                        return render_template("forgot_password.html")
+
+                # Invalidate any existing unused tokens for this user so old
+                # links stop working the moment a new one is requested.
+                PasswordResetToken.query.filter_by(
+                    user_id=user.id, used_at=None
+                ).delete()
+
+                # Generate token, hash it, persist only the hash.
+                raw_token = secrets.token_urlsafe(32)
+                token_hash = _hash_token(raw_token)
+                expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
+
+                reset_token = PasswordResetToken(
+                    user_id=user.id,
+                    token_hash=token_hash,
+                    expires_at=expires_at,
+                )
+                try:
+                    db.session.add(reset_token)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                    current_app.logger.exception(
+                        "forgot_password: DB error creating token for user_id=%s",
+                        user.id,
+                    )
+                    flash(generic_msg, "success")
+                    return render_template("forgot_password.html")
+
+                # Send email — if it fails, log the error but still return the
+                # generic message so as not to enumerate accounts.
+                try:
+                    _send_reset_email(user, raw_token)
+                    current_app.logger.info(
+                        "forgot_password: reset email sent to user_id=%s", user.id
+                    )
+                except Exception:
+                    current_app.logger.exception(
+                        "forgot_password: failed to send email for user_id=%s", user.id
+                    )
+
+        flash(generic_msg, "success")
+        return render_template("forgot_password.html")
+
+    return render_template("forgot_password.html")
+
+
+@main_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """
+    Step 2: user clicks the link from their email.
+
+    GET  — validate token and show the new-password form.
+    POST — validate token again, validate passwords, update hash, invalidate token.
+    """
+    if session.get("user_id"):
+        return redirect(url_for("main.index"))
+
+    # Always hash the incoming raw token before any DB lookup.
+    token_hash = _hash_token(token)
+    reset_token = PasswordResetToken.query.filter_by(token_hash=token_hash).first()
+
+    invalid_msg = (
+        "Reset link is invalid or expired. "
+        "Please request a new password reset link."
+    )
+
+    # Guard: token must exist, be unused, and not expired.
+    if not reset_token or not reset_token.is_valid:
+        flash(invalid_msg, "error")
+        return redirect(url_for("main.forgot_password"))
+
+    user = User.query.get(reset_token.user_id)
+    if not user or not user.is_active:
+        flash(invalid_msg, "error")
+        return redirect(url_for("main.forgot_password"))
+
+    if request.method == "POST":
+        # Re-validate token on POST — guards against a race between the GET
+        # and POST where a second request invalidated the token.
+        if not reset_token.is_valid:
+            flash(invalid_msg, "error")
+            return redirect(url_for("main.forgot_password"))
+
+        new_password = request.form.get("new_password") or ""
+        confirm_password = request.form.get("confirm_password") or ""
+
+        errors = []
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            errors.append(
+                f"Password must be at least {MIN_PASSWORD_LENGTH} characters long."
+            )
+        if new_password != confirm_password:
+            errors.append("Passwords do not match.")
+
+        if errors:
+            for msg in errors:
+                flash(msg, "error")
+            return render_template("reset_password.html", token=token)
+
+        # Update password using the EXISTING hashing mechanism (Werkzeug).
+        user.set_password(new_password)
+
+        # Invalidate token immediately — single-use.
+        reset_token.mark_used()
+
+        # Invalidate any live sessions for this user by rotating the session.
+        # Flask's signed-cookie sessions don't have a server-side store, so
+        # the safest approach is to clear the current session (which won't
+        # affect other users) and require a fresh login.
+        session.clear()
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception(
+                "reset_password: DB error updating password for user_id=%s", user.id
+            )
+            flash("Could not reset password. Please try again.", "error")
+            return render_template("reset_password.html", token=token)
+
+        current_app.logger.info(
+            "reset_password: password updated for user_id=%s role=%s",
+            user.id, user.role,
+        )
+
+        flash(
+            "Your password has been reset successfully. Please log in with your new password.",
+            "success",
+        )
+        return redirect(url_for("main.login"))
+
+    return render_template("reset_password.html", token=token)
 
 
 @main_bp.route("/logout", methods=["GET", "POST"])
